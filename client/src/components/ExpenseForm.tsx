@@ -31,6 +31,29 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setExpenseData(prev => ({ ...prev, [name]: value }));
+    
+    // When amount changes and we're using exact split mode, update the split details
+    if (name === 'amount' && expenseData.splitType === SplitType.EXACT && value) {
+      const totalAmount = parseFloat(value);
+      
+      if (!isNaN(totalAmount) && totalAmount > 0) {
+        const perPersonAmount = parseFloat((totalAmount / group.people.length).toFixed(2));
+        const newSplitDetails: Record<string, number> = {};
+        let distributed = 0;
+          
+        group.people.forEach((person, index) => {
+          if (index === group.people.length - 1) {
+            // Last person gets remaining amount to avoid rounding errors
+            newSplitDetails[person] = parseFloat((totalAmount - distributed).toFixed(2));
+          } else {
+            newSplitDetails[person] = perPersonAmount;
+            distributed += perPersonAmount;
+          }
+        });
+        
+        setSplitDetails(newSplitDetails);
+      }
+    }
   };
 
   const handlePaidByChange = (value: string) => {
@@ -49,15 +72,35 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
       
       if (value === SplitType.PERCENTAGE) {
         // Initialize with equal percentages
-        const equalPercentage = 100 / group.people.length;
+        const equalPercentage = parseFloat((100 / group.people.length).toFixed(2));
         group.people.forEach(person => {
           newSplitDetails[person] = equalPercentage;
         });
       } else if (value === SplitType.EXACT) {
-        // Initialize with zero amounts
-        group.people.forEach(person => {
-          newSplitDetails[person] = 0;
-        });
+        // Initialize with equal amounts if there's a current amount,
+        // otherwise initialize with zeros
+        if (expenseData.amount) {
+          const totalAmount = parseFloat(expenseData.amount);
+          const perPersonAmount = parseFloat((totalAmount / group.people.length).toFixed(2));
+          
+          // Distribute the amount evenly, adjusting the last person to account for rounding
+          let distributed = 0;
+          
+          group.people.forEach((person, index) => {
+            if (index === group.people.length - 1) {
+              // Last person gets remaining amount to avoid rounding errors
+              newSplitDetails[person] = parseFloat((totalAmount - distributed).toFixed(2));
+            } else {
+              newSplitDetails[person] = perPersonAmount;
+              distributed += perPersonAmount;
+            }
+          });
+        } else {
+          // No amount entered yet, initialize with zeros
+          group.people.forEach(person => {
+            newSplitDetails[person] = 0;
+          });
+        }
       }
       
       setSplitDetails(newSplitDetails);
