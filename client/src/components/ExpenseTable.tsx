@@ -10,10 +10,18 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Info } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
+import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 import type { Expense } from '@shared/schema';
+import { SplitType } from '@shared/schema';
 
 interface ExpenseTableProps {
   expenses: Expense[];
@@ -47,6 +55,7 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTabl
                   <TableHead>Description</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Paid By</TableHead>
+                  <TableHead>Split Type</TableHead>
                   <TableHead>Split With</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -67,6 +76,59 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTabl
                       {expense.paidBy}
                     </TableCell>
                     <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center">
+                              <Badge variant={
+                                expense.splitType === SplitType.EQUAL 
+                                  ? "default" 
+                                  : expense.splitType === SplitType.PERCENTAGE 
+                                    ? "secondary"
+                                    : "outline"
+                              }>
+                                {expense.splitType === SplitType.EQUAL 
+                                  ? "Equal"
+                                  : expense.splitType === SplitType.PERCENTAGE
+                                    ? "Percentage"
+                                    : "Exact"
+                                }
+                              </Badge>
+                              {expense.splitType !== SplitType.EQUAL && (
+                                <Info className="h-4 w-4 ml-1 opacity-60" />
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          {expense.splitType !== SplitType.EQUAL && expense.splitDetails && expense.splitDetails !== '{}' && (
+                            <TooltipContent>
+                              <div className="font-medium">Split Details</div>
+                              <div className="text-xs py-1">
+                                {(() => {
+                                  try {
+                                    const details = JSON.parse(expense.splitDetails);
+                                    return (
+                                      <ul>
+                                        {Object.entries(details).map(([person, value]) => (
+                                          <li key={person}>
+                                            {person}: {expense.splitType === SplitType.PERCENTAGE 
+                                              ? `${value}%` 
+                                              : formatCurrency(value as number)
+                                            }
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    );
+                                  } catch (e) {
+                                    return "Split details not available";
+                                  }
+                                })()}
+                              </div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
                       {expense.splitWith.join(', ')}
                     </TableCell>
                     <TableCell className="text-right">
@@ -85,7 +147,7 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTabl
               <TableFooter>
                 <TableRow>
                   <TableCell colSpan={2}>Total</TableCell>
-                  <TableCell colSpan={4} className="text-primary font-bold">
+                  <TableCell colSpan={5} className="text-primary font-bold">
                     {formatCurrency(totalExpenses)}
                   </TableCell>
                 </TableRow>

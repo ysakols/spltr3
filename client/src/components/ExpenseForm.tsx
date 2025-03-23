@@ -22,7 +22,9 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
     description: '',
     amount: '',
     paidBy: group.people[0] || '',
+    splitType: SplitType.EQUAL as string,
   });
+  const [splitDetails, setSplitDetails] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -33,6 +35,41 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
 
   const handlePaidByChange = (value: string) => {
     setExpenseData(prev => ({ ...prev, paidBy: value }));
+  };
+  
+  const handleSplitTypeChange = (value: string) => {
+    setExpenseData(prev => ({ ...prev, splitType: value }));
+    
+    // Reset split details when changing split type
+    if (value === SplitType.EQUAL) {
+      setSplitDetails({});
+    } else {
+      // Initialize split details based on the split type
+      const newSplitDetails: Record<string, number> = {};
+      
+      if (value === SplitType.PERCENTAGE) {
+        // Initialize with equal percentages
+        const equalPercentage = 100 / group.people.length;
+        group.people.forEach(person => {
+          newSplitDetails[person] = equalPercentage;
+        });
+      } else if (value === SplitType.EXACT) {
+        // Initialize with zero amounts
+        group.people.forEach(person => {
+          newSplitDetails[person] = 0;
+        });
+      }
+      
+      setSplitDetails(newSplitDetails);
+    }
+  };
+  
+  const handleSplitDetailChange = (person: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setSplitDetails(prev => ({
+      ...prev,
+      [person]: numValue
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,11 +86,46 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
     
     try {
       setLoading(true);
+      
+      // Validate split details if not using equal split
+      if (expenseData.splitType !== SplitType.EQUAL) {
+        // For percentage split, ensure percentages add up to 100%
+        if (expenseData.splitType === SplitType.PERCENTAGE) {
+          const totalPercentage = Object.values(splitDetails).reduce((sum, val) => sum + val, 0);
+          if (Math.abs(totalPercentage - 100) > 0.01) {
+            toast({
+              title: 'Error',
+              description: `Percentages must add up to 100%. Current total: ${totalPercentage.toFixed(2)}%`,
+              variant: 'destructive',
+            });
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // For exact split, ensure amounts add up to the total
+        if (expenseData.splitType === SplitType.EXACT) {
+          const totalAmount = parseFloat(expenseData.amount);
+          const splitTotal = Object.values(splitDetails).reduce((sum, val) => sum + val, 0);
+          if (Math.abs(totalAmount - splitTotal) > 0.01) {
+            toast({
+              title: 'Error',
+              description: `Split amounts must add up to the total ${formatCurrency(totalAmount)}. Current total: ${formatCurrency(splitTotal)}`,
+              variant: 'destructive',
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      }
+      
       await apiRequest('POST', `/api/groups/${group.id}/expenses`, {
         description: expenseData.description,
         amount: parseFloat(expenseData.amount),
         paidBy: expenseData.paidBy,
-        splitWith: group.people // Split with all group members by default
+        splitWith: group.people, // Split with all group members by default
+        splitType: expenseData.splitType,
+        splitDetails: JSON.stringify(splitDetails)
       });
       
       // Reset form
@@ -61,7 +133,9 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
         description: '',
         amount: '',
         paidBy: group.people[0] || '',
+        splitType: SplitType.EQUAL as string,
       });
+      setSplitDetails({});
       
       toast({
         title: 'Success',
@@ -143,7 +217,91 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
             </div>
           </div>
           
-          <Button type="submit" className="mt-4" disabled={loading}>
+          {/* Split Type Selection */}
+          <div className="mt-6">
+            <Label className="block mb-2">Split Type</Label>
+            <RadioGroup
+              value={expenseData.splitType}
+              onValueChange={handleSplitTypeChange}
+              className="flex flex-wrap gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={SplitType.EQUAL} id="equal" />
+                <Label htmlFor="equal">Equal Split</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={SplitType.PERCENTAGE} id="percentage" />
+                <Label htmlFor="percentage">Percentage Split</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={SplitType.EXACT} id="exact" />
+                <Label htmlFor="exact">Exact Amount Split</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Split Details */}
+          {expenseData.splitType !== SplitType.EQUAL && (
+            <div className="mt-4">
+              <Label className="block mb-2">
+                {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Exact Amount Allocation'}
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {group.people.map((person, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <span className="w-1/3">{person}:</span>
+                    <div className="relative flex-1">
+                      {expenseData.splitType === SplitType.PERCENTAGE && (
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 sm:text-sm">%</span>
+                        </div>
+                      )}
+                      {expenseData.splitType === SplitType.EXACT && (
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 sm:text-sm">$</span>
+                        </div>
+                      )}
+                      <Input
+                        type="number"
+                        value={splitDetails[person] || ''}
+                        onChange={(e) => handleSplitDetailChange(person, e.target.value)}
+                        step="0.01"
+                        className={expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}
+                        placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "e.g., 50" : "e.g., 12.50"}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Total display */}
+              <div className="mt-3 text-sm">
+                {expenseData.splitType === SplitType.PERCENTAGE && (
+                  <div className="flex justify-between">
+                    <span>Total Percentage:</span>
+                    <span className={`font-semibold ${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                      {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
+                      {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? ' (should be 100%)' : ''}
+                    </span>
+                  </div>
+                )}
+                
+                {expenseData.splitType === SplitType.EXACT && expenseData.amount && (
+                  <div className="flex justify-between">
+                    <span>Total Split Amount:</span>
+                    <span className={`font-semibold ${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                      {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
+                      {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 
+                        ? ` (should be ${formatCurrency(parseFloat(expenseData.amount))})` 
+                        : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <Button type="submit" className="mt-6" disabled={loading}>
             {loading ? 'Adding...' : 'Add Expense'}
           </Button>
         </form>
