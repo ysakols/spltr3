@@ -39,13 +39,18 @@ export const insertGroupSchema = createInsertSchema(groups).pick({
   people: true,
 });
 
-export const insertExpenseSchema = createInsertSchema(expenses).pick({
-  description: true,
-  amount: true,
-  paidBy: true,
-  splitWith: true,
-  groupId: true,
-});
+export const insertExpenseSchema = createInsertSchema(expenses)
+  .pick({
+    description: true,
+    amount: true,
+    paidBy: true,
+    splitWith: true,
+    groupId: true,
+  })
+  .extend({
+    // Extend the schema to coerce the amount to a string since Drizzle expects it that way
+    amount: z.coerce.string(),
+  });
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
