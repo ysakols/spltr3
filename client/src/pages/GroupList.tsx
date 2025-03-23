@@ -64,26 +64,24 @@ function GroupList() {
       ) : groups && groups.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map(group => (
-            <Link key={group.id} href={`/groups/${group.id}`}>
-              <a className="col-span-1 bg-white rounded-lg shadow-md divide-y divide-gray-200 hover:shadow-lg transition-shadow duration-200">
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">{group.name}</h3>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Active
-                    </span>
-                  </div>
-                  <div className="mt-4 flex items-center text-sm text-gray-500">
-                    <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                    <span>{group.people.length} members</span>
-                  </div>
-                  <div className="mt-2 flex items-center text-sm text-gray-500">
-                    <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                    <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
-                  </div>
+            <div key={group.id} className="col-span-1 bg-white rounded-lg shadow-md divide-y divide-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => window.location.href = `/groups/${group.id}`}>
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">{group.name}</h3>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Active
+                  </span>
                 </div>
-              </a>
-            </Link>
+                <div className="mt-4 flex items-center text-sm text-gray-500">
+                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                  <span>{group.people.length} members</span>
+                </div>
+                <div className="mt-2 flex items-center text-sm text-gray-500">
+                  <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                  <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : (

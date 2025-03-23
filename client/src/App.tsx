@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,8 +25,8 @@ function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <nav className="flex items-center space-x-4">
-              <a href="/" className="text-white hover:text-primary-100 font-medium px-3 py-2 rounded-md">Groups</a>
-              <a href="/create" className="text-white hover:text-primary-100 font-medium px-3 py-2 rounded-md">Create Group</a>
+              <Link href="/" className="text-white hover:text-primary-100 font-medium px-3 py-2 rounded-md">Groups</Link>
+              <Link href="/create" className="text-white hover:text-primary-100 font-medium px-3 py-2 rounded-md">Create Group</Link>
             </nav>
           </div>
         </div>
