@@ -218,7 +218,7 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
           </Button>
         </DialogTrigger>
         <DialogContent 
-          className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"
           aria-describedby="expense-form-description"
         >
           <DialogHeader>
@@ -229,8 +229,8 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+            <div className="flex flex-wrap gap-4 justify-between">
+              <div className="w-full md:w-auto flex-1">
                 <Label htmlFor="description">Description</Label>
                 <Input
                   id="description"
@@ -243,7 +243,7 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
                 />
               </div>
               
-              <div>
+              <div className="w-32">
                 <Label htmlFor="amount">Amount</Label>
                 <div className="mt-1 relative rounded-md">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -264,7 +264,7 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
                 </div>
               </div>
               
-              <div>
+              <div className="w-40">
                 <Label htmlFor="paidBy">Paid By</Label>
                 <Select
                   value={expenseData.paidBy}
@@ -345,7 +345,7 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
                                 value={splitDetails[person] || ''}
                                 onChange={(e) => handleSplitDetailChange(person, e.target.value)}
                                 step="0.01"
-                                className={`w-full text-right ${expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}`}
+                                className={`w-24 text-right ${expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}`}
                                 placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "50" : "12.50"}
                               />
                             </div>
