@@ -2,11 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/utils";
 import { Balance, Settlement, Group } from "@shared/schema";
 
-interface CombinedSummary {
-  settlements: Settlement[];
-  balances?: Record<string, number>;
-}
-
 // For demo purposes, we'll hardcode current user
 // This should eventually be replaced with actual auth logic
 const CURRENT_USER = "Sam";
@@ -17,58 +12,42 @@ export function BalanceSidebar() {
     queryKey: ['/api/groups'],
   });
   
-  // Balances from all groups merged into one overview
-  const { data: summaries, isLoading } = useQuery<CombinedSummary>({
-    queryKey: ['/api/groups/summaries'],
+  // For each group, fetch the summary directly
+  const allGroupSummaries = useQuery<Balance[]>({
+    queryKey: ['/api/groups/all-summaries'],
     enabled: groups.length > 0,
     queryFn: async () => {
-      if (groups.length === 0) {
-        return { settlements: [] };
-      }
+      if (groups.length === 0) return [];
       
-      // Fetch all group summaries and combine them
-      const allSettlements: Settlement[] = [];
-      const balanceMap: Record<string, number> = {};
+      // Fetch all group summaries
+      const summaries: Balance[] = [];
       
       for (const group of groups) {
         try {
           const response = await fetch(`/api/groups/${group.id}/summary`);
           const summary: Balance = await response.json();
-          
-          // Add settlements
-          if (summary.settlements && Array.isArray(summary.settlements)) {
-            summary.settlements.forEach(settlement => {
-              // Find existing settlement or create new one
-              const existingSettlementIdx = allSettlements.findIndex(
-                s => s.from === settlement.from && s.to === settlement.to
-              );
-              
-              if (existingSettlementIdx >= 0) {
-                allSettlements[existingSettlementIdx].amount += settlement.amount;
-              } else {
-                allSettlements.push({...settlement});
-              }
-              
-              // Update balance map
-              balanceMap[settlement.from] = (balanceMap[settlement.from] || 0) - settlement.amount;
-              balanceMap[settlement.to] = (balanceMap[settlement.to] || 0) + settlement.amount;
-            });
-          }
+          summaries.push(summary);
         } catch (err) {
           console.error(`Failed to fetch summary for group ${group.id}`, err);
         }
       }
       
-      return {
-        settlements: allSettlements,
-        balances: balanceMap
-      };
+      return summaries;
     }
   });
 
-  // Default to empty array if data not yet loaded
-  const settlements = summaries?.settlements || [];
-
+  // Extract the data we need
+  const isLoading = allGroupSummaries.isLoading;
+  const summaries = allGroupSummaries.data || [];
+  
+  // Combine all the settlements from all groups
+  const allSettlements: Settlement[] = [];
+  summaries.forEach(summary => {
+    if (summary.settlements) {
+      allSettlements.push(...summary.settlements);
+    }
+  });
+  
   if (isLoading) {
     return (
       <div className="p-4">
@@ -79,18 +58,72 @@ export function BalanceSidebar() {
     );
   }
 
-  // Log settlements for debugging
-  console.log("Settlements:", settlements);
+  // Log the data for debugging
+  console.log("Summaries:", JSON.stringify(summaries));
+  console.log("All settlements:", JSON.stringify(allSettlements));
   
-  // Group settlements by who owes whom
-  const peopleWhoOweMe = settlements.filter(s => s.to === CURRENT_USER);
-  const peopleIOwe = settlements.filter(s => s.from === CURRENT_USER);
+  // Extra check for settlements  
+  summaries.forEach((summary, idx) => {
+    console.log(`Summary ${idx} settlements:`, JSON.stringify(summary.settlements));
+  });
+  
+  // Group settlements by who owes whom and show them
+  const peopleWhoOweMe = [...allSettlements.filter(s => s.to === CURRENT_USER)];
+  const peopleIOwe = [...allSettlements.filter(s => s.from === CURRENT_USER)];
+  
+  console.log(`Current User is ${CURRENT_USER}`);
+  console.log(`People who owe me: ${JSON.stringify(peopleWhoOweMe)}`);
+  console.log(`People I owe: ${JSON.stringify(peopleIOwe)}`);
+  
+  // We'll also display direct balances from the balance field
+  const directBalances: {person: string, amount: number}[] = [];
+  
+  summaries.forEach(summary => {
+    if (summary.balances) {
+      // For each person in the balances, figure out who owes what to whom
+      Object.entries(summary.balances).forEach(([person, amount]) => {
+        if (person !== CURRENT_USER && amount !== 0) {
+          // If this person has a positive balance, they owe others
+          if (person === CURRENT_USER) {
+            // Skip entries for the current user
+            return;
+          }
+          
+          // For non-current users
+          if (amount > 0) {
+            // This person has a positive balance (owes money)
+            directBalances.push({ person, amount });
+          } else if (amount < 0) {
+            // This person has a negative balance (is owed money)
+            directBalances.push({ person, amount: -amount });
+          }
+        }
+      });
+      
+      // Also check the current user's balance
+      if (CURRENT_USER in summary.balances) {
+        const myBalance = summary.balances[CURRENT_USER];
+        if (myBalance < 0) {
+          // You owe money (negative balance)
+          // Find who you owe to by checking who has positive balances
+          Object.entries(summary.balances).forEach(([person, theirBalance]) => {
+            if (person !== CURRENT_USER && theirBalance > 0) {
+              // This person is owed money, you might owe them
+              directBalances.push({ person, amount: -myBalance });
+            }
+          });
+        }
+      }
+    }
+  });
+  
+  console.log("Direct balances:", directBalances);
 
   return (
     <div className="h-full p-4 overflow-y-auto">
       <h2 className="font-semibold text-lg mb-4">Balance Summary</h2>
       
-      {settlements.length === 0 ? (
+      {allSettlements.length === 0 && directBalances.length === 0 ? (
         <div className="border rounded-lg p-4 bg-card">
           <p className="text-sm text-muted-foreground">
             No settlements to display. Add expenses to see who owes you money.
@@ -110,6 +143,17 @@ export function BalanceSidebar() {
                       <span className="font-medium">{settlement.from}</span>
                       <span className="text-green-600 font-semibold">
                         {formatCurrency(settlement.amount)}
+                      </span>
+                    </div>
+                  ))
+              ) : directBalances.some(b => b.amount > 0) ? (
+                directBalances
+                  .filter(b => b.amount > 0)
+                  .map((balance, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="font-medium">{balance.person}</span>
+                      <span className="text-green-600 font-semibold">
+                        {formatCurrency(balance.amount)}
                       </span>
                     </div>
                   ))
@@ -133,6 +177,17 @@ export function BalanceSidebar() {
                       <span className="font-medium">{settlement.to}</span>
                       <span className="text-red-600 font-semibold">
                         {formatCurrency(settlement.amount)}
+                      </span>
+                    </div>
+                  ))
+              ) : directBalances.some(b => b.amount < 0) ? (
+                directBalances
+                  .filter(b => b.amount < 0)
+                  .map((balance, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="font-medium">{balance.person}</span>
+                      <span className="text-red-600 font-semibold">
+                        {formatCurrency(Math.abs(balance.amount))}
                       </span>
                     </div>
                   ))
