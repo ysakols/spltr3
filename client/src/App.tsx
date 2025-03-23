@@ -13,7 +13,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans text-foreground antialiased">
       {/* Top app bar */}
-      <header className="border-b h-16 flex items-center px-4 bg-primary text-primary-foreground shadow-sm z-10">
+      <header className="border-b h-16 flex items-center px-4 bg-background border-b shadow-sm z-10">
         <div className="md:hidden mr-2">
           <MobileSidebarTrigger />
         </div>
@@ -33,7 +33,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         </main>
         
         {/* Right sidebar - Balance summary */}
-        <div className="hidden lg:block w-72 border-l bg-muted/30 overflow-y-auto">
+        <div className="hidden md:block w-72 border-l bg-muted/10 overflow-y-auto">
           <BalanceSidebar />
         </div>
       </div>

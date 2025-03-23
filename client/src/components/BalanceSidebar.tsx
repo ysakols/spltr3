@@ -7,8 +7,9 @@ interface CombinedSummary {
   balances?: Record<string, number>;
 }
 
-// For demo purposes, we'll use "You" as the current user ID
-const CURRENT_USER = "Tom";
+// For demo purposes, we'll hardcode current user
+// This should eventually be replaced with actual auth logic
+const CURRENT_USER = "Sam";
 
 export function BalanceSidebar() {
   // Fetch all groups for the user
@@ -78,6 +79,9 @@ export function BalanceSidebar() {
     );
   }
 
+  // Log settlements for debugging
+  console.log("Settlements:", settlements);
+  
   // Group settlements by who owes whom
   const peopleWhoOweMe = settlements.filter(s => s.to === CURRENT_USER);
   const peopleIOwe = settlements.filter(s => s.from === CURRENT_USER);
