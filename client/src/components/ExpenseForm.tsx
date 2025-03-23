@@ -217,9 +217,15 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
             Add New Expense
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent 
+          className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          aria-describedby="expense-form-description"
+        >
           <DialogHeader>
             <DialogTitle>Add New Expense</DialogTitle>
+            <p id="expense-form-description" className="text-sm text-muted-foreground">
+              Enter expense details and choose how to split the cost between group members.
+            </p>
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="py-4">
@@ -304,60 +310,70 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
             {/* Split Details */}
             {expenseData.splitType !== SplitType.EQUAL && (
               <div className="mt-4">
-                <Label className="block mb-2">
+                <Label className="block mb-3">
                   {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Dollar Allocation'}
                 </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {group.people.map((person, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <span className="w-1/3">{person}:</span>
-                      <div className="relative flex-1">
-                        {expenseData.splitType === SplitType.PERCENTAGE && (
-                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span className="text-gray-500 sm:text-sm">%</span>
-                          </div>
-                        )}
-                        {expenseData.splitType === SplitType.EXACT && (
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span className="text-gray-500 sm:text-sm">$</span>
-                          </div>
-                        )}
-                        <Input
-                          type="number"
-                          value={splitDetails[person] || ''}
-                          onChange={(e) => handleSplitDetailChange(person, e.target.value)}
-                          step="0.01"
-                          className={expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}
-                          placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "e.g., 50" : "e.g., 12.50"}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
                 
-                {/* Total display */}
-                <div className="mt-3 text-sm">
-                  {expenseData.splitType === SplitType.PERCENTAGE && (
-                    <div className="flex justify-between">
-                      <span>Total Percentage:</span>
-                      <span className={`font-semibold ${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
-                        {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
-                        {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? ' (should be 100%)' : ''}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {expenseData.splitType === SplitType.EXACT && expenseData.amount && (
-                    <div className="flex justify-between">
-                      <span>Total Split Amount:</span>
-                      <span className={`font-semibold ${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
-                        {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
-                        {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 
-                          ? ` (should be ${formatCurrency(parseFloat(expenseData.amount))})` 
-                          : ''}
-                      </span>
-                    </div>
-                  )}
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-secondary text-secondary-foreground">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium">Person</th>
+                        <th className="px-4 py-2 text-right font-medium">
+                          {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage (%)' : 'Amount ($)'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {group.people.map((person, index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
+                          <td className="px-4 py-2 text-left">{person}</td>
+                          <td className="px-4 py-2">
+                            <div className="relative w-full">
+                              {expenseData.splitType === SplitType.PERCENTAGE && (
+                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                  <span className="text-gray-500 sm:text-sm">%</span>
+                                </div>
+                              )}
+                              {expenseData.splitType === SplitType.EXACT && (
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <span className="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                              )}
+                              <Input
+                                type="number"
+                                value={splitDetails[person] || ''}
+                                onChange={(e) => handleSplitDetailChange(person, e.target.value)}
+                                step="0.01"
+                                className={`w-full text-right ${expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}`}
+                                placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "50" : "12.50"}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-primary/5 font-medium">
+                        <td className="px-4 py-2 text-left">Total</td>
+                        <td className="px-4 py-2 text-right">
+                          {expenseData.splitType === SplitType.PERCENTAGE && (
+                            <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                              {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
+                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? ' (should be 100%)' : ''}
+                            </span>
+                          )}
+                          
+                          {expenseData.splitType === SplitType.EXACT && expenseData.amount && (
+                            <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                              {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
+                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 
+                                ? ` (should be ${formatCurrency(parseFloat(expenseData.amount))})` 
+                                : ''}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
