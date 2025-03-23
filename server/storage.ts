@@ -16,6 +16,7 @@ export interface IStorage {
   getExpenses(groupId: number): Promise<Expense[]>;
   getExpense(id: number): Promise<Expense | undefined>;
   createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: number, expense: InsertExpense): Promise<Expense>;
   deleteExpense(id: number): Promise<boolean>;
   
   // Summary method
@@ -118,6 +119,23 @@ export class MemStorage implements IStorage {
     };
     this.expenseStore.set(id, expense);
     return expense;
+  }
+  
+  async updateExpense(id: number, updateData: InsertExpense): Promise<Expense> {
+    const existingExpense = this.expenseStore.get(id);
+    if (!existingExpense) {
+      throw new Error(`Expense with ID ${id} not found`);
+    }
+    
+    const updatedExpense: Expense = {
+      ...existingExpense,
+      ...updateData,
+      date: existingExpense.date, // Preserve the original date
+      id: existingExpense.id // Ensure ID doesn't change
+    };
+    
+    this.expenseStore.set(id, updatedExpense);
+    return updatedExpense;
   }
   
   async deleteExpense(id: number): Promise<boolean> {

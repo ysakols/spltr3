@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit2 } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 
@@ -21,9 +21,10 @@ interface ExpenseTableProps {
   expenses: Expense[];
   totalExpenses: number;
   onExpenseDeleted: () => void;
+  onEditExpense?: (expense: Expense) => void;
 }
 
-function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTableProps) {
+function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense }: ExpenseTableProps) {
   const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
 
   const deleteExpense = async (id: number) => {
@@ -91,14 +92,26 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTabl
                       {expense.splitWith.join(', ')}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteExpense(expense.id)}
-                        className="text-red-600 hover:text-red-900 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        {onEditExpense && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEditExpense(expense)}
+                            className="text-blue-600 hover:text-blue-900 hover:bg-blue-50"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteExpense(expense.id)}
+                          className="text-red-600 hover:text-red-900 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

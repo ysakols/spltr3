@@ -148,6 +148,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: (err as Error).message });
     }
   });
+  
+  // Update an expense
+  app.put('/api/expenses/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid expense ID' });
+      }
+      
+      console.log('Received PUT request for expense:', id);
+      console.log('Request body:', req.body);
+      
+      const expense = await storage.getExpense(id);
+      if (!expense) {
+        console.error('Expense not found:', id);
+        return res.status(404).json({ message: 'Expense not found' });
+      }
+      
+      // Retain the original groupId
+      const updatedData = {
+        ...req.body,
+        groupId: expense.groupId
+      };
+      
+      const validatedData = insertExpenseSchema.safeParse(updatedData);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        console.error('Validation error:', error.message);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      console.log('Updating expense with data:', validatedData.data);
+      const updatedExpense = await storage.updateExpense(id, validatedData.data);
+      console.log('Expense updated successfully:', updatedExpense);
+      res.json(updatedExpense);
+    } catch (err) {
+      console.error('Error updating expense:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
 
   // Calculate summary
   app.get('/api/groups/:groupId/summary', async (req: Request, res: Response) => {
