@@ -328,8 +328,8 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
                       {group.people.map((person, index) => (
                         <tr key={index} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
                           <td className="px-4 py-2 text-left">{person}</td>
-                          <td className="px-4 py-2">
-                            <div className="relative w-full">
+                          <td className="px-4 py-2 text-right">
+                            <div className="relative inline-block">
                               {expenseData.splitType === SplitType.PERCENTAGE && (
                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                   <span className="text-gray-500 sm:text-sm">%</span>
