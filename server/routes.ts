@@ -49,6 +49,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: (err as Error).message });
     }
   });
+  
+  // Update a group
+  app.put('/api/groups/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+      
+      const validatedData = insertGroupSchema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      const group = await storage.getGroup(id);
+      if (!group) return res.status(404).json({ message: 'Group not found' });
+      
+      const updatedGroup = await storage.updateGroup(id, validatedData.data);
+      res.json(updatedGroup);
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
 
   // Get all expenses for a group
   app.get('/api/groups/:groupId/expenses', async (req: Request, res: Response) => {

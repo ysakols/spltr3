@@ -10,6 +10,7 @@ export interface IStorage {
   getGroups(): Promise<Group[]>;
   getGroup(id: number): Promise<Group | undefined>;
   createGroup(group: InsertGroup): Promise<Group>;
+  updateGroup(id: number, group: Partial<InsertGroup>): Promise<Group | undefined>;
   
   // Expense methods
   getExpenses(groupId: number): Promise<Expense[]>;
@@ -77,6 +78,22 @@ export class MemStorage implements IStorage {
     };
     this.groupStore.set(id, group);
     return group;
+  }
+  
+  async updateGroup(id: number, updateData: Partial<InsertGroup>): Promise<Group | undefined> {
+    const existingGroup = this.groupStore.get(id);
+    
+    if (!existingGroup) {
+      return undefined;
+    }
+    
+    const updatedGroup: Group = {
+      ...existingGroup,
+      ...updateData
+    };
+    
+    this.groupStore.set(id, updatedGroup);
+    return updatedGroup;
   }
   
   // Expense methods

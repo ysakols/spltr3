@@ -5,13 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, ArrowLeft } from 'lucide-react';
+import { Users, ArrowLeft, Edit } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import { useQueryErrorHandler } from '@/lib/hooks';
 
 import ExpenseForm from '@/components/ExpenseForm';
 import ExpenseTable from '@/components/ExpenseTable';
 import GroupSummary from '@/components/GroupSummary';
+import EditGroupForm from '@/components/EditGroupForm';
 
 import type { Group, Expense, Balance } from '@shared/schema';
 
