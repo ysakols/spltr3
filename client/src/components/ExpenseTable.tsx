@@ -76,57 +76,56 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTabl
                       {expense.paidBy}
                     </TableCell>
                     <TableCell>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center">
-                              <Badge variant={
-                                expense.splitType === SplitType.EQUAL 
-                                  ? "default" 
-                                  : expense.splitType === SplitType.PERCENTAGE 
-                                    ? "secondary"
-                                    : "outline"
-                              }>
-                                {expense.splitType === SplitType.EQUAL 
-                                  ? "Equal"
-                                  : expense.splitType === SplitType.PERCENTAGE
-                                    ? "Percentage"
-                                    : "Exact"
-                                }
-                              </Badge>
-                              {expense.splitType !== SplitType.EQUAL && (
-                                <Info className="h-4 w-4 ml-1 opacity-60" />
-                              )}
-                            </div>
-                          </TooltipTrigger>
-                          {expense.splitType !== SplitType.EQUAL && expense.splitDetails && expense.splitDetails !== '{}' && (
-                            <TooltipContent>
-                              <div className="font-medium">Split Details</div>
-                              <div className="text-xs py-1">
-                                {(() => {
-                                  try {
-                                    const details = JSON.parse(expense.splitDetails);
-                                    return (
-                                      <ul>
-                                        {Object.entries(details).map(([person, value]) => (
-                                          <li key={person}>
-                                            {person}: {expense.splitType === SplitType.PERCENTAGE 
-                                              ? `${value}%` 
-                                              : formatCurrency(value as number)
-                                            }
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    );
-                                  } catch (e) {
-                                    return "Split details not available";
-                                  }
-                                })()}
-                              </div>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="flex items-center">
+                        <Badge variant={
+                          expense.splitType === SplitType.EQUAL 
+                            ? "default" 
+                            : expense.splitType === SplitType.PERCENTAGE 
+                              ? "secondary"
+                              : "outline"
+                        }>
+                          {expense.splitType === SplitType.EQUAL 
+                            ? "Equal"
+                            : expense.splitType === SplitType.PERCENTAGE
+                              ? "Percentage"
+                              : "Exact"
+                          }
+                        </Badge>
+                        
+                        {expense.splitType !== SplitType.EQUAL && expense.splitDetails && expense.splitDetails !== '{}' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="h-4 w-4 ml-1 opacity-60 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="font-medium">Split Details</div>
+                                <div className="text-xs py-1">
+                                  {(() => {
+                                    try {
+                                      const details = JSON.parse(expense.splitDetails);
+                                      return (
+                                        <ul>
+                                          {Object.entries(details).map(([person, value]) => (
+                                            <li key={person}>
+                                              {person}: {expense.splitType === SplitType.PERCENTAGE 
+                                                ? `${value}%` 
+                                                : formatCurrency(value as number)
+                                              }
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      );
+                                    } catch (e) {
+                                      return "Split details not available";
+                                    }
+                                  })()}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {expense.splitWith.join(', ')}
