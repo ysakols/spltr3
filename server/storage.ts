@@ -1,4 +1,4 @@
-import { groups, expenses, type Group, type InsertGroup, type Expense, type InsertExpense, type Balance, type Settlement } from "@shared/schema";
+import { groups, expenses, type Group, type InsertGroup, type Expense, type InsertExpense, type Balance, type Settlement, SplitType } from "@shared/schema";
 
 export interface IStorage {
   // User methods (keeping the existing ones)
@@ -95,7 +95,9 @@ export class MemStorage implements IStorage {
     const expense: Expense = {
       ...insertExpense,
       id,
-      date: now
+      date: now,
+      splitType: (insertExpense.splitType as string) || 'equal',
+      splitDetails: insertExpense.splitDetails || '{}'
     };
     this.expenseStore.set(id, expense);
     return expense;
@@ -133,12 +135,43 @@ export class MemStorage implements IStorage {
     
     expenses.forEach(expense => {
       const amount = Number(expense.amount);
-      const splitCount = expense.splitWith.length || 1;
-      const perPersonAmount = amount / splitCount;
+      const splitType = expense.splitType;
+      let splitDetails: Record<string, number> = {};
       
-      expense.splitWith.forEach(person => {
-        owes[person] = (owes[person] || 0) + perPersonAmount;
-      });
+      try {
+        // Parse splitDetails JSON if available
+        if (expense.splitDetails && expense.splitDetails !== '{}') {
+          splitDetails = JSON.parse(expense.splitDetails);
+        }
+      } catch (error) {
+        console.error('Error parsing splitDetails:', error);
+        // Fall back to equal split if there's an error parsing
+        splitDetails = {};
+      }
+      
+      // Handle different split types
+      if (splitType === 'percentage') {
+        // Split by percentage
+        expense.splitWith.forEach(person => {
+          const percentage = splitDetails[person] || (100 / expense.splitWith.length);
+          const personAmount = (amount * percentage) / 100;
+          owes[person] = (owes[person] || 0) + personAmount;
+        });
+      } else if (splitType === 'exact') {
+        // Split by exact amounts
+        expense.splitWith.forEach(person => {
+          const exactAmount = splitDetails[person] || 0;
+          owes[person] = (owes[person] || 0) + exactAmount;
+        });
+      } else {
+        // Default: Split equally
+        const splitCount = expense.splitWith.length || 1;
+        const perPersonAmount = amount / splitCount;
+        
+        expense.splitWith.forEach(person => {
+          owes[person] = (owes[person] || 0) + perPersonAmount;
+        });
+      }
     });
     
     // Calculate net balances

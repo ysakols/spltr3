@@ -17,6 +17,13 @@ export const groups = pgTable("groups", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// Split types enum
+export enum SplitType {
+  EQUAL = 'equal',
+  PERCENTAGE = 'percentage',
+  EXACT = 'exact'
+}
+
 // Expenses table
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
@@ -24,6 +31,8 @@ export const expenses = pgTable("expenses", {
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   paidBy: text("paidBy").notNull(),
   splitWith: text("splitWith").array().notNull(),
+  splitType: text("splitType").notNull().default(SplitType.EQUAL),
+  splitDetails: text("splitDetails").notNull().default('{}'), // JSON string with split allocations
   date: timestamp("date").defaultNow().notNull(),
   groupId: integer("groupId").notNull(),
 });
@@ -46,10 +55,16 @@ export const insertExpenseSchema = createInsertSchema(expenses)
     paidBy: true,
     splitWith: true,
     groupId: true,
+    splitType: true,
+    splitDetails: true,
   })
   .extend({
     // Extend the schema to coerce the amount to a string since Drizzle expects it that way
     amount: z.coerce.string(),
+    // Make splitType optional with a default of EQUAL
+    splitType: z.nativeEnum(SplitType).default(SplitType.EQUAL).optional(),
+    // Make splitDetails optional with a default empty object
+    splitDetails: z.string().default('{}').optional(),
   });
 
 // Types
