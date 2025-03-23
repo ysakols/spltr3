@@ -16,6 +16,12 @@ export function BalanceSidebar() {
   const allGroupSummaries = useQuery<Balance[]>({
     queryKey: ['/api/groups/all-summaries'],
     enabled: groups.length > 0,
+    // Short polling interval to keep data fresh (5 seconds)
+    refetchInterval: 5000,
+    // Always refetch on window focus
+    refetchOnWindowFocus: true,
+    // Each time a group screen is opened, we want to refetch
+    staleTime: 0,
     queryFn: async () => {
       if (groups.length === 0) return [];
       

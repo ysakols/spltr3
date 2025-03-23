@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -276,6 +276,9 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           // Notify parent component
           onExpenseAdded();
         }
+        
+        // Invalidate queries to refresh the balance sidebar
+        queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
         
         // Reset form and close dialog
         resetForm();
