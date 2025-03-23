@@ -45,7 +45,11 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
 
   const handleAddPerson = () => {
     if (newPerson.trim() && !people.includes(newPerson.trim())) {
-      form.setValue('people', [...people, newPerson.trim()]);
+      form.setValue('people', [...people, newPerson.trim()], { 
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true
+      });
       setNewPerson('');
     }
   };
@@ -60,7 +64,11 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const handleRemovePerson = (index: number) => {
     const updatedPeople = [...people];
     updatedPeople.splice(index, 1);
-    form.setValue('people', updatedPeople);
+    form.setValue('people', updatedPeople, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    });
   };
 
   const onSubmit = async (data: FormValues) => {

@@ -58,18 +58,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
+      console.log('Received PUT request for group:', id);
+      console.log('Request body:', req.body);
+      
       const validatedData = insertGroupSchema.safeParse(req.body);
       if (!validatedData.success) {
         const error = fromZodError(validatedData.error);
+        console.error('Validation error:', error.message);
         return res.status(400).json({ message: error.message });
       }
       
       const group = await storage.getGroup(id);
-      if (!group) return res.status(404).json({ message: 'Group not found' });
+      if (!group) {
+        console.error('Group not found:', id);
+        return res.status(404).json({ message: 'Group not found' });
+      }
       
+      console.log('Updating group with data:', validatedData.data);
       const updatedGroup = await storage.updateGroup(id, validatedData.data);
+      console.log('Group updated successfully:', updatedGroup);
       res.json(updatedGroup);
     } catch (err) {
+      console.error('Error updating group:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
