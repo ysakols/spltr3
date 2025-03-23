@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
 
 export function useExpenseFunctions() {
@@ -9,10 +9,15 @@ export function useExpenseFunctions() {
   const handleDeleteExpense = useCallback(async (id: number, onSuccess: () => void) => {
     try {
       await apiRequest('DELETE', `/api/expenses/${id}`);
+      
+      // Invalidate all queries that might be affected by this deletion
+      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      
       toast({
         title: 'Success',
         description: 'Expense deleted successfully',
       });
+      
       onSuccess();
     } catch (error) {
       toast({
