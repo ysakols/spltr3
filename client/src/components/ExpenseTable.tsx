@@ -88,7 +88,7 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted }: ExpenseTabl
                             ? "Equal"
                             : expense.splitType === SplitType.PERCENTAGE
                               ? "Percentage"
-                              : "Exact"
+                              : "Dollar"
                           }
                         </Badge>
                         

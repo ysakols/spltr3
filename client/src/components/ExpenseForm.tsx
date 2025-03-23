@@ -278,7 +278,7 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value={SplitType.EXACT} id="exact" />
-                <Label htmlFor="exact">Exact Amount Split</Label>
+                <Label htmlFor="exact">Dollar Split</Label>
               </div>
             </RadioGroup>
           </div>
@@ -287,7 +287,7 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
           {expenseData.splitType !== SplitType.EQUAL && (
             <div className="mt-4">
               <Label className="block mb-2">
-                {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Exact Amount Allocation'}
+                {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Dollar Allocation'}
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {group.people.map((person, index) => (
