@@ -20,6 +20,7 @@ function GroupDetail() {
   const [, params] = useRoute<{ groupId: string }>('/groups/:groupId');
   const groupId = params?.groupId ? parseInt(params.groupId) : 0;
   const handleError = useQueryErrorHandler();
+  const [isEditing, setIsEditing] = useState(false);
   
   // Queries
   const { data: group, isLoading: isLoadingGroup, error: groupError } = useQuery<Group>({
@@ -45,6 +46,12 @@ function GroupDetail() {
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/expenses`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
+  };
+  
+  const handleGroupUpdated = () => {
+    setIsEditing(false);
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
+    refreshData();
   };
 
   const isLoading = isLoadingGroup || isLoadingExpenses || isLoadingSummary;
@@ -91,40 +98,63 @@ function GroupDetail() {
         </div>
       ) : group && expenses && summary ? (
         <div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">{group.name}</h2>
-            <div className="flex items-center text-sm text-gray-500">
-              <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-              <span>{group.people.length} members: {group.people.join(', ')}</span>
+          {isEditing ? (
+            <div className="mb-6">
+              <EditGroupForm 
+                group={group} 
+                onGroupUpdated={handleGroupUpdated} 
+                onCancel={() => setIsEditing(false)} 
+              />
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">{group.name}</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center text-sm text-gray-500">
+                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                  <span>{group.people.length} members: {group.people.join(', ')}</span>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-4 w-4" /> 
+                  Edit Group
+                </Button>
+              </div>
+            </div>
+          )}
 
-          <Tabs defaultValue="expenses">
-            <TabsList>
-              <TabsTrigger value="expenses">Expenses</TabsTrigger>
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="expenses">
-              <ExpenseForm 
-                group={group} 
-                onExpenseAdded={refreshData} 
-              />
+          {!isEditing && (
+            <Tabs defaultValue="expenses">
+              <TabsList>
+                <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+              </TabsList>
               
-              <ExpenseTable 
-                expenses={expenses} 
-                totalExpenses={summary.totalExpenses}
-                onExpenseDeleted={refreshData}
-              />
-            </TabsContent>
-            
-            <TabsContent value="summary">
-              <GroupSummary 
-                group={group} 
-                summary={summary} 
-              />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="expenses">
+                <ExpenseForm 
+                  group={group} 
+                  onExpenseAdded={refreshData} 
+                />
+                
+                <ExpenseTable 
+                  expenses={expenses} 
+                  totalExpenses={summary.totalExpenses}
+                  onExpenseDeleted={refreshData}
+                />
+              </TabsContent>
+              
+              <TabsContent value="summary">
+                <GroupSummary 
+                  group={group} 
+                  summary={summary} 
+                />
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       ) : (
         <div>Group not found</div>

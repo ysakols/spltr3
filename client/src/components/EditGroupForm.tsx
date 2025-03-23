@@ -66,7 +66,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
     try {
-      await apiRequest(`/api/groups/${group.id}`, 'PUT', data);
+      await apiRequest('PUT', `/api/groups/${group.id}`, data);
 
       // Invalidate the group query to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
