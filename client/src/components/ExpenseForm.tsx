@@ -259,22 +259,31 @@ function ExpenseForm({
     <div className="mb-6">
       <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) resetForm();
+        if (!isOpen && onCancelEdit && isEditing) {
+          onCancelEdit();
+        } else if (!isOpen) {
+          resetForm();
+        }
       }}>
-        <DialogTrigger asChild>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add New Expense
-          </Button>
-        </DialogTrigger>
+        {!isEditing && (
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Expense
+            </Button>
+          </DialogTrigger>
+        )}
         <DialogContent 
           className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"
           aria-describedby="expense-form-description"
         >
           <DialogHeader>
-            <DialogTitle>Add New Expense</DialogTitle>
+            <DialogTitle>{isEditing ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
             <p id="expense-form-description" className="text-sm text-muted-foreground">
-              Enter expense details and choose how to split the cost between group members.
+              {isEditing 
+                ? 'Update expense details and adjust how the cost is split between group members.'
+                : 'Enter expense details and choose how to split the cost between group members.'
+              }
             </p>
           </DialogHeader>
           
@@ -433,7 +442,10 @@ function ExpenseForm({
                 <Button type="button" variant="outline">Cancel</Button>
               </DialogClose>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Adding...' : 'Add Expense'}
+                {loading 
+                  ? (isEditing ? 'Updating...' : 'Adding...') 
+                  : (isEditing ? 'Update Expense' : 'Add Expense')
+                }
               </Button>
             </DialogFooter>
           </form>

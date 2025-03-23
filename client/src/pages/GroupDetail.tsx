@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRoute, Link } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,8 @@ function GroupDetail() {
   const groupId = params?.groupId ? parseInt(params.groupId) : 0;
   const handleError = useQueryErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
+  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  const expenseFormRef = useRef<{ setOpen: (open: boolean) => void } | null>(null);
   
   // Queries
   const { data: group, isLoading: isLoadingGroup, error: groupError } = useQuery<Group>({
@@ -52,6 +54,23 @@ function GroupDetail() {
     setIsEditing(false);
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}`] });
     refreshData();
+  };
+  
+  const handleEditExpense = (expense: Expense) => {
+    setExpenseToEdit(expense);
+    // Open the expense form dialog
+    if (expenseFormRef.current) {
+      expenseFormRef.current.setOpen(true);
+    }
+  };
+  
+  const handleExpenseEdited = () => {
+    setExpenseToEdit(null);
+    refreshData();
+  };
+  
+  const handleCancelEdit = () => {
+    setExpenseToEdit(null);
   };
 
   const isLoading = isLoadingGroup || isLoadingExpenses || isLoadingSummary;
@@ -138,8 +157,13 @@ function GroupDetail() {
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-medium">Expenses</h3>
                   <ExpenseForm 
+                    ref={expenseFormRef}
                     group={group} 
-                    onExpenseAdded={refreshData} 
+                    onExpenseAdded={refreshData}
+                    expenseToEdit={expenseToEdit || undefined}
+                    isEditing={!!expenseToEdit}
+                    onExpenseEdited={handleExpenseEdited}
+                    onCancelEdit={handleCancelEdit}
                   />
                 </div>
                 
@@ -147,6 +171,7 @@ function GroupDetail() {
                   expenses={expenses} 
                   totalExpenses={summary.totalExpenses}
                   onExpenseDeleted={refreshData}
+                  onEditExpense={handleEditExpense}
                 />
               </TabsContent>
               
