@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -22,15 +22,20 @@ interface ExpenseFormProps {
   onCancelEdit?: () => void;
 }
 
-function ExpenseForm({ 
+const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseFormProps>(({
   group, 
   onExpenseAdded,
   expenseToEdit,
   isEditing = false,
   onExpenseEdited,
   onCancelEdit
-}: ExpenseFormProps) {
+}, ref) => {
   const [open, setOpen] = useState(isEditing);
+  
+  // Expose setOpen method to parent components
+  useImperativeHandle(ref, () => ({
+    setOpen,
+  }));
   const [expenseData, setExpenseData] = useState(() => {
     if (expenseToEdit) {
       return {
@@ -454,5 +459,7 @@ function ExpenseForm({
     </div>
   );
 }
+
+});
 
 export default ExpenseForm;
