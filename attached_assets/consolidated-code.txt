@@ -1,0 +1,1002 @@
+/**
+ * EXPENSE SPLITTER APPLICATION
+ * 
+ * This file contains all the code needed for the expense splitter application.
+ * Copy the relevant sections into their respective files according to the structure below.
+ * 
+ * Project Structure:
+ * /expense-splitter
+ *   /backend
+ *     server.js
+ *     package.json
+ *   /frontend
+ *     /src
+ *       App.js
+ *       App.css
+ * 
+ * SETUP INSTRUCTIONS at the end of this file.
+ */
+
+//============================================================================
+// BACKEND CODE - Save as /backend/server.js
+//============================================================================
+
+// server.js - Simple expense splitter backend
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/expense-splitter', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected...'))
+.catch(err => console.log('MongoDB connection error:', err));
+
+// Define Schemas
+const groupSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  people: [String],
+  createdAt: { type: Date, default: Date.now }
+});
+
+const expenseSchema = new mongoose.Schema({
+  description: { type: String, required: true },
+  amount: { type: Number, required: true },
+  paidBy: { type: String, required: true },
+  splitWith: [String],
+  date: { type: Date, default: Date.now },
+  groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true }
+});
+
+// Create models
+const Group = mongoose.model('Group', groupSchema);
+const Expense = mongoose.model('Expense', expenseSchema);
+
+// Routes
+
+// Get all groups
+app.get('/api/groups', async (req, res) => {
+  try {
+    const groups = await Group.find();
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Create a new group
+app.post('/api/groups', async (req, res) => {
+  const { name, people } = req.body;
+  
+  try {
+    const newGroup = new Group({
+      name,
+      people
+    });
+    
+    const savedGroup = await newGroup.save();
+    res.status(201).json(savedGroup);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Get a specific group
+app.get('/api/groups/:id', async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all expenses for a group
+app.get('/api/groups/:groupId/expenses', async (req, res) => {
+  try {
+    const expenses = await Expense.find({ groupId: req.params.groupId });
+    res.json(expenses);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Add a new expense
+app.post('/api/groups/:groupId/expenses', async (req, res) => {
+  const { description, amount, paidBy, splitWith } = req.body;
+  
+  try {
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+    
+    const newExpense = new Expense({
+      description,
+      amount,
+      paidBy,
+      splitWith: splitWith || group.people,
+      groupId: req.params.groupId
+    });
+    
+    const savedExpense = await newExpense.save();
+    res.status(201).json(savedExpense);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Delete an expense
+app.delete('/api/expenses/:id', async (req, res) => {
+  try {
+    const expense = await Expense.findById(req.params.id);
+    if (!expense) return res.status(404).json({ message: 'Expense not found' });
+    
+    await Expense.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Expense deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Calculate summary
+app.get('/api/groups/:groupId/summary', async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+    
+    const expenses = await Expense.find({ groupId: req.params.groupId });
+    
+    // Calculate what each person paid
+    const paid = {};
+    group.people.forEach(person => {
+      paid[person] = 0;
+    });
+    
+    expenses.forEach(expense => {
+      paid[expense.paidBy] = (paid[expense.paidBy] || 0) + expense.amount;
+    });
+    
+    // Calculate what each person owes
+    const owes = {};
+    group.people.forEach(person => {
+      owes[person] = 0;
+    });
+    
+    expenses.forEach(expense => {
+      const splitCount = expense.splitWith.length || 1;
+      const perPersonAmount = expense.amount / splitCount;
+      
+      expense.splitWith.forEach(person => {
+        owes[person] = (owes[person] || 0) + perPersonAmount;
+      });
+    });
+    
+    // Calculate net balances
+    const balances = {};
+    group.people.forEach(person => {
+      balances[person] = paid[person] - owes[person];
+    });
+    
+    // Generate settlement plan
+    const settlements = generateSettlements(balances);
+    
+    res.json({
+      paid,
+      owes,
+      balances,
+      settlements,
+      totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0)
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Helper function to generate settlements
+function generateSettlements(balances) {
+  const settlements = [];
+  
+  // Identify debtors and creditors
+  const debtors = [];
+  const creditors = [];
+  
+  Object.keys(balances).forEach(person => {
+    if (balances[person] < -0.01) {
+      debtors.push({ name: person, amount: Math.abs(balances[person]) });
+    } else if (balances[person] > 0.01) {
+      creditors.push({ name: person, amount: balances[person] });
+    }
+  });
+  
+  // Sort by amount (largest first)
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+  
+  // Generate settlement plan
+  debtors.forEach(debtor => {
+    let remaining = debtor.amount;
+    
+    for (let i = 0; i < creditors.length && remaining > 0.01; i++) {
+      const creditor = creditors[i];
+      
+      if (creditor.amount > 0.01) {
+        const amount = Math.min(remaining, creditor.amount);
+        
+        settlements.push({
+          from: debtor.name,
+          to: creditor.name,
+          amount: Math.round(amount * 100) / 100
+        });
+        
+        remaining -= amount;
+        creditors[i].amount -= amount;
+      }
+    }
+  });
+  
+  return settlements;
+}
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+//============================================================================
+// BACKEND PACKAGE.JSON - Save as /backend/package.json
+//============================================================================
+
+/*
+{
+  "name": "expense-splitter-backend",
+  "version": "1.0.0",
+  "description": "Backend for the Expense Splitter application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "expense",
+    "splitter",
+    "mongodb",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+*/
+
+//============================================================================
+// FRONTEND APP.JS - Save as /frontend/src/App.js
+//============================================================================
+
+// src/App.js
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import axios from 'axios';
+import './App.css';
+
+// Set base URL for API calls
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+function App() {
+  return (
+    <Router>
+      <div className="app">
+        <header className="app-header">
+          <h1>Expense Splitter</h1>
+          <nav>
+            <Link to="/">Groups</Link>
+            <Link to="/create">Create Group</Link>
+          </nav>
+        </header>
+
+        <main className="app-content">
+          <Routes>
+            <Route path="/" element={<GroupList />} />
+            <Route path="/create" element={<CreateGroup />} />
+            <Route path="/groups/:groupId" element={<GroupDetail />} />
+          </Routes>
+        </main>
+
+        <footer className="app-footer">
+          <p>&copy; {new Date().getFullYear()} Expense Splitter</p>
+        </footer>
+      </div>
+    </Router>
+  );
+}
+
+// Group List Component
+function GroupList() {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_URL}/groups`);
+        setGroups(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError('Error loading groups');
+        setLoading(false);
+        console.error(err);
+      }
+    };
+
+    fetchGroups();
+  }, []);
+
+  if (loading) return <div className="loading">Loading groups...</div>;
+  if (error) return <div className="error">{error}</div>;
+
+  return (
+    <div className="group-list">
+      <h2>Your Expense Groups</h2>
+      
+      {groups.length === 0 ? (
+        <div className="empty-state">
+          <p>You don't have any expense groups yet.</p>
+          <Link to="/create" className="btn btn-primary">
+            Create Your First Group
+          </Link>
+        </div>
+      ) : (
+        <div className="groups-grid">
+          {groups.map(group => (
+            <Link 
+              to={`/groups/${group._id}`} 
+              className="group-card" 
+              key={group._id}
+            >
+              <h3>{group.name}</h3>
+              <p className="members">{group.people.length} members</p>
+              <p className="date">Created: {new Date(group.createdAt).toLocaleDateString()}</p>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Create Group Component
+function CreateGroup() {
+  const [groupName, setGroupName] = useState('');
+  const [people, setPeople] = useState(['', '']);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [redirect, setRedirect] = useState(false);
+  const [newGroupId, setNewGroupId] = useState(null);
+
+  const addPerson = () => {
+    setPeople([...people, '']);
+  };
+
+  const removePerson = (index) => {
+    if (people.length <= 2) {
+      return; // Don't remove if only 2 people left
+    }
+    const newPeople = [...people];
+    newPeople.splice(index, 1);
+    setPeople(newPeople);
+  };
+
+  const handlePersonChange = (index, value) => {
+    const newPeople = [...people];
+    newPeople[index] = value;
+    setPeople(newPeople);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate inputs
+    if (!groupName.trim()) {
+      setError('Group name is required');
+      return;
+    }
+    
+    const filteredPeople = people.filter(person => person.trim() !== '');
+    if (filteredPeople.length < 2) {
+      setError('At least 2 people are required');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_URL}/groups`, {
+        name: groupName,
+        people: filteredPeople
+      });
+      
+      setNewGroupId(response.data._id);
+      setRedirect(true);
+    } catch (err) {
+      setError('Error creating group');
+      setLoading(false);
+      console.error(err);
+    }
+  };
+
+  if (redirect && newGroupId) {
+    return <Navigate to={`/groups/${newGroupId}`} />;
+  }
+
+  return (
+    <div className="create-group">
+      <h2>Create a New Expense Group</h2>
+      
+      {error && <div className="error-message">{error}</div>}
+      
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="groupName">Group Name</label>
+          <input
+            type="text"
+            id="groupName"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder="e.g., Trip to Hawaii, Apartment expenses"
+            required
+          />
+        </div>
+        
+        <div className="form-group">
+          <label>People in this group</label>
+          {people.map((person, index) => (
+            <div key={index} className="person-input">
+              <input
+                type="text"
+                value={person}
+                onChange={(e) => handlePersonChange(index, e.target.value)}
+                placeholder={`Person ${index + 1}`}
+              />
+              {people.length > 2 && (
+                <button 
+                  type="button" 
+                  className="remove-btn"
+                  onClick={() => removePerson(index)}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          <button 
+            type="button" 
+            className="add-btn"
+            onClick={addPerson}
+          >
+            Add Person
+          </button>
+        </div>
+        
+        <button 
+          type="submit" 
+          className="submit-btn"
+          disabled={loading}
+        >
+          {loading ? 'Creating...' : 'Create Group'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// Group Detail Component
+function GroupDetail() {
+  const groupId = window.location.pathname.split('/').pop();
+  const [group, setGroup] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('expenses');
+  
+  // Form state for adding expenses
+  const [newExpense, setNewExpense] = useState({
+    description: '',
+    amount: '',
+    paidBy: ''
+  });
+
+  useEffect(() => {
+    const fetchGroupData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch group details
+        const groupResponse = await axios.get(`${API_URL}/groups/${groupId}`);
+        setGroup(groupResponse.data);
+        
+        // Set default paidBy to first person
+        if (groupResponse.data.people.length > 0) {
+          setNewExpense(prev => ({
+            ...prev,
+            paidBy: groupResponse.data.people[0]
+          }));
+        }
+        
+        // Fetch expenses
+        const expensesResponse = await axios.get(`${API_URL}/groups/${groupId}/expenses`);
+        setExpenses(expensesResponse.data);
+        
+        // Fetch summary
+        const summaryResponse = await axios.get(`${API_URL}/groups/${groupId}/summary`);
+        setSummary(summaryResponse.data);
+        
+        setLoading(false);
+      } catch (err) {
+        setError('Error loading group data');
+        setLoading(false);
+        console.error(err);
+      }
+    };
+
+    fetchGroupData();
+  }, [groupId]);
+
+  const addExpense = async (e) => {
+    e.preventDefault();
+    
+    if (!newExpense.description || !newExpense.amount || !newExpense.paidBy) {
+      return;
+    }
+    
+    try {
+      const response = await axios.post(`${API_URL}/groups/${groupId}/expenses`, {
+        description: newExpense.description,
+        amount: parseFloat(newExpense.amount),
+        paidBy: newExpense.paidBy,
+        splitWith: group.people // Split with all group members by default
+      });
+      
+      // Add new expense to the list
+      setExpenses([...expenses, response.data]);
+      
+      // Reset form
+      setNewExpense({
+        description: '',
+        amount: '',
+        paidBy: group.people[0]
+      });
+      
+      // Refresh summary
+      const summaryResponse = await axios.get(`${API_URL}/groups/${groupId}/summary`);
+      setSummary(summaryResponse.data);
+    } catch (err) {
+      console.error('Error adding expense:', err);
+    }
+  };
+
+  const deleteExpense = async (expenseId) => {
+    try {
+      await axios.delete(`${API_URL}/expenses/${expenseId}`);
+      
+      // Remove expense from the list
+      setExpenses(expenses.filter(expense => expense._id !== expenseId));
+      
+      // Refresh summary
+      const summaryResponse = await axios.get(`${API_URL}/groups/${groupId}/summary`);
+      setSummary(summaryResponse.data);
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
+  if (loading) return <div className="loading">Loading group details...</div>;
+  if (error) return <div className="error">{error}</div>;
+  if (!group) return <div className="error">Group not found</div>;
+
+  return (
+    <div className="group-detail">
+      <h2>{group.name}</h2>
+      
+      <div className="tabs">
+        <button 
+          className={`tab ${activeTab === 'expenses' ? 'active' : ''}`}
+          onClick={() => setActiveTab('expenses')}
+        >
+          Expenses
+        </button>
+        <button 
+          className={`tab ${activeTab === 'summary' ? 'active' : ''}`}
+          onClick={() => setActiveTab('summary')}
+        >
+          Summary
+        </button>
+      </div>
+      
+      {activeTab === 'expenses' && (
+        <div className="expenses-tab">
+          <div className="add-expense">
+            <h3>Add New Expense</h3>
+            
+            <form onSubmit={addExpense}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="description">Description</label>
+                  <input
+                    type="text"
+                    id="description"
+                    value={newExpense.description}
+                    onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
+                    placeholder="e.g., Dinner, Hotel, Gas"
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="amount">Amount</label>
+                  <input
+                    type="number"
+                    id="amount"
+                    value={newExpense.amount}
+                    onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                    placeholder="0.00"
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="paidBy">Paid By</label>
+                  <select
+                    id="paidBy"
+                    value={newExpense.paidBy}
+                    onChange={(e) => setNewExpense({...newExpense, paidBy: e.target.value})}
+                    required
+                  >
+                    <option value="">Select person</option>
+                    {group.people.map((person, index) => (
+                      <option key={index} value={person}>{person}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label>&nbsp;</label>
+                  <button type="submit" className="submit-btn">Add Expense</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          
+          <div className="expense-list">
+            <h3>Expenses</h3>
+            
+            {expenses.length === 0 ? (
+              <div className="empty-state">
+                <p>No expenses yet. Add your first expense above.</p>
+              </div>
+            ) : (
+              <table className="expense-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Paid By</th>
+                    <th>Split With</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map(expense => (
+                    <tr key={expense._id}>
+                      <td>{new Date(expense.date).toLocaleDateString()}</td>
+                      <td>{expense.description}</td>
+                      <td>{formatCurrency(expense.amount)}</td>
+                      <td>{expense.paidBy}</td>
+                      <td>{expense.splitWith.join(', ')}</td>
+                      <td>
+                        <button 
+                          className="delete-btn"
+                          onClick={() => deleteExpense(expense._id)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="2"><strong>Total</strong></td>
+                    <td colSpan="4">
+                      <strong>
+                        {formatCurrency(
+                          expenses.reduce((sum, expense) => sum + expense.amount, 0)
+                        )}
+                      </strong>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {activeTab === 'summary' && summary && (
+        <div className="summary-tab">
+          <h3>Expense Summary</h3>
+          
+          <div className="total-expenses">
+            <strong>Total Group Expenses:</strong> {formatCurrency(summary.totalExpenses)}
+          </div>
+          
+          <div className="summary-cards">
+            {group.people.map(person => (
+              <div className="summary-card" key={person}>
+                <h4>{person}</h4>
+                <div className="summary-details">
+                  <div>
+                    <span>Total Paid:</span>
+                    <span>{formatCurrency(summary.paid[person] || 0)}</span>
+                  </div>
+                  <div>
+                    <span>Total Share:</span>
+                    <span>{formatCurrency(summary.owes[person] || 0)}</span>
+                  </div>
+                  <div className={`balance ${(summary.balances[person] || 0) > 0 ? 'positive' : (summary.balances[person] || 0) < 0 ? 'negative' : ''}`}>
+                    <span>Balance:</span>
+                    <span>
+                      {formatCurrency(summary.balances[person] || 0)}
+                      {(summary.balances[person] || 0) > 0 ? ' (gets back)' : (summary.balances[person] || 0) < 0 ? ' (owes)' : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="settlements">
+            <h3>Settlement Plan</h3>
+            
+            {summary.settlements.length > 0 ? (
+              <ul className="settlement-list">
+                {summary.settlements.map((settlement, index) => (
+                  <li key={index} className="settlement-item">
+                    <strong>{settlement.from}</strong> pays <strong>{settlement.to}</strong> {formatCurrency(settlement.amount)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>All expenses are already settled!</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
+
+//============================================================================
+// FRONTEND APP.CSS - Save as /frontend/src/App.css
+//============================================================================
+
+/* App.css - Styles for the Expense Splitter app */
+
+/* General Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f5f5;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: #4a6fa5;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1, h2, h3, h4 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+/* Header */
+.app-header {
+  background-color: #4a6fa5;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  color: white;
+}
+
+.app-header nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.app-header nav a {
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem;
+}
+
+.app-header nav a:hover {
+  text-decoration: underline;
+}
+
+/* Main Content */
+.app-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Footer */
+.app-footer {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+}
+
+/* Loading and Error States */
+.loading, .error {
+  padding: 2rem;
+  text-align: center;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+/* Forms */
+form {
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.person-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.person-input input {
+  flex: 1;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: #4a6fa5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #3a5985;
+}
+
+.btn-primary {
+  background-color: #4a6fa5;
+}
+
+.submit-btn {
+  background-color: #4a6fa5;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover {
+  background-color: #3a5985;
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
