@@ -81,41 +81,37 @@ export function BalanceSidebar() {
   console.log(`People who owe me: ${JSON.stringify(peopleWhoOweMe)}`);
   console.log(`People I owe: ${JSON.stringify(peopleIOwe)}`);
   
-  // We'll also display direct balances from the balance field
-  const directBalances: {person: string, amount: number}[] = [];
+  // We'll use direct balances as a simplified approach based on settlements
+  const peopleWhoOweMeDirect: {person: string, amount: number}[] = [];
+  const peopleIOweDirect: {person: string, amount: number}[] = [];
   
+  // Process the balances data from summaries
   summaries.forEach(summary => {
     if (summary.balances) {
-      // For each person in the balances, figure out who owes what to whom
-      Object.entries(summary.balances).forEach(([person, amount]) => {
-        if (person !== CURRENT_USER && amount !== 0) {
-          // If this person has a positive balance, they owe others
-          if (person === CURRENT_USER) {
-            // Skip entries for the current user
-            return;
-          }
-          
-          // For non-current users
-          if (amount > 0) {
-            // This person has a positive balance (owes money)
-            directBalances.push({ person, amount });
-          } else if (amount < 0) {
-            // This person has a negative balance (is owed money)
-            directBalances.push({ person, amount: -amount });
-          }
-        }
-      });
-      
-      // Also check the current user's balance
+      // Check the current user's balance first
       if (CURRENT_USER in summary.balances) {
         const myBalance = summary.balances[CURRENT_USER];
+        
         if (myBalance < 0) {
-          // You owe money (negative balance)
-          // Find who you owe to by checking who has positive balances
-          Object.entries(summary.balances).forEach(([person, theirBalance]) => {
-            if (person !== CURRENT_USER && theirBalance > 0) {
-              // This person is owed money, you might owe them
-              directBalances.push({ person, amount: -myBalance });
+          // I have a negative balance, so I owe money to others
+          Object.entries(summary.balances).forEach(([person, balance]) => {
+            if (person !== CURRENT_USER && balance > 0) {
+              // This person has a positive balance, so they are owed money
+              peopleIOweDirect.push({ 
+                person, 
+                amount: Math.min(Math.abs(myBalance), balance) 
+              });
+            }
+          });
+        } else if (myBalance > 0) {
+          // I have a positive balance, so others owe me money
+          Object.entries(summary.balances).forEach(([person, balance]) => {
+            if (person !== CURRENT_USER && balance < 0) {
+              // This person has a negative balance, so they owe money
+              peopleWhoOweMeDirect.push({ 
+                person, 
+                amount: Math.min(myBalance, Math.abs(balance)) 
+              });
             }
           });
         }
@@ -123,13 +119,14 @@ export function BalanceSidebar() {
     }
   });
   
-  console.log("Direct balances:", directBalances);
+  console.log("People who owe me directly:", peopleWhoOweMeDirect);
+  console.log("People I owe directly:", peopleIOweDirect);
 
   return (
     <div className="h-full p-4 overflow-y-auto">
       <h2 className="font-semibold text-lg mb-4">Balance Summary</h2>
       
-      {allSettlements.length === 0 && directBalances.length === 0 ? (
+      {allSettlements.length === 0 && peopleWhoOweMeDirect.length === 0 && peopleIOweDirect.length === 0 ? (
         <div className="border rounded-lg p-4 bg-card">
           <p className="text-sm text-muted-foreground">
             No settlements to display. Add expenses to see who owes you money.
@@ -152,9 +149,9 @@ export function BalanceSidebar() {
                       </span>
                     </div>
                   ))
-              ) : directBalances.some(b => b.amount > 0) ? (
-                directBalances
-                  .filter(b => b.amount > 0)
+              ) : peopleWhoOweMeDirect.length > 0 ? (
+                peopleWhoOweMeDirect
+                  .sort((a, b) => b.amount - a.amount)
                   .map((balance, idx) => (
                     <div key={idx} className="flex justify-between items-center">
                       <span className="font-medium">{balance.person}</span>
@@ -186,14 +183,14 @@ export function BalanceSidebar() {
                       </span>
                     </div>
                   ))
-              ) : directBalances.some(b => b.amount < 0) ? (
-                directBalances
-                  .filter(b => b.amount < 0)
+              ) : peopleIOweDirect.length > 0 ? (
+                peopleIOweDirect
+                  .sort((a, b) => b.amount - a.amount)
                   .map((balance, idx) => (
                     <div key={idx} className="flex justify-between items-center">
                       <span className="font-medium">{balance.person}</span>
                       <span className="text-red-600 font-semibold">
-                        {formatCurrency(Math.abs(balance.amount))}
+                        {formatCurrency(balance.amount)}
                       </span>
                     </div>
                   ))
