@@ -10,23 +10,56 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-import type { Group } from '@shared/schema';
+import type { Group, Expense } from '@shared/schema';
 import { SplitType } from '@shared/schema';
 
 interface ExpenseFormProps {
   group: Group;
   onExpenseAdded: () => void;
+  expenseToEdit?: Expense;
+  isEditing?: boolean;
+  onExpenseEdited?: () => void;
+  onCancelEdit?: () => void;
 }
 
-function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
-  const [open, setOpen] = useState(false);
-  const [expenseData, setExpenseData] = useState({
-    description: '',
-    amount: '',
-    paidBy: group.people[0] || '',
-    splitType: SplitType.EQUAL as string,
+function ExpenseForm({ 
+  group, 
+  onExpenseAdded,
+  expenseToEdit,
+  isEditing = false,
+  onExpenseEdited,
+  onCancelEdit
+}: ExpenseFormProps) {
+  const [open, setOpen] = useState(isEditing);
+  const [expenseData, setExpenseData] = useState(() => {
+    if (expenseToEdit) {
+      return {
+        description: expenseToEdit.description,
+        amount: String(expenseToEdit.amount),
+        paidBy: expenseToEdit.paidBy,
+        splitType: expenseToEdit.splitType,
+      };
+    }
+    return {
+      description: '',
+      amount: '',
+      paidBy: group.people[0] || '',
+      splitType: SplitType.EQUAL as string,
+    };
   });
-  const [splitDetails, setSplitDetails] = useState<Record<string, number>>({});
+  
+  const [splitDetails, setSplitDetails] = useState<Record<string, number>>(() => {
+    if (expenseToEdit && expenseToEdit.splitDetails && expenseToEdit.splitDetails !== '{}') {
+      try {
+        return JSON.parse(expenseToEdit.splitDetails);
+      } catch (e) {
+        console.error('Error parsing split details', e);
+        return {};
+      }
+    }
+    return {};
+  });
+  
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -174,26 +207,43 @@ function ExpenseForm({ group, onExpenseAdded }: ExpenseFormProps) {
         }
       }
       
-      await apiRequest('POST', `/api/groups/${group.id}/expenses`, {
+      // Common payload for both create and update
+      const payload = {
         description: expenseData.description,
         amount: parseFloat(expenseData.amount),
         paidBy: expenseData.paidBy,
         splitWith: group.people, // Split with all group members by default
         splitType: expenseData.splitType,
         splitDetails: JSON.stringify(splitDetails)
-      });
+      };
+      
+      if (isEditing && expenseToEdit) {
+        // Update existing expense
+        await apiRequest('PUT', `/api/expenses/${expenseToEdit.id}`, payload);
+        
+        toast({
+          title: 'Success',
+          description: 'Expense updated successfully',
+        });
+        
+        // Notify parent component
+        if (onExpenseEdited) onExpenseEdited();
+      } else {
+        // Create new expense
+        await apiRequest('POST', `/api/groups/${group.id}/expenses`, payload);
+        
+        toast({
+          title: 'Success',
+          description: 'Expense added successfully',
+        });
+        
+        // Notify parent component
+        onExpenseAdded();
+      }
       
       // Reset form and close dialog
       resetForm();
       setOpen(false);
-      
-      toast({
-        title: 'Success',
-        description: 'Expense added successfully',
-      });
-      
-      // Notify parent component
-      onExpenseAdded();
     } catch (err) {
       toast({
         title: 'Error',
