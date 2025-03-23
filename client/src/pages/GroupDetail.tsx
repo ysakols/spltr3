@@ -135,10 +135,13 @@ function GroupDetail() {
               </TabsList>
               
               <TabsContent value="expenses">
-                <ExpenseForm 
-                  group={group} 
-                  onExpenseAdded={refreshData} 
-                />
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-medium">Expenses</h3>
+                  <ExpenseForm 
+                    group={group} 
+                    onExpenseAdded={refreshData} 
+                  />
+                </div>
                 
                 <ExpenseTable 
                   expenses={expenses} 
