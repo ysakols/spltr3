@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
     
     const [expenseData, setExpenseData] = useState(() => {
       if (expenseToEdit) {
+        console.log('Expense to edit:', expenseToEdit);
         return {
           description: expenseToEdit.description,
           amount: String(expenseToEdit.amount),
@@ -81,6 +82,32 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       });
       setSplitDetails({});
     };
+    
+    // Update form data when expenseToEdit changes
+    useEffect(() => {
+      if (expenseToEdit) {
+        console.log('Expense to edit changed:', expenseToEdit);
+        setExpenseData({
+          description: expenseToEdit.description,
+          amount: String(expenseToEdit.amount),
+          paidBy: expenseToEdit.paidBy,
+          splitType: expenseToEdit.splitType,
+        });
+        
+        // Update split details if they exist
+        if (expenseToEdit.splitDetails && expenseToEdit.splitDetails !== '{}') {
+          try {
+            const details = JSON.parse(expenseToEdit.splitDetails);
+            setSplitDetails(details);
+          } catch (e) {
+            console.error('Error parsing split details in useEffect', e);
+            setSplitDetails({});
+          }
+        } else {
+          setSplitDetails({});
+        }
+      }
+    }, [expenseToEdit]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
