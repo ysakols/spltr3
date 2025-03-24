@@ -65,8 +65,8 @@ function Invitation() {
       sessionStorage.setItem("pendingInvitationToken", params.token);
     }
     
-    // Redirect to login (relative path to avoid CORS issues)
-    window.location.href = "auth/google";
+    // Redirect to login (absolute path)
+    window.location.href = "/auth/google";
   };
   
   if (loading) {

@@ -8,8 +8,8 @@ function Login() {
   
   // Function to redirect to Google OAuth
   const handleGoogleLogin = () => {
-    // Use relative URL to avoid CORS issues
-    window.location.href = "auth/google";
+    // Use absolute URL to ensure correct path
+    window.location.href = "/auth/google";
   };
   
   return (
