@@ -398,6 +398,31 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                 </div>
               </div>
               
+              {/* Date Picker */}
+              <div className="mt-4">
+                <Label htmlFor="expenseDate">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-1 justify-start text-left font-normal"
+                      id="expenseDate"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {expenseDate ? format(expenseDate, 'PPP') : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={expenseDate}
+                      onSelect={setExpenseDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
               {/* Split Type Selection */}
               <div className="mt-6">
                 <Label className="block mb-2">Split Type</Label>
