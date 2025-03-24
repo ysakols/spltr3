@@ -1,52 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useQueryErrorHandler } from '@/lib/hooks';
+import { getQueryFn } from '@/lib/queryClient';
 import { Users, Calendar } from 'lucide-react';
 
 import type { Group, User } from '@shared/schema';
 
 function GroupList() {
   const handleError = useQueryErrorHandler();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [, setLocation] = useLocation();
   
   // Fetch the current user
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const userData = await response.json();
-          setCurrentUser(userData);
-        }
-      } catch (error) {
-        console.error('Failed to fetch current user:', error);
-      }
-    };
-    
-    fetchCurrentUser();
-  }, []);
+  const { data: currentUser, isLoading: isLoadingUser, error: userError } = useQuery<User | null>({
+    queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn({ 
+      on401: "returnNull" 
+    }),
+    staleTime: 60000,
+    retry: false
+  });
   
   // Fetch groups for the logged-in user only
-  const { data: groups, isLoading, error } = useQuery<Group[]>({
+  const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery<Group[]>({
     queryKey: ['/api/groups', currentUser?.id],
+    queryFn: getQueryFn({
+      on401: "returnNull"
+    }),
     staleTime: 30000,
-    enabled: !!currentUser?.id,
-    queryFn: async () => {
-      const response = await fetch(`/api/groups?userId=${currentUser?.id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch groups');
-      }
-      return response.json();
-    }
+    enabled: !!currentUser?.id
   });
-
-  if (error) {
-    handleError(error as Error);
-  }
+  
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (userError) {
+      setLocation('/login');
+    }
+  }, [userError, setLocation]);
+  
+  // Handle error for groups query
+  React.useEffect(() => {
+    if (groupsError) {
+      handleError(groupsError as Error);
+    }
+  }, [groupsError, handleError]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -70,7 +70,7 @@ function GroupList() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isLoadingUser || isLoadingGroups ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map(i => (
             <Card key={i} className="col-span-1">
