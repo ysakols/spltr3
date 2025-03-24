@@ -15,7 +15,7 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-import type { Group, Expense } from '@shared/schema';
+import type { Group, Expense, User } from '@shared/schema';
 import { SplitType } from '@shared/schema';
 
 interface ExpenseFormProps {

@@ -14,7 +14,7 @@ import ExpenseTable from '@/components/ExpenseTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
 
-import type { Group, Expense, Balance } from '@shared/schema';
+import type { Group, Expense, Balance, User } from '@shared/schema';
 
 function GroupDetail() {
   const [, params] = useRoute<{ groupId: string }>('/groups/:groupId');
@@ -30,6 +30,11 @@ function GroupDetail() {
     enabled: !!groupId,
   });
   
+  const { data: members, isLoading: isLoadingMembers, error: membersError } = useQuery<User[]>({
+    queryKey: [`/api/groups/${groupId}/members`],
+    enabled: !!groupId,
+  });
+  
   const { data: expenses, isLoading: isLoadingExpenses, error: expensesError } = useQuery<Expense[]>({
     queryKey: [`/api/groups/${groupId}/expenses`],
     enabled: !!groupId,
@@ -42,12 +47,14 @@ function GroupDetail() {
 
   // Handle errors
   if (groupError) handleError(groupError as Error);
+  if (membersError) handleError(membersError as Error);
   if (expensesError) handleError(expensesError as Error);
   if (summaryError) handleError(summaryError as Error);
 
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/expenses`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/members`] });
   };
   
   const handleGroupUpdated = () => {
@@ -73,7 +80,7 @@ function GroupDetail() {
     setExpenseToEdit(null);
   };
 
-  const isLoading = isLoadingGroup || isLoadingExpenses || isLoadingSummary;
+  const isLoading = isLoadingGroup || isLoadingExpenses || isLoadingSummary || isLoadingMembers;
 
   if (!groupId) {
     return <div>Invalid group ID</div>;
@@ -131,7 +138,7 @@ function GroupDetail() {
               <div className="flex items-center gap-2">
                 <div className="flex items-center text-xs text-gray-500">
                   <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
-                  <span>{group.people.length} members: {group.people.join(', ')}</span>
+                  <span>{members ? `${members.length} members: ${members.map(m => m.username).join(', ')}` : 'Loading members...'}</span>
                 </div>
                 <Button 
                   size="sm" 

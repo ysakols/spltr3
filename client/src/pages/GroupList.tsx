@@ -74,7 +74,7 @@ function GroupList() {
                 </div>
                 <div className="mt-4 flex items-center text-sm text-gray-500">
                   <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                  <span>{group.people.length} members</span>
+                  <span>Group Members</span>
                 </div>
                 <div className="mt-2 flex items-center text-sm text-gray-500">
                   <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
