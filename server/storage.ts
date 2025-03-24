@@ -1,18 +1,28 @@
 import { 
   groups, expenses, users, userGroups, expenseSplits, friendships,
+  contacts, groupInvitations,
   type Group, type InsertGroup, type Expense, type InsertExpense, 
   type Balance, type Settlement, SplitType, 
   type User, type InsertUser, type UserGroup, type InsertUserGroup, 
-  type ExpenseSplit, type InsertExpenseSplit, type Friendship, type InsertFriendship
+  type ExpenseSplit, type InsertExpenseSplit, type Friendship, type InsertFriendship,
+  type Contact, type InsertContact, type GroupInvitation, type InsertGroupInvitation
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray, notInArray, asc, desc } from "drizzle-orm";
+import { eq, and, inArray, notInArray, asc, desc, isNull, sql } from "drizzle-orm";
+
+// Helper function for OR conditions
+function or(...conditions: any[]) {
+  return sql`(${sql.join(conditions, sql` OR `)})`;
+}
 
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
   getUserFriends(userId: number): Promise<User[]>;
   
   // Group methods
@@ -35,6 +45,17 @@ export interface IStorage {
   // Friendship methods
   createFriendship(userId: number, friendId: number, groupId: number): Promise<Friendship>;
   
+  // Invitation methods
+  createGroupInvitation(invitation: InsertGroupInvitation): Promise<GroupInvitation>;
+  getGroupInvitationByToken(token: string): Promise<GroupInvitation | undefined>;
+  getGroupInvitationsByEmail(email: string): Promise<GroupInvitation[]>;
+  updateGroupInvitation(id: number, data: Partial<InsertGroupInvitation>): Promise<GroupInvitation | undefined>;
+  
+  // Contact methods
+  addContact(contact: InsertContact): Promise<Contact>;
+  getUserContacts(userId: number): Promise<Contact[]>;
+  updateContactInteraction(userId: number, contactUserId: number): Promise<Contact | undefined>;
+  
   // Summary method
   calculateSummary(groupId: number): Promise<Balance>;
   
@@ -54,12 +75,32 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.googleId, googleId));
+    return user;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(insertUser)
       .returning();
     return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    
+    return updatedUser;
   }
 
   async getUserFriends(userId: number): Promise<User[]> {
@@ -439,7 +480,7 @@ export class DatabaseStorage implements IStorage {
       // Delete the expense
       const result = await tx.delete(expenses).where(eq(expenses.id, id));
       
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     });
   }
 
@@ -455,6 +496,94 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return friendship;
+  }
+  
+  // Group Invitation methods
+  async createGroupInvitation(invitation: InsertGroupInvitation): Promise<GroupInvitation> {
+    const [newInvitation] = await db
+      .insert(groupInvitations)
+      .values(invitation)
+      .returning();
+    
+    return newInvitation;
+  }
+  
+  async getGroupInvitationByToken(token: string): Promise<GroupInvitation | undefined> {
+    const [invitation] = await db
+      .select()
+      .from(groupInvitations)
+      .where(eq(groupInvitations.token, token));
+    
+    return invitation;
+  }
+  
+  async getGroupInvitationsByEmail(email: string): Promise<GroupInvitation[]> {
+    return await db
+      .select()
+      .from(groupInvitations)
+      .where(eq(groupInvitations.inviteeEmail, email));
+  }
+  
+  async updateGroupInvitation(id: number, data: Partial<InsertGroupInvitation>): Promise<GroupInvitation | undefined> {
+    const [updatedInvitation] = await db
+      .update(groupInvitations)
+      .set(data)
+      .where(eq(groupInvitations.id, id))
+      .returning();
+    
+    return updatedInvitation;
+  }
+  
+  // Contact methods
+  async addContact(contact: InsertContact): Promise<Contact> {
+    const [newContact] = await db
+      .insert(contacts)
+      .values(contact)
+      .returning();
+    
+    return newContact;
+  }
+  
+  async getUserContacts(userId: number): Promise<Contact[]> {
+    return await db
+      .select()
+      .from(contacts)
+      .where(eq(contacts.userId, userId))
+      .orderBy(desc(contacts.lastInteractionAt));
+  }
+  
+  async updateContactInteraction(userId: number, contactUserId: number): Promise<Contact | undefined> {
+    // First check if contact exists
+    const [existingContact] = await db
+      .select()
+      .from(contacts)
+      .where(
+        and(
+          eq(contacts.userId, userId),
+          eq(contacts.contactUserId, contactUserId)
+        )
+      );
+    
+    if (existingContact) {
+      // Update frequency and last interaction time
+      const [updatedContact] = await db
+        .update(contacts)
+        .set({
+          frequency: existingContact.frequency + 1,
+          lastInteractionAt: new Date()
+        })
+        .where(
+          and(
+            eq(contacts.userId, userId),
+            eq(contacts.contactUserId, contactUserId)
+          )
+        )
+        .returning();
+      
+      return updatedContact;
+    }
+    
+    return undefined;
   }
 
   // Calculate summary for a group
@@ -660,14 +789,6 @@ export class DatabaseStorage implements IStorage {
     
     return settlements;
   }
-}
-
-// Required for the or() function
-function or(...exprs: any[]) {
-  return {
-    operator: 'or',
-    expressions: exprs
-  } as any;
 }
 
 export const storage = new DatabaseStorage();
