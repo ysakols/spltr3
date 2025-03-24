@@ -74,7 +74,7 @@ export function MobileSidebarTrigger() {
           <div className="px-3 py-4">
             <div className="flex items-center mb-10">
               <Logo />
-              <h1 className="ml-2 font-bold text-xl">Expense Splitter</h1>
+              <h1 className="ml-2 font-bold text-xl">spltr3</h1>
             </div>
             <NavLinks />
           </div>
@@ -106,7 +106,7 @@ export function Sidebar({ className }: SidebarProps) {
           isCollapsed && "justify-center"
         )}>
           <Logo />
-          {!isCollapsed && <h1 className="ml-2 font-bold text-xl">Expense Splitter</h1>}
+          {!isCollapsed && <h1 className="ml-2 font-bold text-xl">spltr3</h1>}
         </div>
         
         <NavLinks isCollapsed={isCollapsed} />

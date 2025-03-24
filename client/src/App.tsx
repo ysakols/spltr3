@@ -17,7 +17,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="md:hidden mr-2">
           <MobileSidebarTrigger />
         </div>
-        <h1 className="font-bold text-xl mx-auto">Expense Splitter</h1>
+        <h1 className="font-bold text-xl mx-auto">spltr3</h1>
       </header>
       
       {/* Main content with sidebars */}
@@ -41,7 +41,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       <footer className="border-t py-4">
         <div className="container mx-auto px-4">
           <p className="text-center text-muted-foreground text-sm">
-            &copy; {new Date().getFullYear()} Expense Splitter. All rights reserved.
+            &copy; {new Date().getFullYear()} spltr3. All rights reserved.
           </p>
         </div>
       </footer>
