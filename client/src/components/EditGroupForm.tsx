@@ -15,9 +15,11 @@ import { X, Plus } from 'lucide-react';
 import type { Group, User } from '@shared/schema';
 import { insertGroupSchema } from '@shared/schema';
 
-// We don't need people array in the schema anymore, it's managed separately via members
+// Updated schema for the form with name and description
 const editGroupSchema = insertGroupSchema.extend({
-  description: z.string().nullable().optional()
+  description: z.string().nullable().optional(),
+  // We're only including name and description in the schema
+  // since members are handled separately via API calls
 });
 
 type FormValues = z.infer<typeof editGroupSchema>;
@@ -30,7 +32,7 @@ interface EditGroupFormProps {
 
 function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) {
   const [loading, setLoading] = useState(false);
-  const [newPerson, setNewPerson] = useState('');
+  const [newMember, setNewMember] = useState('');
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -39,16 +41,6 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
     queryKey: [`/api/groups/${group.id}/members`]
   });
   
-  // We'll manage the members separately instead of in the form
-  const [currentMembers, setCurrentMembers] = useState<User[]>([]);
-  
-  // Update members when the data is fetched
-  useEffect(() => {
-    if (members.length > 0) {
-      setCurrentMembers(members);
-    }
-  }, [members]);
-
   const form = useForm<FormValues>({
     resolver: zodResolver(editGroupSchema),
     defaultValues: {
@@ -56,104 +48,75 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
       description: group.description
     }
   });
-
-  // Search for users to add to the group
-  const [searchResults, setSearchResults] = useState<User[]>([]);
   
-  // This would be replaced with an actual API call in a real implementation
-  const handleSearchUsers = async () => {
-    if (newPerson.trim().length < 2) return;
+  const handleAddMember = () => {
+    if (!newMember.trim()) return;
     
-    try {
-      // For now, we'll just add a dummy user since we don't have a user search API
-      // In a real app, this would make an API call like:
-      // const response = await apiRequest('GET', `/api/users/search?q=${newPerson}`);
-      // const users = await response.json();
-      // setSearchResults(users.filter(user => !currentMembers.some(m => m.id === user.id)));
-      
-      // For demo purposes, let's use a dummy user
-      setSearchResults([{ 
-        id: 999, 
-        username: newPerson.trim(),
-        password: '',
-        createdAt: new Date(),
-        email: null,
-        displayName: null,
-        avatarUrl: null
-      }]);
-    } catch (error) {
-      console.error('Error searching for users:', error);
-    }
+    // Create a simple user object with the entered name
+    // This simulates the user creation without needing a search feature
+    const tempUser = {
+      id: Date.now(), // Temporary ID for our UI only
+      username: newMember.trim()
+    };
+    
+    // We'll post this username to create a new user and add them to the group
+    apiRequest('POST', `/api/groups/${group.id}/members`, { username: newMember.trim() })
+      .then(() => {
+        // Refresh the member list
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
+        
+        toast({
+          title: 'Member added',
+          description: `${newMember.trim()} has been added to the group.`
+        });
+        
+        // Clear the input
+        setNewMember('');
+      })
+      .catch((error) => {
+        console.error('Error adding member:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to add member to the group.',
+          variant: 'destructive'
+        });
+      });
   };
   
-  const handleAddMember = async (user: User) => {
-    try {
-      // Add the user to the group through the API
-      await apiRequest('POST', `/api/groups/${group.id}/members`, { userId: user.id });
-      
-      // Add to local state
-      setCurrentMembers([...currentMembers, user]);
-      
-      // Clear search
-      setNewPerson('');
-      setSearchResults([]);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
-      
-      toast({
-        title: 'Member added',
-        description: `${user.username} has been added to the group.`
+  const handleRemoveMember = (user: User) => {
+    apiRequest('DELETE', `/api/groups/${group.id}/members/${user.id}`)
+      .then(() => {
+        // Refresh the member list
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
+        
+        toast({
+          title: 'Member removed',
+          description: `${user.username} has been removed from the group.`
+        });
+      })
+      .catch((error) => {
+        console.error('Error removing member:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to remove member from the group.',
+          variant: 'destructive'
+        });
       });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to add member to group.',
-        variant: 'destructive'
-      });
-    }
-  };
-  
-  const handleRemoveMember = async (user: User) => {
-    try {
-      // Remove the user from the group through the API
-      await apiRequest('DELETE', `/api/groups/${group.id}/members/${user.id}`);
-      
-      // Remove from local state
-      setCurrentMembers(currentMembers.filter(m => m.id !== user.id));
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
-      
-      toast({
-        title: 'Member removed',
-        description: `${user.username} has been removed from the group.`
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove member from group.',
-        variant: 'destructive'
-      });
-    }
   };
   
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSearchUsers();
+      handleAddMember();
     }
   };
 
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
     try {
-      console.log('Editing group with data:', data);
-      console.log('Group ID:', group.id);
       const response = await apiRequest('PUT', `/api/groups/${group.id}`, data);
       const updatedGroup = await response.json();
-      console.log('Updated group response:', updatedGroup);
-
+      
       // Invalidate the group query to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}`] });
@@ -201,59 +164,38 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
             
             <div className="flex space-x-2 mb-2">
               <Input
-                placeholder="Search for user to add"
-                value={newPerson}
-                onChange={(e) => setNewPerson(e.target.value)}
+                placeholder="Add a member"
+                value={newMember}
+                onChange={(e) => setNewMember(e.target.value)}
                 onKeyDown={handleKeyPress}
                 className="flex-1"
               />
               <Button 
                 type="button" 
-                onClick={handleSearchUsers} 
-                disabled={!newPerson.trim() || newPerson.trim().length < 2}
+                onClick={handleAddMember} 
+                disabled={!newMember.trim()}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Search
+                Add
               </Button>
             </div>
-            
-            {/* Search results */}
-            {searchResults.length > 0 && (
-              <div className="mb-4 p-2 border rounded-md">
-                <p className="text-xs font-medium mb-2">Search Results:</p>
-                <div className="flex flex-wrap gap-2">
-                  {searchResults.map((user) => (
-                    <div 
-                      key={user.id} 
-                      className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center cursor-pointer hover:bg-blue-200"
-                      onClick={() => handleAddMember(user)}
-                    >
-                      <span>{user.username}</span>
-                      <span className="ml-2 text-blue-800">
-                        <Plus className="h-3 w-3" />
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             
             {/* Current members */}
             <div className="mt-4">
               <p className="text-xs font-medium mb-2">Current Members:</p>
-              {currentMembers.length === 0 ? (
+              {members.length === 0 ? (
                 <p className="text-sm text-gray-500">No members yet</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {currentMembers.map((user) => (
+                  {members.map((member) => (
                     <div 
-                      key={user.id} 
+                      key={member.id} 
                       className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
                     >
-                      <span>{user.username}</span>
+                      <span>{member.username}</span>
                       <button 
                         type="button" 
-                        onClick={() => handleRemoveMember(user)}
+                        onClick={() => handleRemoveMember(member)}
                         className="ml-2 text-gray-600 hover:text-gray-900"
                       >
                         <X className="h-3 w-3" />

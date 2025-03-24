@@ -172,9 +172,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
-      // Validate request body
+      // Validate request body - can accept either userId or username
       const schema = z.object({
-        userId: z.number()
+        userId: z.number().optional(),
+        username: z.string().optional()
+      }).refine(data => data.userId !== undefined || data.username !== undefined, {
+        message: "Either userId or username must be provided"
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -183,10 +186,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const { userId } = validatedData.data;
+      const { userId, username } = validatedData.data;
+      
+      // If we have a username but not a userId, try to find the user or create one
+      let actualUserId = userId;
+      
+      if (!actualUserId && username) {
+        // Check if user exists
+        let user = await storage.getUserByUsername(username);
+        
+        // If user doesn't exist, create them
+        if (!user) {
+          user = await storage.createUser({
+            username,
+            password: '', // Empty password for simplicity
+            email: null,
+            displayName: null,
+            avatarUrl: null
+          });
+        }
+        
+        actualUserId = user.id;
+      }
+      
+      if (!actualUserId) {
+        return res.status(400).json({ message: 'Invalid user information' });
+      }
       
       // Add user to group
-      const userGroup = await storage.addUserToGroup(groupId, userId);
+      const userGroup = await storage.addUserToGroup(groupId, actualUserId);
       
       res.status(201).json(userGroup);
     } catch (err) {
