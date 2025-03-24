@@ -50,21 +50,14 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AuthRouter() {
-  return (
-    <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/invitation/:token" component={Invitation} />
-    </Switch>
-  );
-}
-
-function MainRouter() {
+function Router() {
   return (
     <Switch>
       <Route path="/" component={GroupList} />
       <Route path="/create" component={CreateGroup} />
       <Route path="/groups/:groupId" component={GroupDetail} />
+      <Route path="/login" component={Login} />
+      <Route path="/invitation/:token" component={Invitation} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -110,11 +103,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       {isAuthRoute ? (
         // Authentication routes (no layout)
-        <AuthRouter />
+        <Router />
       ) : (
         // Main app with layout
         <Layout>
-          <MainRouter />
+          <Router />
         </Layout>
       )}
       <Toaster />
