@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,6 +33,8 @@ interface EditGroupFormProps {
 function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) {
   const [loading, setLoading] = useState(false);
   const [newMember, setNewMember] = useState('');
+  const [nameInput, setNameInput] = useState(group.name);
+  const [descriptionInput, setDescriptionInput] = useState(group.description || '');
   const [membersChanged, setMembersChanged] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -42,14 +44,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
     queryKey: [`/api/groups/${group.id}/members`]
   });
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(editGroupSchema),
-    defaultValues: {
-      name: group.name,
-      description: group.description
-    }
-  });
-  
+  // Manual form handling instead of using react-hook-form
   const handleAddMember = () => {
     if (!newMember.trim()) return;
     
@@ -111,19 +106,45 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
     }
   };
 
-  const onSubmit = async (data: FormValues) => {
+  // Directly save changes without using react-hook-form
+  const handleSaveChanges = async () => {
     setLoading(true);
-    console.log('Submitting form with data:', data, 'Group ID:', group.id);
     
     try {
       // Force proper form validation before submission
-      if (!data.name || data.name.trim() === '') {
-        throw new Error('Group name is required');
+      if (!nameInput || nameInput.trim() === '') {
+        toast({
+          title: 'Error',
+          description: 'Group name is required',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
       }
       
-      console.log('Sending PUT request to', `/api/groups/${group.id}`);
-      const response = await apiRequest('PUT', `/api/groups/${group.id}`, data);
-      console.log('Response received:', response);
+      console.log('Saving changes for group:', group.id);
+      console.log('New name:', nameInput);
+      console.log('New description:', descriptionInput);
+      
+      // Create data object for API
+      const updateData = {
+        name: nameInput.trim(),
+        description: descriptionInput.trim() || null
+      };
+      
+      console.log('Sending PUT request with data:', updateData);
+      
+      // Use fetch directly instead of apiRequest
+      const response = await fetch(`/api/groups/${group.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} ${errorText}`);
+      }
       
       const updatedGroup = await response.json();
       console.log('Group updated successfully:', updatedGroup);
@@ -137,7 +158,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
       
       toast({
         title: 'Group updated',
-        description: `Group "${data.name}" has been updated.`,
+        description: `Group "${nameInput}" has been updated.`,
       });
       
       // Close the dialog by calling the onGroupUpdated callback
@@ -154,8 +175,11 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
     }
   };
   
-  // Helper function to check if form has any changes
-  const hasChanges = form.formState.isDirty || membersChanged;
+  // Check if there are any changes to enable the save button
+  const hasChanges = 
+    nameInput !== group.name || 
+    descriptionInput !== (group.description || '') || 
+    membersChanged;
 
   return (
     <Card>
@@ -163,21 +187,30 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
         <CardTitle>Edit Group</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="space-y-4">
           <div className="mb-4">
             <Label htmlFor="name" className="block mb-2">Group Name</Label>
             <Input
               id="name"
-              {...form.register('name')}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
               placeholder="e.g., Roommates"
               className="w-full"
             />
-            {form.formState.errors.name && (
-              <p className="text-red-500 text-sm mt-1">{form.formState.errors.name.message}</p>
-            )}
           </div>
 
           <div className="mb-6">
+            <Label htmlFor="description" className="block mb-2">Description</Label>
+            <Input
+              id="description"
+              value={descriptionInput}
+              onChange={(e) => setDescriptionInput(e.target.value)}
+              placeholder="Optional description"
+              className="w-full"
+            />
+          </div>
+
+          <div>
             <Label className="block mb-2">Group Members</Label>
             
             <div className="flex space-x-2 mb-2">
@@ -225,7 +258,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4">
             <Button 
               type="button" 
               variant="outline" 
@@ -236,15 +269,12 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
             <Button 
               type="button" 
               disabled={loading || !hasChanges}
-              onClick={() => {
-                console.log('Save button clicked manually');
-                form.handleSubmit(onSubmit)();
-              }}
+              onClick={handleSaveChanges}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
-        </form>
+        </div>
       </CardContent>
     </Card>
   );
