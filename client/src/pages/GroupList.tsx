@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,14 +7,41 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQueryErrorHandler } from '@/lib/hooks';
 import { Users, Calendar } from 'lucide-react';
 
-import type { Group } from '@shared/schema';
+import type { Group, User } from '@shared/schema';
 
 function GroupList() {
   const handleError = useQueryErrorHandler();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
+  // Fetch the current user
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUser(userData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
+  
+  // Fetch groups for the logged-in user only
   const { data: groups, isLoading, error } = useQuery<Group[]>({
-    queryKey: ['/api/groups'],
+    queryKey: ['/api/groups', currentUser?.id],
     staleTime: 30000,
+    enabled: !!currentUser?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/groups?userId=${currentUser?.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch groups');
+      }
+      return response.json();
+    }
   });
 
   if (error) {
