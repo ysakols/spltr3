@@ -33,22 +33,22 @@ const Logo = () => (
 
 // Navigation Links Component
 const NavLinks = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
-  <div className="space-y-1">
+  <div className="space-y-0.5">
     <Link href="/">
-      <Button variant="ghost" className={cn(
-        "w-full justify-start",
-        isCollapsed && "justify-center px-2"
+      <Button variant="ghost" size="sm" className={cn(
+        "w-full justify-start text-sm py-1.5",
+        isCollapsed && "justify-center px-1.5"
       )}>
-        <List className={cn("h-5 w-5", !isCollapsed && "mr-2")} />
+        <List className={cn("h-4 w-4", !isCollapsed && "mr-1.5")} />
         {!isCollapsed && <span>Groups</span>}
       </Button>
     </Link>
     <Link href="/create">
-      <Button variant="ghost" className={cn(
-        "w-full justify-start",
-        isCollapsed && "justify-center px-2"
+      <Button variant="ghost" size="sm" className={cn(
+        "w-full justify-start text-sm py-1.5",
+        isCollapsed && "justify-center px-1.5"
       )}>
-        <PlusCircle className={cn("h-5 w-5", !isCollapsed && "mr-2")} />
+        <PlusCircle className={cn("h-4 w-4", !isCollapsed && "mr-1.5")} />
         {!isCollapsed && <span>Create Group</span>}
       </Button>
     </Link>
@@ -69,12 +69,12 @@ export function MobileSidebarTrigger() {
           <Menu className="h-5 w-5 text-primary" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[240px] sm:w-[280px] p-0">
+      <SheetContent side="left" className="w-[200px] sm:w-[220px] p-0">
         <nav className="h-full flex flex-col bg-muted/40">
-          <div className="px-3 py-6">
-            <div className="flex items-center mb-12">
+          <div className="px-3 py-4">
+            <div className="flex items-center mb-6">
               <Logo />
-              <h1 className="ml-2 font-bold text-2xl bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
+              <h1 className="ml-2 font-bold text-lg bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
             </div>
             <NavLinks />
           </div>
@@ -96,17 +96,17 @@ export function Sidebar({ className }: SidebarProps) {
     <div 
       className={cn(
         "hidden md:flex flex-col h-screen bg-muted/40 border-r transition-all duration-300",
-        isCollapsed ? "w-[60px]" : "w-[240px]",
+        isCollapsed ? "w-[50px]" : "w-[200px]",
         className
       )}
     >
-      <div className="px-3 py-6 flex-1">
+      <div className="px-2 py-4 flex-1">
         <div className={cn(
-          "flex items-center mb-12",
+          "flex items-center mb-6",
           isCollapsed && "justify-center"
         )}>
           <Logo />
-          {!isCollapsed && <h1 className="ml-2 font-bold text-2xl bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
+          {!isCollapsed && <h1 className="ml-2 font-bold text-lg bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
         </div>
         
         <NavLinks isCollapsed={isCollapsed} />

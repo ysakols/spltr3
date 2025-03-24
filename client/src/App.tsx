@@ -31,7 +31,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         </main>
         
         {/* Right sidebar - Balance summary */}
-        <div className="hidden md:block w-72 border-l bg-muted/10 overflow-y-auto">
+        <div className="hidden md:block w-60 border-l bg-muted/10 overflow-y-auto">
           <BalanceSidebar />
         </div>
       </div>

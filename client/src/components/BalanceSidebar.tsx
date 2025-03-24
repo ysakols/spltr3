@@ -123,28 +123,28 @@ export function BalanceSidebar() {
   console.log("People I owe directly:", peopleIOweDirect);
 
   return (
-    <div className="h-full p-4 overflow-y-auto">
-      <h2 className="font-semibold text-lg mb-4">Balance Summary</h2>
+    <div className="h-full p-2.5 overflow-y-auto text-sm">
+      <h2 className="font-semibold mb-3 text-base">Balance Summary</h2>
       
       {allSettlements.length === 0 && peopleWhoOweMeDirect.length === 0 && peopleIOweDirect.length === 0 ? (
-        <div className="border rounded-lg p-4 bg-card">
-          <p className="text-sm text-muted-foreground">
+        <div className="border rounded-lg p-2.5 bg-card">
+          <p className="text-xs text-muted-foreground">
             No settlements to display. Add expenses to see who owes you money.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* People who owe you */}
-          <div className="border rounded-lg p-4 bg-card">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">People who owe you</h3>
-            <div className="space-y-2">
+          <div className="border rounded-lg p-2.5 bg-card">
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">People who owe you</h3>
+            <div className="space-y-1.5">
               {peopleWhoOweMe.length > 0 ? (
                 peopleWhoOweMe
                   .sort((a, b) => b.amount - a.amount)
                   .map((settlement, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="font-medium">{settlement.from}</span>
-                      <span className="text-green-600 font-semibold">
+                      <span className="font-medium text-sm">{settlement.from}</span>
+                      <span className="text-green-600 font-semibold text-sm">
                         {formatCurrency(settlement.amount)}
                       </span>
                     </div>
@@ -154,14 +154,14 @@ export function BalanceSidebar() {
                   .sort((a, b) => b.amount - a.amount)
                   .map((balance, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="font-medium">{balance.person}</span>
-                      <span className="text-green-600 font-semibold">
+                      <span className="font-medium text-sm">{balance.person}</span>
+                      <span className="text-green-600 font-semibold text-sm">
                         {formatCurrency(balance.amount)}
                       </span>
                     </div>
                   ))
               ) : (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   Nobody owes you money at the moment.
                 </div>
               )}
@@ -169,16 +169,16 @@ export function BalanceSidebar() {
           </div>
           
           {/* People you owe */}
-          <div className="border rounded-lg p-4 bg-card">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">You owe</h3>
-            <div className="space-y-2">
+          <div className="border rounded-lg p-2.5 bg-card">
+            <h3 className="text-xs font-medium text-muted-foreground mb-1.5">You owe</h3>
+            <div className="space-y-1.5">
               {peopleIOwe.length > 0 ? (
                 peopleIOwe
                   .sort((a, b) => b.amount - a.amount)
                   .map((settlement, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="font-medium">{settlement.to}</span>
-                      <span className="text-red-600 font-semibold">
+                      <span className="font-medium text-sm">{settlement.to}</span>
+                      <span className="text-red-600 font-semibold text-sm">
                         {formatCurrency(settlement.amount)}
                       </span>
                     </div>
@@ -188,14 +188,14 @@ export function BalanceSidebar() {
                   .sort((a, b) => b.amount - a.amount)
                   .map((balance, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="font-medium">{balance.person}</span>
-                      <span className="text-red-600 font-semibold">
+                      <span className="font-medium text-sm">{balance.person}</span>
+                      <span className="text-red-600 font-semibold text-sm">
                         {formatCurrency(balance.amount)}
                       </span>
                     </div>
                   ))
               ) : (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   You don't owe anyone money at the moment.
                 </div>
               )}
