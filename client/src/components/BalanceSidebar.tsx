@@ -103,11 +103,11 @@ export function BalanceSidebar() {
                 <h3 className="text-xs font-medium">Total Across All Groups</h3>
                 <p className="text-xs text-muted-foreground">
                   {peopleWhoOweMe.length > 0 ? 
-                    `${peopleWhoOweMe.length} people owe you` : 
+                    `${peopleWhoOweMe.length} ${peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you` : 
                     "Nobody owes you"}
                   {peopleIOwe.length > 0 ? 
-                    `${peopleWhoOweMe.length > 0 ? ', ' : ''}You owe ${peopleIOwe.length} people` : 
-                    peopleWhoOweMe.length === 0 ? ", and you don't owe anyone" : ""}
+                    `${peopleWhoOweMe.length > 0 ? '. ' : ''}You owe ${peopleIOwe.length} ${peopleIOwe.length === 1 ? 'person' : 'people'}` : 
+                    peopleWhoOweMe.length === 0 ? " and you don't owe anyone" : ""}
                 </p>
               </div>
             </div>
