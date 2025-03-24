@@ -101,26 +101,18 @@ function GroupDetail() {
         <div>
           <Skeleton className="h-6 w-1/3 mb-3" />
           <Skeleton className="h-4 w-1/2 mb-4" />
-          <Tabs defaultValue="expenses">
-            <TabsList className="h-7">
-              <TabsTrigger value="expenses" className="text-xs h-6 px-2">Expenses</TabsTrigger>
-              <TabsTrigger value="summary" className="text-xs h-6 px-2">Summary</TabsTrigger>
-            </TabsList>
-            <TabsContent value="expenses">
-              <Card className="mb-3 shadow-sm">
-                <CardHeader className="p-2">
-                  <Skeleton className="h-4 w-1/4" />
-                </CardHeader>
-                <CardContent className="p-2">
-                  <div className="space-y-2">
-                    <Skeleton className="h-7 w-full" />
-                    <Skeleton className="h-7 w-full" />
-                    <Skeleton className="h-7 w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <Card className="mb-3 shadow-sm">
+            <CardHeader className="p-2">
+              <Skeleton className="h-4 w-1/4" />
+            </CardHeader>
+            <CardContent className="p-2">
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-full" />
+                <Skeleton className="h-7 w-full" />
+                <Skeleton className="h-7 w-full" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : group && expenses && summary ? (
         <div>
@@ -154,43 +146,28 @@ function GroupDetail() {
           )}
 
           {!isEditing && (
-            <Tabs defaultValue="expenses">
-              <TabsList className="h-7">
-                <TabsTrigger value="expenses" className="text-xs h-6 px-2">Expenses</TabsTrigger>
-                <TabsTrigger value="summary" className="text-xs h-6 px-2">Summary</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="expenses" className="pt-2">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-sm font-medium">Expenses</h3>
-                  <ExpenseForm 
-                    ref={expenseFormRef}
-                    group={group} 
-                    members={members || []}
-                    onExpenseAdded={refreshData}
-                    expenseToEdit={expenseToEdit || undefined}
-                    isEditing={!!expenseToEdit}
-                    onExpenseEdited={handleExpenseEdited}
-                    onCancelEdit={handleCancelEdit}
-                  />
-                </div>
-                
-                <ExpenseTable 
-                  expenses={expenses} 
-                  totalExpenses={summary.totalExpenses}
-                  onExpenseDeleted={refreshData}
-                  onEditExpense={handleEditExpense}
-                />
-              </TabsContent>
-              
-              <TabsContent value="summary" className="pt-2">
-                <GroupSummary 
+            <div className="pt-2">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-medium">Expenses</h3>
+                <ExpenseForm 
+                  ref={expenseFormRef}
                   group={group} 
-                  summary={summary}
                   members={members || []}
+                  onExpenseAdded={refreshData}
+                  expenseToEdit={expenseToEdit || undefined}
+                  isEditing={!!expenseToEdit}
+                  onExpenseEdited={handleExpenseEdited}
+                  onCancelEdit={handleCancelEdit}
                 />
-              </TabsContent>
-            </Tabs>
+              </div>
+              
+              <ExpenseTable 
+                expenses={expenses} 
+                totalExpenses={summary.totalExpenses}
+                onExpenseDeleted={refreshData}
+                onEditExpense={handleEditExpense}
+              />
+            </div>
           )}
         </div>
       ) : (

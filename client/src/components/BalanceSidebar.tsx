@@ -1,15 +1,43 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/utils";
-import { Balance, Settlement, Group } from "@shared/schema";
+import { Balance, Settlement, Group, User } from "@shared/schema";
+import { useLocation } from "wouter";
+import { useExpenseFunctions } from "@/lib/hooks";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { CircleDollarSign } from 'lucide-react';
+import GroupSummary from './GroupSummary';
 
 // For demo purposes, we'll hardcode current user
 // This should eventually be replaced with actual auth logic
 const CURRENT_USER = "Sam";
 
 export function BalanceSidebar() {
+  // Get current location to detect if we're on a group details page
+  const [location] = useLocation();
+  const groupIdMatch = location.match(/\/groups\/(\d+)/);
+  const currentGroupId = groupIdMatch ? parseInt(groupIdMatch[1]) : null;
+  
   // Fetch all groups for the user
   const { data: groups = [] } = useQuery<Group[]>({
     queryKey: ['/api/groups'],
+  });
+  
+  // If on a group details page, fetch additional data for the current group
+  const { data: currentGroup } = useQuery<Group>({
+    queryKey: [`/api/groups/${currentGroupId}`],
+    enabled: !!currentGroupId,
+  });
+
+  const { data: currentMembers } = useQuery<User[]>({
+    queryKey: [`/api/groups/${currentGroupId}/members`],
+    enabled: !!currentGroupId,
+  });
+
+  const { data: currentSummary } = useQuery<Balance>({
+    queryKey: [`/api/groups/${currentGroupId}/summary`],
+    enabled: !!currentGroupId,
+    refetchInterval: 5000,
   });
   
   // For each group, fetch the summary directly
@@ -126,14 +154,15 @@ export function BalanceSidebar() {
     <div className="h-full p-2.5 overflow-y-auto text-sm">
       <h2 className="font-semibold mb-3 text-base">Balance Summary</h2>
       
+      {/* Global Balance Section */}
       {allSettlements.length === 0 && peopleWhoOweMeDirect.length === 0 && peopleIOweDirect.length === 0 ? (
-        <div className="border rounded-lg p-2.5 bg-card">
+        <div className="border rounded-lg p-2.5 bg-card mb-4">
           <p className="text-xs text-muted-foreground">
             No settlements to display. Add expenses to see who owes you money.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 mb-5">
           {/* People who owe you */}
           <div className="border rounded-lg p-2.5 bg-card">
             <h3 className="text-xs font-medium text-muted-foreground mb-1.5">People who owe you</h3>
@@ -201,6 +230,18 @@ export function BalanceSidebar() {
               )}
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Current Group Details Section - Only show when on a group page */}
+      {currentGroupId && currentGroup && currentSummary && currentMembers && (
+        <div className="mt-6">
+          <h2 className="font-semibold mb-3 text-base">Group Summary</h2>
+          <GroupSummary 
+            group={currentGroup} 
+            summary={currentSummary}
+            members={currentMembers}
+          />
         </div>
       )}
     </div>
