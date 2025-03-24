@@ -170,33 +170,33 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         
         if (value === SplitType.PERCENTAGE) {
           // Initialize with equal percentages
-          const equalPercentage = parseFloat((100 / group.people.length).toFixed(2));
-          group.people.forEach(person => {
-            newSplitDetails[person] = equalPercentage;
+          const equalPercentage = parseFloat((100 / members.length).toFixed(2));
+          members.forEach(member => {
+            newSplitDetails[member.id] = equalPercentage;
           });
         } else if (value === SplitType.EXACT) {
           // Initialize with equal amounts if there's a current amount,
           // otherwise initialize with zeros
           if (expenseData.amount) {
             const totalAmount = parseFloat(expenseData.amount);
-            const perPersonAmount = parseFloat((totalAmount / group.people.length).toFixed(2));
+            const perPersonAmount = parseFloat((totalAmount / members.length).toFixed(2));
             
             // Distribute the amount evenly, adjusting the last person to account for rounding
             let distributed = 0;
             
-            group.people.forEach((person, index) => {
-              if (index === group.people.length - 1) {
+            members.forEach((member, index) => {
+              if (index === members.length - 1) {
                 // Last person gets remaining amount to avoid rounding errors
-                newSplitDetails[person] = parseFloat((totalAmount - distributed).toFixed(2));
+                newSplitDetails[member.id] = parseFloat((totalAmount - distributed).toFixed(2));
               } else {
-                newSplitDetails[person] = perPersonAmount;
+                newSplitDetails[member.id] = perPersonAmount;
                 distributed += perPersonAmount;
               }
             });
           } else {
             // No amount entered yet, initialize with zeros
-            group.people.forEach(person => {
-              newSplitDetails[person] = 0;
+            members.forEach(member => {
+              newSplitDetails[member.id] = 0;
             });
           }
         }
@@ -205,11 +205,11 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       }
     };
     
-    const handleSplitDetailChange = (person: string, value: string) => {
+    const handleSplitDetailChange = (userId: number, value: string) => {
       const numValue = parseFloat(value) || 0;
       setSplitDetails(prev => ({
         ...prev,
-        [person]: numValue
+        [userId]: numValue
       }));
     };
 
@@ -466,9 +466,9 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {group.people.map((person, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
-                            <td className="px-4 py-2 text-left">{person}</td>
+                        {members.map((member, index) => (
+                          <tr key={member.id} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
+                            <td className="px-4 py-2 text-left">{member.username}</td>
                             <td className="px-4 py-2 text-right">
                               <div className="relative inline-block">
                                 {expenseData.splitType === SplitType.PERCENTAGE && (
@@ -483,8 +483,8 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                                 )}
                                 <Input
                                   type="number"
-                                  value={splitDetails[person] || ''}
-                                  onChange={(e) => handleSplitDetailChange(person, e.target.value)}
+                                  value={splitDetails[member.id] || ''}
+                                  onChange={(e) => handleSplitDetailChange(member.id, e.target.value)}
                                   step="0.01"
                                   className={`w-24 text-right ${expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}`}
                                   placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "50" : "12.50"}
