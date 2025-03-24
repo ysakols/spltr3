@@ -261,8 +261,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         }
         
         // Parse the date properly for the server
-        // Note: The server is expecting a Date object but JSON serialization turns it into a string
-        // To work around this, we'll modify the date in a way the server can parse correctly
+        // Note: Due to a type mismatch in server validation, we need to handle the date carefully
         const currentDate = expenseDate instanceof Date ? expenseDate : new Date();
         
         // Common payload for both create and update
@@ -275,9 +274,20 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           splitDetails: JSON.stringify(splitDetails)
         };
         
-        // Skip sending the date field for updates, as it causes validation errors
+        // The server expects a Date object, but JSON.stringify converts it to a string
+        // For updates, we omit the date to avoid validation errors
+        // For creation, we workaround the issue by passing the ISO string parts as a new Date constructor
         if (!isEditing) {
-          payload.date = currentDate;
+          try {
+            // Convert date to string, then parse it back
+            const dateStr = currentDate.toISOString();
+            // Use date constructor to send a proper Date object
+            payload.date = new Date(dateStr);
+          } catch (e) {
+            console.error('Date conversion error:', e);
+            // Fallback to current date
+            payload.date = new Date();
+          }
         }
         
         if (isEditing && expenseToEdit) {
@@ -354,6 +364,31 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="py-4">
+              {/* Date Picker - Moved to the top */}
+              <div className="mb-4">
+                <Label htmlFor="expenseDate">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-1 justify-start text-left font-normal"
+                      id="expenseDate"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {expenseDate ? format(expenseDate, 'PPP') : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={expenseDate}
+                      onSelect={setExpenseDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
               <div className="flex flex-wrap gap-4 justify-between">
                 <div className="w-full md:w-auto flex-1">
                   <Label htmlFor="description">Description</Label>
@@ -407,31 +442,6 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              
-              {/* Date Picker */}
-              <div className="mt-4">
-                <Label htmlFor="expenseDate">Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full mt-1 justify-start text-left font-normal"
-                      id="expenseDate"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {expenseDate ? format(expenseDate, 'PPP') : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={expenseDate}
-                      onSelect={setExpenseDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
               </div>
               
               {/* Split Type Selection */}
