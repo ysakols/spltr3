@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertGroupSchema, insertExpenseSchema, insertUserSchema } from "@shared/schema";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -390,17 +390,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
+  // Use a Map to track groupId subscriptions
+  const clientGroups = new Map<WebSocket, number>();
+  
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
     
-    ws.on('message', async (message) => {
+    ws.on('message', (message: Buffer) => {
       try {
         const data = JSON.parse(message.toString());
         
         // Handle different message types
         if (data.type === 'subscribe') {
-          // Subscribe to updates for a group
-          ws.groupId = data.groupId;
+          // Store group ID in our map instead of on the socket
+          clientGroups.set(ws, data.groupId);
           console.log(`Client subscribed to group ${data.groupId}`);
         }
       } catch (error) {
@@ -410,13 +413,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
+      // Clean up when connection is closed
+      clientGroups.delete(ws);
     });
   });
   
   // Helper function to broadcast updates to all clients subscribed to a group
   const broadcastToGroup = (groupId: number, data: any) => {
-    wss.clients.forEach((client: any) => {
-      if (client.readyState === 1 && client.groupId === groupId) {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN && clientGroups.get(client) === groupId) {
         client.send(JSON.stringify(data));
       }
     });
