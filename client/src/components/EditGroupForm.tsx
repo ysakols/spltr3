@@ -234,8 +234,12 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
               Cancel
             </Button>
             <Button 
-              type="submit" 
+              type="button" 
               disabled={loading || !hasChanges}
+              onClick={() => {
+                console.log('Save button clicked manually');
+                form.handleSubmit(onSubmit)();
+              }}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
