@@ -166,6 +166,7 @@ function GroupDetail() {
                   <ExpenseForm 
                     ref={expenseFormRef}
                     group={group} 
+                    members={members || []}
                     onExpenseAdded={refreshData}
                     expenseToEdit={expenseToEdit || undefined}
                     isEditing={!!expenseToEdit}

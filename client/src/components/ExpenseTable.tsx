@@ -68,7 +68,8 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
                       {formatCurrency(Number(expense.amount))}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {expense.paidBy}
+                      {/* Look up username by ID */}
+                      User {expense.paidByUserId}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
                       <Badge variant={
@@ -87,7 +88,8 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
                       </Badge>
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {expense.splitWith.join(', ')}
+                      {/* Display member IDs for now */}
+                      All members
                     </TableCell>
                     <TableCell className="text-right py-1 px-2 text-xs">
                       <div className="flex justify-end gap-0.5">
