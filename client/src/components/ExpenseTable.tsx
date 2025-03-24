@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +27,10 @@ interface ExpenseTableProps {
 
 function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense }: ExpenseTableProps) {
   const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
+  
+  // State for sorting
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   // Only fetch members if we have expenses
   const groupId = expenses.length > 0 ? expenses[0].groupId : null;
@@ -45,6 +49,66 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
   const deleteExpense = async (id: number) => {
     await handleDeleteExpense(id, onExpenseDeleted);
   };
+  
+  // Handle sort click
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // If already sorting by this field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If sorting by a new field, default to descending (newest/highest first)
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+  
+  // Sort expenses based on current sort settings
+  const sortedExpenses = useMemo(() => {
+    if (!sortField) return expenses;
+    
+    return [...expenses].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortField) {
+        case 'date':
+          aValue = new Date(a.date).getTime();
+          bValue = new Date(b.date).getTime();
+          break;
+        case 'description':
+          aValue = a.description.toLowerCase();
+          bValue = b.description.toLowerCase();
+          break;
+        case 'amount':
+          aValue = parseFloat(a.amount);
+          bValue = parseFloat(b.amount);
+          break;
+        case 'paidBy':
+          aValue = getUsernameById(a.paidByUserId).toLowerCase();
+          bValue = getUsernameById(b.paidByUserId).toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      
+      // Apply sort direction
+      const sortMultiplier = sortDirection === 'asc' ? 1 : -1;
+      
+      if (aValue < bValue) return -1 * sortMultiplier;
+      if (aValue > bValue) return 1 * sortMultiplier;
+      return 0;
+    });
+  }, [expenses, sortField, sortDirection, members]);
+  
+  // Function to render sort icon
+  const renderSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 inline" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-1 h-3 w-3 inline text-primary" />
+      : <ArrowDown className="ml-1 h-3 w-3 inline text-primary" />;
+  };
 
   return (
     <Card className="shadow-sm border-muted/60">
@@ -61,17 +125,37 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
             <Table className="text-xs">
               <TableHeader>
                 <TableRow className="hover:bg-muted/5">
-                  <TableHead className="py-1 px-2 text-xs font-medium">Date</TableHead>
-                  <TableHead className="py-1 px-2 text-xs font-medium">Description</TableHead>
-                  <TableHead className="py-1 px-2 text-xs font-medium">Amount</TableHead>
-                  <TableHead className="py-1 px-2 text-xs font-medium">Paid By</TableHead>
+                  <TableHead 
+                    className="py-1 px-2 text-xs font-medium cursor-pointer"
+                    onClick={() => handleSort('date')}
+                  >
+                    Date {renderSortIcon('date')}
+                  </TableHead>
+                  <TableHead 
+                    className="py-1 px-2 text-xs font-medium cursor-pointer"
+                    onClick={() => handleSort('description')}
+                  >
+                    Description {renderSortIcon('description')}
+                  </TableHead>
+                  <TableHead 
+                    className="py-1 px-2 text-xs font-medium cursor-pointer"
+                    onClick={() => handleSort('amount')}
+                  >
+                    Amount {renderSortIcon('amount')}
+                  </TableHead>
+                  <TableHead 
+                    className="py-1 px-2 text-xs font-medium cursor-pointer"
+                    onClick={() => handleSort('paidBy')}
+                  >
+                    Paid By {renderSortIcon('paidBy')}
+                  </TableHead>
                   <TableHead className="py-1 px-2 text-xs font-medium">Split Type</TableHead>
                   <TableHead className="py-1 px-2 text-xs font-medium">Split With</TableHead>
                   <TableHead className="py-1 px-2 text-xs font-medium text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map(expense => (
+                {sortedExpenses.map(expense => (
                   <TableRow key={expense.id} className="hover:bg-muted/5">
                     <TableCell className="whitespace-nowrap py-1 px-2 text-xs">
                       {new Date(expense.date).toLocaleDateString()}
