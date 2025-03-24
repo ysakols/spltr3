@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Edit2 } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
 
-import type { Expense } from '@shared/schema';
+import type { Expense, User } from '@shared/schema';
 import { SplitType } from '@shared/schema';
 
 interface ExpenseTableProps {
@@ -26,6 +27,20 @@ interface ExpenseTableProps {
 
 function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense }: ExpenseTableProps) {
   const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
+  
+  // Only fetch members if we have expenses
+  const groupId = expenses.length > 0 ? expenses[0].groupId : null;
+  
+  const { data: members } = useQuery<User[]>({
+    queryKey: groupId ? [`/api/groups/${groupId}/members`] : ['no-members'],
+    enabled: !!groupId
+  });
+  
+  // Function to get username by user ID
+  const getUsernameById = (userId: number) => {
+    const user = members?.find(member => member.id === userId);
+    return user ? user.username : `User ${userId}`;
+  };
 
   const deleteExpense = async (id: number) => {
     await handleDeleteExpense(id, onExpenseDeleted);
@@ -68,8 +83,7 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
                       {formatCurrency(Number(expense.amount))}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {/* Look up username by ID */}
-                      User {expense.paidByUserId}
+                      {getUsernameById(expense.paidByUserId)}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
                       <Badge variant={
@@ -88,8 +102,17 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
                       </Badge>
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {/* Display member IDs for now */}
-                      All members
+                      {/* Get split details from JSON string */}
+                      {(() => {
+                        try {
+                          const details = JSON.parse(expense.splitDetails);
+                          return Object.keys(details).map(userId => 
+                            getUsernameById(parseInt(userId))
+                          ).join(", ");
+                        } catch (e) {
+                          return "All members";
+                        }
+                      })()}
                     </TableCell>
                     <TableCell className="text-right py-1 px-2 text-xs">
                       <div className="flex justify-end gap-0.5">

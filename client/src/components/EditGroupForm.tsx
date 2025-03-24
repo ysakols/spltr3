@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,11 +12,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X, Plus } from 'lucide-react';
 
-import type { Group } from '@shared/schema';
+import type { Group, User } from '@shared/schema';
 import { insertGroupSchema } from '@shared/schema';
 
+// We don't need people array in the schema anymore, it's managed separately via members
 const editGroupSchema = insertGroupSchema.extend({
-  people: z.array(z.string()).min(1, "At least one person is required"),
+  description: z.string().nullable().optional()
 });
 
 type FormValues = z.infer<typeof editGroupSchema>;
@@ -32,16 +33,29 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const [newPerson, setNewPerson] = useState('');
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Fetch members of the group
+  const { data: members = [] } = useQuery<User[]>({
+    queryKey: [`/api/groups/${group.id}/members`]
+  });
+  
+  // We'll manage the members separately instead of in the form
+  const [currentMembers, setCurrentMembers] = useState<User[]>([]);
+  
+  // Update members when the data is fetched
+  useState(() => {
+    if (members.length > 0) {
+      setCurrentMembers(members);
+    }
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(editGroupSchema),
     defaultValues: {
       name: group.name,
-      people: [...group.people]
+      description: group.description
     }
   });
-
-  const people = form.watch('people');
 
   const handleAddPerson = () => {
     if (newPerson.trim() && !people.includes(newPerson.trim())) {
