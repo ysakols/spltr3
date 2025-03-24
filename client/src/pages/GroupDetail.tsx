@@ -113,6 +113,9 @@ function GroupDetail() {
         description: "There was a problem deleting the group. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      // Close the dialog by resetting state if needed
+      setIsDeleting(false);
     }
   };
 
