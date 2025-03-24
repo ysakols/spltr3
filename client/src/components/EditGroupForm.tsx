@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -43,11 +43,11 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const [currentMembers, setCurrentMembers] = useState<User[]>([]);
   
   // Update members when the data is fetched
-  useState(() => {
+  useEffect(() => {
     if (members.length > 0) {
       setCurrentMembers(members);
     }
-  });
+  }, [members]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(editGroupSchema),
@@ -57,32 +57,92 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
     }
   });
 
-  const handleAddPerson = () => {
-    if (newPerson.trim() && !people.includes(newPerson.trim())) {
-      form.setValue('people', [...people, newPerson.trim()], { 
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true
-      });
-      setNewPerson('');
+  // Search for users to add to the group
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  
+  // This would be replaced with an actual API call in a real implementation
+  const handleSearchUsers = async () => {
+    if (newPerson.trim().length < 2) return;
+    
+    try {
+      // For now, we'll just add a dummy user since we don't have a user search API
+      // In a real app, this would make an API call like:
+      // const response = await apiRequest('GET', `/api/users/search?q=${newPerson}`);
+      // const users = await response.json();
+      // setSearchResults(users.filter(user => !currentMembers.some(m => m.id === user.id)));
+      
+      // For demo purposes, let's use a dummy user
+      setSearchResults([{ 
+        id: 999, 
+        username: newPerson.trim(),
+        password: '',
+        createdAt: new Date(),
+        email: null,
+        displayName: null,
+        avatarUrl: null
+      }]);
+    } catch (error) {
+      console.error('Error searching for users:', error);
     }
   };
-
+  
+  const handleAddMember = async (user: User) => {
+    try {
+      // Add the user to the group through the API
+      await apiRequest('POST', `/api/groups/${group.id}/members`, { userId: user.id });
+      
+      // Add to local state
+      setCurrentMembers([...currentMembers, user]);
+      
+      // Clear search
+      setNewPerson('');
+      setSearchResults([]);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
+      
+      toast({
+        title: 'Member added',
+        description: `${user.username} has been added to the group.`
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add member to group.',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const handleRemoveMember = async (user: User) => {
+    try {
+      // Remove the user from the group through the API
+      await apiRequest('DELETE', `/api/groups/${group.id}/members/${user.id}`);
+      
+      // Remove from local state
+      setCurrentMembers(currentMembers.filter(m => m.id !== user.id));
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
+      
+      toast({
+        title: 'Member removed',
+        description: `${user.username} has been removed from the group.`
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to remove member from group.',
+        variant: 'destructive'
+      });
+    }
+  };
+  
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleAddPerson();
+      handleSearchUsers();
     }
-  };
-
-  const handleRemovePerson = (index: number) => {
-    const updatedPeople = [...people];
-    updatedPeople.splice(index, 1);
-    form.setValue('people', updatedPeople, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true
-    });
   };
 
   const onSubmit = async (data: FormValues) => {
@@ -137,11 +197,11 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
           </div>
 
           <div className="mb-6">
-            <Label className="block mb-2">People in Group</Label>
+            <Label className="block mb-2">Group Members</Label>
             
             <div className="flex space-x-2 mb-2">
               <Input
-                placeholder="Add person (e.g., John)"
+                placeholder="Search for user to add"
                 value={newPerson}
                 onChange={(e) => setNewPerson(e.target.value)}
                 onKeyDown={handleKeyPress}
@@ -149,34 +209,59 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
               />
               <Button 
                 type="button" 
-                onClick={handleAddPerson} 
-                disabled={!newPerson.trim()}
+                onClick={handleSearchUsers} 
+                disabled={!newPerson.trim() || newPerson.trim().length < 2}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Add
+                Search
               </Button>
             </div>
             
-            {form.formState.errors.people && (
-              <p className="text-red-500 text-sm mb-2">{form.formState.errors.people.message}</p>
+            {/* Search results */}
+            {searchResults.length > 0 && (
+              <div className="mb-4 p-2 border rounded-md">
+                <p className="text-xs font-medium mb-2">Search Results:</p>
+                <div className="flex flex-wrap gap-2">
+                  {searchResults.map((user) => (
+                    <div 
+                      key={user.id} 
+                      className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center cursor-pointer hover:bg-blue-200"
+                      onClick={() => handleAddMember(user)}
+                    >
+                      <span>{user.username}</span>
+                      <span className="ml-2 text-blue-800">
+                        <Plus className="h-3 w-3" />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
             
-            <div className="flex flex-wrap gap-2">
-              {people.map((person, index) => (
-                <div 
-                  key={`${person}-${index}`} 
-                  className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
-                >
-                  <span>{person}</span>
-                  <button 
-                    type="button" 
-                    onClick={() => handleRemovePerson(index)}
-                    className="ml-2 text-gray-600 hover:text-gray-900"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+            {/* Current members */}
+            <div className="mt-4">
+              <p className="text-xs font-medium mb-2">Current Members:</p>
+              {currentMembers.length === 0 ? (
+                <p className="text-sm text-gray-500">No members yet</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {currentMembers.map((user) => (
+                    <div 
+                      key={user.id} 
+                      className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
+                    >
+                      <span>{user.username}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveMember(user)}
+                        className="ml-2 text-gray-600 hover:text-gray-900"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
