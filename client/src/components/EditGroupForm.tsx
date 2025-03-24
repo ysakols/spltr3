@@ -33,6 +33,7 @@ interface EditGroupFormProps {
 function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) {
   const [loading, setLoading] = useState(false);
   const [newMember, setNewMember] = useState('');
+  const [membersChanged, setMembersChanged] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -52,16 +53,12 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const handleAddMember = () => {
     if (!newMember.trim()) return;
     
-    // Create a simple user object with the entered name
-    // This simulates the user creation without needing a search feature
-    const tempUser = {
-      id: Date.now(), // Temporary ID for our UI only
-      username: newMember.trim()
-    };
-    
     // We'll post this username to create a new user and add them to the group
     apiRequest('POST', `/api/groups/${group.id}/members`, { username: newMember.trim() })
       .then(() => {
+        // Mark members as changed (to enable save button)
+        setMembersChanged(true);
+        
         // Refresh the member list
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
         
@@ -86,6 +83,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const handleRemoveMember = (user: User) => {
     apiRequest('DELETE', `/api/groups/${group.id}/members/${user.id}`)
       .then(() => {
+        // Mark members as changed (to enable save button)
+        setMembersChanged(true);
+        
         // Refresh the member list
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
         
@@ -121,6 +121,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
       queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}`] });
       
+      // Reset the members changed flag
+      setMembersChanged(false);
+      
       toast({
         title: 'Group updated',
         description: `Group "${data.name}" has been updated.`,
@@ -138,6 +141,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
       setLoading(false);
     }
   };
+  
+  // Helper function to check if form has any changes
+  const hasChanges = form.formState.isDirty || membersChanged;
 
   return (
     <Card>
@@ -217,7 +223,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !form.formState.isDirty}
+              disabled={loading || !hasChanges}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
