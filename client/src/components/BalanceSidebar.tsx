@@ -23,6 +23,11 @@ export function BalanceSidebar() {
     queryKey: ['/api/groups'],
   });
   
+  // Get all users for usernames
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+  });
+  
   // If on a group details page, fetch additional data for the current group
   const { data: currentGroup } = useQuery<Group>({
     queryKey: [`/api/groups/${currentGroupId}`],
@@ -75,11 +80,18 @@ export function BalanceSidebar() {
   
   // Create a mapping of user IDs to usernames
   const userMap: Record<string, string> = {};
+  
+  // Add current group members first (if any)
   if (currentMembers) {
     currentMembers.forEach(member => {
       userMap[member.id.toString()] = member.username;
     });
   }
+  
+  // Then add all other users from the global list
+  allUsers.forEach(user => {
+    userMap[user.id.toString()] = user.username;
+  });
   
   // Function to get username from ID
   const getUserName = (userId: string) => {
@@ -106,7 +118,7 @@ export function BalanceSidebar() {
                     `${peopleWhoOweMe.length} ${peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you` : 
                     "Nobody owes you"}
                   {peopleIOwe.length > 0 ? 
-                    `${peopleWhoOweMe.length > 0 ? '. ' : ''}You owe ${peopleIOwe.length} ${peopleIOwe.length === 1 ? 'person' : 'people'}` : 
+                    `${peopleWhoOweMe.length > 0 ? '. ' : ' '}You owe ${peopleIOwe.length} ${peopleIOwe.length === 1 ? 'person' : 'people'}` : 
                     peopleWhoOweMe.length === 0 ? " and you don't owe anyone" : ""}
                 </p>
               </div>
