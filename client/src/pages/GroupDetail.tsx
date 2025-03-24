@@ -81,10 +81,10 @@ function GroupDetail() {
 
   return (
     <div>
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="text-primary hover:text-primary/80 p-0">
+      <div className="mb-3">
+        <Button variant="ghost" asChild className="text-primary hover:text-primary/80 p-0 h-7 text-xs">
           <Link href="/">
-            <ArrowLeft className="mr-1 h-5 w-5" />
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" />
             Back to Groups
           </Link>
         </Button>
@@ -92,23 +92,23 @@ function GroupDetail() {
 
       {isLoading ? (
         <div>
-          <Skeleton className="h-8 w-1/3 mb-6" />
-          <Skeleton className="h-6 w-1/2 mb-8" />
+          <Skeleton className="h-6 w-1/3 mb-3" />
+          <Skeleton className="h-4 w-1/2 mb-4" />
           <Tabs defaultValue="expenses">
-            <TabsList>
-              <TabsTrigger value="expenses">Expenses</TabsTrigger>
-              <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsList className="h-7">
+              <TabsTrigger value="expenses" className="text-xs h-6 px-2">Expenses</TabsTrigger>
+              <TabsTrigger value="summary" className="text-xs h-6 px-2">Summary</TabsTrigger>
             </TabsList>
             <TabsContent value="expenses">
-              <Card className="mb-6">
-                <CardHeader>
-                  <Skeleton className="h-6 w-1/4" />
+              <Card className="mb-3 shadow-sm">
+                <CardHeader className="p-2">
+                  <Skeleton className="h-4 w-1/4" />
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
+                <CardContent className="p-2">
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-full" />
+                    <Skeleton className="h-7 w-full" />
+                    <Skeleton className="h-7 w-full" />
                   </div>
                 </CardContent>
               </Card>
@@ -118,7 +118,7 @@ function GroupDetail() {
       ) : group && expenses && summary ? (
         <div>
           {isEditing ? (
-            <div className="mb-6">
+            <div className="mb-3">
               <EditGroupForm 
                 group={group} 
                 onGroupUpdated={handleGroupUpdated} 
@@ -126,20 +126,20 @@ function GroupDetail() {
               />
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">{group.name}</h2>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center text-sm text-gray-500">
-                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3">
+              <h2 className="text-xl font-bold text-gray-900 mb-1 sm:mb-0">{group.name}</h2>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center text-xs text-gray-500">
+                  <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
                   <span>{group.people.length} members: {group.people.join(', ')}</span>
                 </div>
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
                   onClick={() => setIsEditing(true)}
                 >
-                  <Edit className="h-4 w-4" /> 
+                  <Edit className="h-3 w-3" /> 
                   Edit Group
                 </Button>
               </div>
@@ -148,14 +148,14 @@ function GroupDetail() {
 
           {!isEditing && (
             <Tabs defaultValue="expenses">
-              <TabsList>
-                <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsList className="h-7">
+                <TabsTrigger value="expenses" className="text-xs h-6 px-2">Expenses</TabsTrigger>
+                <TabsTrigger value="summary" className="text-xs h-6 px-2">Summary</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="expenses">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium">Expenses</h3>
+              <TabsContent value="expenses" className="pt-2">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-medium">Expenses</h3>
                   <ExpenseForm 
                     ref={expenseFormRef}
                     group={group} 
@@ -175,7 +175,7 @@ function GroupDetail() {
                 />
               </TabsContent>
               
-              <TabsContent value="summary">
+              <TabsContent value="summary" className="pt-2">
                 <GroupSummary 
                   group={group} 
                   summary={summary} 
