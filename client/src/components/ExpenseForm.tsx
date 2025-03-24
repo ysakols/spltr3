@@ -45,6 +45,10 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       setOpen,
     }));
     
+    const [expenseDate, setExpenseDate] = useState<Date | undefined>(
+      expenseToEdit?.date ? new Date(expenseToEdit.date) : new Date()
+    );
+
     const [expenseData, setExpenseData] = useState(() => {
       if (expenseToEdit) {
         console.log('Expense to edit:', expenseToEdit);
@@ -86,6 +90,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         splitType: SplitType.EQUAL as string,
       });
       setSplitDetails({});
+      setExpenseDate(new Date());
     };
     
     // Update form data when expenseToEdit changes
@@ -98,6 +103,11 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           paidBy: expenseToEdit.paidBy,
           splitType: expenseToEdit.splitType,
         });
+        
+        // Update expense date if it exists
+        if (expenseToEdit.date) {
+          setExpenseDate(new Date(expenseToEdit.date));
+        }
         
         // Update split details if they exist
         if (expenseToEdit.splitDetails && expenseToEdit.splitDetails !== '{}') {
@@ -255,7 +265,8 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           paidBy: expenseData.paidBy,
           splitWith: group.people, // Split with all group members by default
           splitType: expenseData.splitType,
-          splitDetails: JSON.stringify(splitDetails)
+          splitDetails: JSON.stringify(splitDetails),
+          date: expenseDate // Include the selected date
         };
         
         if (isEditing && expenseToEdit) {
