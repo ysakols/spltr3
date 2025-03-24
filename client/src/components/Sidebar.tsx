@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // Icons
 import { 
@@ -9,13 +10,19 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  User
 } from "lucide-react";
 
 // UI Components
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Separator } from "./ui/separator";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { getQueryFn } from "@/lib/queryClient";
+
+// Types
+import type { User as UserType } from "@shared/schema";
 
 // Logo Component
 const Logo = () => (
@@ -32,8 +39,56 @@ const Logo = () => (
   </svg>
 );
 
+// User Profile Component
+function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
+  const { data: currentUser, isLoading } = useQuery<UserType | null>({
+    queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn({ 
+      on401: "returnNull" 
+    }),
+    staleTime: 60000,
+    retry: false
+  });
+
+  if (isLoading) {
+    return (
+      <div className={cn(
+        "flex items-center gap-2 px-2 py-2 mb-3 border-b border-gray-100 pb-3",
+        isCollapsed && "justify-center"
+      )}>
+        <Avatar className="h-7 w-7">
+          <AvatarFallback className="text-xs bg-primary/20">...</AvatarFallback>
+        </Avatar>
+        {!isCollapsed && <div className="h-3.5 w-16 bg-gray-200 rounded animate-pulse"></div>}
+      </div>
+    );
+  }
+
+  const userInitial = currentUser?.firstName 
+    ? currentUser.firstName.charAt(0) 
+    : currentUser?.username?.charAt(0) || 'U';
+  
+  const displayName = currentUser?.firstName || currentUser?.username || 'User';
+
+  return (
+    <div className={cn(
+      "flex items-center gap-2 px-2 py-2 mb-3 border-b border-gray-100 pb-3",
+      isCollapsed && "justify-center"
+    )}>
+      <Avatar className="h-7 w-7">
+        <AvatarFallback className="text-xs bg-primary/20">{userInitial}</AvatarFallback>
+      </Avatar>
+      {!isCollapsed && (
+        <span className="text-sm font-medium truncate" title={displayName}>
+          {displayName}
+        </span>
+      )}
+    </div>
+  );
+};
+
 // Navigation Links Component
-const NavLinks = ({ isCollapsed = false }: { isCollapsed?: boolean }) => {
+function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
   const [, setLocation] = useLocation();
   
   const handleLogout = async () => {
@@ -106,6 +161,7 @@ export function MobileSidebarTrigger() {
               <Logo />
               <h1 className="ml-1.5 font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
             </div>
+            <UserProfile />
             <NavLinks />
           </div>
         </nav>
@@ -139,6 +195,7 @@ export function Sidebar({ className }: SidebarProps) {
           {!isCollapsed && <h1 className="ml-1.5 font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
         </div>
         
+        <UserProfile isCollapsed={isCollapsed} />
         <NavLinks isCollapsed={isCollapsed} />
       </div>
       
