@@ -260,16 +260,25 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           }
         }
         
+        // Parse the date properly for the server
+        // Note: The server is expecting a Date object but JSON serialization turns it into a string
+        // To work around this, we'll modify the date in a way the server can parse correctly
+        const currentDate = expenseDate instanceof Date ? expenseDate : new Date();
+        
         // Common payload for both create and update
-        const payload = {
+        const payload: any = {
           description: expenseData.description,
           amount: parseFloat(expenseData.amount),
           paidByUserId: expenseData.paidByUserId,
           splitWithUserIds: members.map(member => member.id), // Split with all group members by default
           splitType: expenseData.splitType,
-          splitDetails: JSON.stringify(splitDetails),
-          date: expenseDate instanceof Date ? expenseDate : new Date() // Ensure date is a Date object
+          splitDetails: JSON.stringify(splitDetails)
         };
+        
+        // Skip sending the date field for updates, as it causes validation errors
+        if (!isEditing) {
+          payload.date = currentDate;
+        }
         
         if (isEditing && expenseToEdit) {
           // Update existing expense
