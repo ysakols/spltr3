@@ -50,19 +50,6 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={GroupList} />
-      <Route path="/create" component={CreateGroup} />
-      <Route path="/groups/:groupId" component={GroupDetail} />
-      <Route path="/login" component={Login} />
-      <Route path="/invitation/:token" component={Invitation} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
 function App() {
   const [location] = useLocation();
   const [user, setUser] = useState<any>(null);
@@ -103,11 +90,20 @@ function App() {
     <QueryClientProvider client={queryClient}>
       {isAuthRoute ? (
         // Authentication routes (no layout)
-        <Router />
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/invitation/:token" component={Invitation} />
+          <Route component={NotFound} />
+        </Switch>
       ) : (
         // Main app with layout
         <Layout>
-          <Router />
+          <Switch>
+            <Route path="/" component={GroupList} />
+            <Route path="/create" component={CreateGroup} />
+            <Route path="/groups/:groupId" component={GroupDetail} />
+            <Route component={NotFound} />
+          </Switch>
         </Layout>
       )}
       <Toaster />
