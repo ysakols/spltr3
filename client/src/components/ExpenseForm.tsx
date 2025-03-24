@@ -25,6 +25,7 @@ interface ExpenseFormProps {
   isEditing?: boolean;
   onExpenseEdited?: () => void;
   onCancelEdit?: () => void;
+  members?: User[];
 }
 
 const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseFormProps>(
@@ -35,7 +36,8 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       expenseToEdit, 
       isEditing = false, 
       onExpenseEdited, 
-      onCancelEdit 
+      onCancelEdit,
+      members = []
     } = props;
     
     const [open, setOpen] = useState(isEditing);
@@ -55,14 +57,14 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         return {
           description: expenseToEdit.description,
           amount: String(expenseToEdit.amount),
-          paidBy: expenseToEdit.paidBy,
+          paidByUserId: expenseToEdit.paidByUserId,
           splitType: expenseToEdit.splitType,
         };
       }
       return {
         description: '',
         amount: '',
-        paidBy: group.people[0] || '',
+        paidByUserId: members.length > 0 ? members[0].id : 0,
         splitType: SplitType.EQUAL as string,
       };
     });
@@ -86,7 +88,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       setExpenseData({
         description: '',
         amount: '',
-        paidBy: group.people[0] || '',
+        paidByUserId: members.length > 0 ? members[0].id : 0,
         splitType: SplitType.EQUAL as string,
       });
       setSplitDetails({});
@@ -100,7 +102,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         setExpenseData({
           description: expenseToEdit.description,
           amount: String(expenseToEdit.amount),
-          paidBy: expenseToEdit.paidBy,
+          paidByUserId: expenseToEdit.paidByUserId,
           splitType: expenseToEdit.splitType,
         });
         
@@ -133,16 +135,16 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         const totalAmount = parseFloat(value);
         
         if (!isNaN(totalAmount) && totalAmount > 0) {
-          const perPersonAmount = parseFloat((totalAmount / group.people.length).toFixed(2));
+          const perPersonAmount = parseFloat((totalAmount / members.length).toFixed(2));
           const newSplitDetails: Record<string, number> = {};
           let distributed = 0;
             
-          group.people.forEach((person, index) => {
-            if (index === group.people.length - 1) {
+          members.forEach((member, index) => {
+            if (index === members.length - 1) {
               // Last person gets remaining amount to avoid rounding errors
-              newSplitDetails[person] = parseFloat((totalAmount - distributed).toFixed(2));
+              newSplitDetails[member.id] = parseFloat((totalAmount - distributed).toFixed(2));
             } else {
-              newSplitDetails[person] = perPersonAmount;
+              newSplitDetails[member.id] = perPersonAmount;
               distributed += perPersonAmount;
             }
           });
@@ -152,8 +154,8 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       }
     };
 
-    const handlePaidByChange = (value: string) => {
-      setExpenseData(prev => ({ ...prev, paidBy: value }));
+    const handlePaidByChange = (value: number) => {
+      setExpenseData(prev => ({ ...prev, paidByUserId: value }));
     };
     
     const handleSplitTypeChange = (value: string) => {
@@ -214,7 +216,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
-      if (!expenseData.description || !expenseData.amount || !expenseData.paidBy) {
+      if (!expenseData.description || !expenseData.amount || !expenseData.paidByUserId) {
         toast({
           title: 'Error',
           description: 'Please fill all required fields',
@@ -262,8 +264,8 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         const payload = {
           description: expenseData.description,
           amount: parseFloat(expenseData.amount),
-          paidBy: expenseData.paidBy,
-          splitWith: group.people, // Split with all group members by default
+          paidByUserId: expenseData.paidByUserId,
+          splitWithUserIds: members.map(member => member.id), // Split with all group members by default
           splitType: expenseData.splitType,
           splitDetails: JSON.stringify(splitDetails),
           date: expenseDate // Include the selected date
@@ -381,16 +383,16 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                 <div className="w-40">
                   <Label htmlFor="paidBy">Paid By</Label>
                   <Select
-                    value={expenseData.paidBy}
-                    onValueChange={handlePaidByChange}
+                    value={String(expenseData.paidByUserId)}
+                    onValueChange={(value) => handlePaidByChange(Number(value))}
                   >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select person" />
                     </SelectTrigger>
                     <SelectContent>
-                      {group.people.map((person, index) => (
-                        <SelectItem key={index} value={person}>
-                          {person}
+                      {members.map((user) => (
+                        <SelectItem key={user.id} value={String(user.id)}>
+                          {user.username}
                         </SelectItem>
                       ))}
                     </SelectContent>
