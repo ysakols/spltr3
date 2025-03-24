@@ -260,35 +260,20 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           }
         }
         
-        // Parse the date properly for the server
-        // Note: Due to a type mismatch in server validation, we need to handle the date carefully
+        // Date handling
         const currentDate = expenseDate instanceof Date ? expenseDate : new Date();
         
-        // Common payload for both create and update
-        const payload: any = {
+        // Create the request payload
+        const payload = {
           description: expenseData.description,
           amount: parseFloat(expenseData.amount),
           paidByUserId: expenseData.paidByUserId,
           splitWithUserIds: members.map(member => member.id), // Split with all group members by default
           splitType: expenseData.splitType,
-          splitDetails: JSON.stringify(splitDetails)
+          splitDetails: JSON.stringify(splitDetails),
+          // Always include date - we've updated the schema to handle string dates properly
+          date: currentDate.toISOString()
         };
-        
-        // The server expects a Date object, but JSON.stringify converts it to a string
-        // For updates, we omit the date to avoid validation errors
-        // For creation, we workaround the issue by passing the ISO string parts as a new Date constructor
-        if (!isEditing) {
-          try {
-            // Convert date to string, then parse it back
-            const dateStr = currentDate.toISOString();
-            // Use date constructor to send a proper Date object
-            payload.date = new Date(dateStr);
-          } catch (e) {
-            console.error('Date conversion error:', e);
-            // Fallback to current date
-            payload.date = new Date();
-          }
-        }
         
         if (isEditing && expenseToEdit) {
           // Update existing expense

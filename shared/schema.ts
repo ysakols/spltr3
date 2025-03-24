@@ -198,8 +198,17 @@ export const insertExpenseSchema = createInsertSchema(expenses)
     splitDetails: z.string().default('{}').optional(),
     // Array of user IDs involved in this expense
     splitWithUserIds: z.array(z.number()),
-    // Optional specific date for the expense
-    date: z.date().optional()
+    // Optional specific date for the expense - accept both string and Date types
+    date: z.preprocess(
+      // Convert string to Date if it's a string
+      (arg) => {
+        if (typeof arg === 'string') {
+          return new Date(arg);
+        }
+        return arg;
+      },
+      z.date().optional()
+    )
   });
 
 export const insertExpenseSplitSchema = createInsertSchema(expenseSplits)
