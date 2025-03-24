@@ -6,8 +6,10 @@ import { relations } from "drizzle-orm";
 // Enhanced Users table with more profile information and Google auth
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  username: text("username").notNull().unique(), // Username for display in the app
+  firstName: text("first_name"), // User's first name (nullable)
+  lastName: text("last_name"), // User's last name (nullable)
+  password: text("password").notNull(), // Can be empty for OAuth users
   email: text("email").unique(), // Email for notifications and authentication
   displayName: text("display_name"), // Optional display name (nullable)
   avatarUrl: text("avatar_url"), // Optional profile picture URL (nullable)
@@ -162,14 +164,36 @@ export const expenseSplitsRelations = relations(expenseSplits, ({ one }) => ({
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
+  firstName: true,
+  lastName: true,
   password: true,
   email: true,
   displayName: true,
-  avatarUrl: true
+  avatarUrl: true,
+  googleId: true,
+  googleAccessToken: true,
+  googleRefreshToken: true
 }).extend({
+  firstName: z.string().optional().nullable(),
+  lastName: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   displayName: z.string().optional().nullable(),
-  avatarUrl: z.string().url().optional().nullable()
+  avatarUrl: z.string().url().optional().nullable(),
+  googleId: z.string().optional().nullable(),
+  googleAccessToken: z.string().optional().nullable(),
+  googleRefreshToken: z.string().optional().nullable()
+});
+
+// Schema for Google OAuth users
+export const googleUserSchema = z.object({
+  googleId: z.string(),
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  displayName: z.string().optional(),
+  avatarUrl: z.string().url().optional(),
+  googleAccessToken: z.string(),
+  googleRefreshToken: z.string().optional()
 });
 
 export const insertGroupSchema = createInsertSchema(groups).pick({
@@ -248,6 +272,90 @@ export type ExpenseSplit = typeof expenseSplits.$inferSelect;
 
 export type InsertFriendship = z.infer<typeof insertFriendshipSchema>;
 export type Friendship = typeof friendships.$inferSelect;
+
+// Group invitation table for email-based invites
+export const groupInvitations = pgTable("group_invitations", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id),
+  inviterUserId: integer("inviter_user_id").notNull().references(() => users.id),
+  inviteeEmail: text("invitee_email").notNull(), // Email of the invited user
+  status: text("status").notNull().default('pending'), // pending, accepted, rejected
+  invitedAt: timestamp("invited_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+  acceptedAt: timestamp("accepted_at"), // When the invitation was accepted
+  token: text("token").notNull().unique() // Unique token for invitation URL
+});
+
+// Define group invitation relations
+export const groupInvitationsRelations = relations(groupInvitations, ({ one }) => ({
+  group: one(groups, {
+    fields: [groupInvitations.groupId],
+    references: [groups.id]
+  }),
+  inviter: one(users, {
+    fields: [groupInvitations.inviterUserId],
+    references: [users.id]
+  })
+}));
+
+// Contacts table to track users who have interacted
+export const contacts = pgTable("contacts", {
+  userId: integer("user_id").notNull().references(() => users.id),
+  contactUserId: integer("contact_user_id").notNull().references(() => users.id),
+  email: text("email").notNull(), // Email of the contact (for quick lookup)
+  lastInteractionAt: timestamp("last_interaction_at").defaultNow().notNull(),
+  frequency: integer("frequency").default(1).notNull(), // How many times they've interacted
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.userId, table.contactUserId] })
+  };
+});
+
+// Define contacts relations
+export const contactsRelations = relations(contacts, ({ one }) => ({
+  user: one(users, {
+    fields: [contacts.userId],
+    references: [users.id]
+  }),
+  contact: one(users, {
+    fields: [contacts.contactUserId],
+    references: [users.id]
+  })
+}));
+
+// Insert schema for invitations
+export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
+  .pick({
+    groupId: true,
+    inviterUserId: true,
+    inviteeEmail: true,
+    status: true,
+    token: true,
+    expiresAt: true
+  })
+  .extend({
+    inviteeEmail: z.string().email(),
+    expiresAt: z.date().optional().nullable()
+  });
+
+// Insert schema for contacts
+export const insertContactSchema = createInsertSchema(contacts)
+  .pick({
+    userId: true,
+    contactUserId: true,
+    email: true,
+    frequency: true
+  })
+  .extend({
+    email: z.string().email()
+  });
+
+// Types for new schemas
+export type InsertGroupInvitation = z.infer<typeof insertGroupInvitationSchema>;
+export type GroupInvitation = typeof groupInvitations.$inferSelect;
+
+export type InsertContact = z.infer<typeof insertContactSchema>;
+export type Contact = typeof contacts.$inferSelect;
 
 // Settlement type (not stored in database, calculated on demand)
 export type Settlement = {
