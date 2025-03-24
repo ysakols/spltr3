@@ -407,6 +407,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: (err as Error).message });
     }
   });
+  
+  // Calculate global summary across all groups for a user
+  app.get('/api/users/:userId/global-summary', async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      const summary = await storage.calculateGlobalSummary(userId);
+      res.json(summary);
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
 
   const httpServer = createServer(app);
   
