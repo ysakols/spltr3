@@ -22,11 +22,9 @@ function Invitation() {
       if (params?.token) {
         try {
           setLoading(true);
-          const response = await apiRequest(`/api/invitations/${params.token}`, {
-            method: "GET"
-          });
+          const data = await apiRequest(`/api/invitations/${params.token}`);
           
-          if (response.groupId) {
+          if (data && 'groupId' in data) {
             // The invitation was automatically accepted
             toast({
               title: "Success!",
@@ -34,11 +32,13 @@ function Invitation() {
               variant: "default",
             });
             // Redirect to the group page
-            setLocation(`/groups/${response.groupId}`);
+            setLocation(`/groups/${data.groupId}`);
             return;
           }
           
-          setInvitation(response.invitation);
+          if (data && data.invitation) {
+            setInvitation(data.invitation);
+          }
         } catch (error) {
           setError("Invalid or expired invitation");
         } finally {

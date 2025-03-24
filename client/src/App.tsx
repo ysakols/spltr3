@@ -50,7 +50,16 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Router() {
+function AuthRouter() {
+  return (
+    <Switch>
+      <Route path="/login" component={Login} />
+      <Route path="/invitation/:token" component={Invitation} />
+    </Switch>
+  );
+}
+
+function MainRouter() {
   return (
     <Switch>
       <Route path="/" component={GroupList} />
@@ -62,11 +71,52 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Check if current route is authentication-related
+  const isAuthRoute = location.startsWith('/login') || location.startsWith('/invitation');
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Layout>
-        <Router />
-      </Layout>
+      {isAuthRoute ? (
+        // Authentication routes (no layout)
+        <AuthRouter />
+      ) : (
+        // Main app with layout
+        <Layout>
+          <MainRouter />
+        </Layout>
+      )}
       <Toaster />
     </QueryClientProvider>
   );
