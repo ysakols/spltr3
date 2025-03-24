@@ -61,20 +61,20 @@ export function MobileSidebarTrigger() {
     <Sheet>
       <SheetTrigger asChild>
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="icon" 
           className="block md:hidden"
           aria-label="Open menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5 text-primary" />
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[240px] sm:w-[280px] p-0">
         <nav className="h-full flex flex-col bg-muted/40">
-          <div className="px-3 py-4">
-            <div className="flex items-center mb-10">
+          <div className="px-3 py-6">
+            <div className="flex items-center mb-12">
               <Logo />
-              <h1 className="ml-2 font-bold text-xl">spltr3</h1>
+              <h1 className="ml-2 font-bold text-2xl bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
             </div>
             <NavLinks />
           </div>
@@ -100,13 +100,13 @@ export function Sidebar({ className }: SidebarProps) {
         className
       )}
     >
-      <div className="px-3 py-4 flex-1">
+      <div className="px-3 py-6 flex-1">
         <div className={cn(
-          "flex items-center h-12 mb-10",
+          "flex items-center mb-12",
           isCollapsed && "justify-center"
         )}>
           <Logo />
-          {!isCollapsed && <h1 className="ml-2 font-bold text-xl">spltr3</h1>}
+          {!isCollapsed && <h1 className="ml-2 font-bold text-2xl bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
         </div>
         
         <NavLinks isCollapsed={isCollapsed} />
