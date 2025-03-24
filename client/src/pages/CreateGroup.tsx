@@ -53,10 +53,51 @@ function CreateGroup() {
     
     try {
       setLoading(true);
+      
+      // First, we need to find or create users based on the names provided
+      const userPromises = filteredPeople.map(async (personName) => {
+        // Try to find existing user by username
+        const userResponse = await fetch(`/api/users?username=${encodeURIComponent(personName)}`);
+        
+        if (userResponse.ok) {
+          const existingUsers = await userResponse.json();
+          if (existingUsers && existingUsers.length > 0) {
+            return existingUsers[0].id; // Return existing user ID
+          }
+        }
+        
+        // If not found, create a new user
+        const createResponse = await apiRequest('POST', '/api/users', {
+          username: personName,
+          password: 'password123', // Default password
+          displayName: personName
+        });
+        
+        if (!createResponse.ok) {
+          throw new Error(`Failed to create user ${personName}`);
+        }
+        
+        const newUser = await createResponse.json();
+        return newUser.id;
+      });
+      
+      // Wait for all user creation/lookup to complete
+      const userIds = await Promise.all(userPromises);
+      
+      // Create the group with the first user as the creator
+      const creatorId = userIds[0];
+      
       const response = await apiRequest('POST', '/api/groups', {
         name: groupName,
-        people: filteredPeople
+        description: null,
+        createdById: creatorId,
+        initialMembers: userIds
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create group');
+      }
       
       const data = await response.json();
       

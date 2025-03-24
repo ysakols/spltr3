@@ -1,10 +1,11 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertGroupSchema, insertExpenseSchema, insertUserSchema } from "@shared/schema";
+import { insertGroupSchema, insertExpenseSchema, insertUserSchema, users } from "@shared/schema";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { db } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -39,6 +40,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) return res.status(404).json({ message: 'User not found' });
       
       res.json(user);
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Search users by username
+  app.get('/api/users', async (req: Request, res: Response) => {
+    try {
+      const username = req.query.username as string;
+      
+      if (username) {
+        // Search for a specific user by username
+        const user = await storage.getUserByUsername(username);
+        if (user) {
+          return res.json([user]); // Return as array for consistent format
+        }
+        return res.json([]); // Return empty array if no user found
+      } else {
+        // Get all users (this could be limited in production)
+        const allUsers = await db.select().from(users);
+        return res.json(allUsers);
+      }
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
