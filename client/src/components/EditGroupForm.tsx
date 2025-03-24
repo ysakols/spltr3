@@ -113,9 +113,20 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
 
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
+    console.log('Submitting form with data:', data, 'Group ID:', group.id);
+    
     try {
+      // Force proper form validation before submission
+      if (!data.name || data.name.trim() === '') {
+        throw new Error('Group name is required');
+      }
+      
+      console.log('Sending PUT request to', `/api/groups/${group.id}`);
       const response = await apiRequest('PUT', `/api/groups/${group.id}`, data);
+      console.log('Response received:', response);
+      
       const updatedGroup = await response.json();
+      console.log('Group updated successfully:', updatedGroup);
       
       // Invalidate the group query to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
@@ -129,6 +140,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
         description: `Group "${data.name}" has been updated.`,
       });
       
+      // Close the dialog by calling the onGroupUpdated callback
       onGroupUpdated();
     } catch (error) {
       console.error('Error updating group:', error);
