@@ -1,13 +1,25 @@
 import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useRoute, Link } from 'wouter';
+import { useRoute, Link, useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, ArrowLeft, Edit } from 'lucide-react';
-import { queryClient } from '@/lib/queryClient';
+import { Users, ArrowLeft, Edit, Trash, AlertTriangle } from 'lucide-react';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useQueryErrorHandler } from '@/lib/hooks';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import ExpenseForm from '@/components/ExpenseForm';
 import ExpenseTable from '@/components/ExpenseTable';

@@ -31,6 +31,7 @@ export interface IStorage {
   getGroup(id: number): Promise<Group | undefined>;
   createGroup(group: InsertGroup): Promise<Group>;
   updateGroup(id: number, group: Partial<InsertGroup>): Promise<Group | undefined>;
+  deleteGroup(id: number): Promise<boolean>;
   addUserToGroup(groupId: number, userId: number): Promise<UserGroup>;
   removeUserFromGroup(groupId: number, userId: number): Promise<void>;
   getGroupMembers(groupId: number): Promise<User[]>;
@@ -199,6 +200,47 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedGroup;
+  }
+  
+  async deleteGroup(id: number): Promise<boolean> {
+    // Start a transaction to delete the group and related data
+    return await db.transaction(async (tx) => {
+      // Get all expenses for this group
+      const groupExpenses = await tx
+        .select()
+        .from(expenses)
+        .where(eq(expenses.groupId, id));
+      
+      // Delete all expense splits for this group's expenses
+      for (const expense of groupExpenses) {
+        await tx
+          .delete(expenseSplits)
+          .where(eq(expenseSplits.expenseId, expense.id));
+      }
+      
+      // Delete all expenses for this group
+      await tx
+        .delete(expenses)
+        .where(eq(expenses.groupId, id));
+      
+      // Delete group invitations
+      await tx
+        .delete(groupInvitations)
+        .where(eq(groupInvitations.groupId, id));
+      
+      // Mark all user-group associations as inactive
+      await tx
+        .update(userGroups)
+        .set({ isActive: false })
+        .where(eq(userGroups.groupId, id));
+      
+      // Finally delete the group
+      const result = await tx
+        .delete(groups)
+        .where(eq(groups.id, id));
+      
+      return result.rowCount !== null && result.rowCount > 0;
+    });
   }
 
   async addUserToGroup(groupId: number, userId: number): Promise<UserGroup> {

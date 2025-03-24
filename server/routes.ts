@@ -392,6 +392,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete a group
+  app.delete('/api/groups/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+      
+      const group = await storage.getGroup(id);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
+      // Check if the current user is the creator of the group
+      const currentUser = req.user as User;
+      if (group.createdById !== currentUser.id) {
+        return res.status(403).json({ 
+          message: 'Only the group creator can delete this group' 
+        });
+      }
+      
+      // Delete the group
+      const deleted = await storage.deleteGroup(id);
+      
+      if (deleted) {
+        res.json({ message: 'Group deleted successfully' });
+      } else {
+        res.status(500).json({ message: 'Failed to delete group' });
+      }
+    } catch (err) {
+      console.error('Error deleting group:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
   // Add a user to a group
   app.post('/api/groups/:groupId/members', async (req: Request, res: Response) => {
     try {
