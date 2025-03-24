@@ -15,8 +15,8 @@ function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content with sidebars */}
       <div className="flex flex-1 overflow-hidden">
         {/* Mobile Sidebar Trigger - Now floating at the top left corner for mobile */}
-        <div className="md:hidden fixed top-4 left-4 z-30">
-          <div className="bg-background/80 backdrop-blur-sm rounded-lg shadow-sm p-1">
+        <div className="md:hidden fixed top-2.5 left-2.5 z-30">
+          <div className="bg-background/80 backdrop-blur-sm rounded-lg shadow-sm p-0.5">
             <MobileSidebarTrigger />
           </div>
         </div>
@@ -25,7 +25,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         
         {/* Main content */}
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6 pt-12 md:pt-6">
+          <div className="container mx-auto p-3 pt-10 md:pt-3">
             {children}
           </div>
         </main>
@@ -36,9 +36,9 @@ function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <footer className="border-t py-4">
-        <div className="container mx-auto px-4">
-          <p className="text-center text-muted-foreground text-sm">
+      <footer className="border-t py-2">
+        <div className="container mx-auto px-3">
+          <p className="text-center text-muted-foreground text-xs">
             &copy; {new Date().getFullYear()} spltr3. All rights reserved.
           </p>
         </div>

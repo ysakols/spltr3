@@ -19,7 +19,7 @@ import { Separator } from "./ui/separator";
 // Logo Component
 const Logo = () => (
   <svg 
-    className="h-8 w-8 text-primary" 
+    className="h-6 w-6 text-primary" 
     viewBox="0 0 24 24" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg"
@@ -36,19 +36,19 @@ const NavLinks = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
   <div className="space-y-0.5">
     <Link href="/">
       <Button variant="ghost" size="sm" className={cn(
-        "w-full justify-start text-sm py-1.5",
-        isCollapsed && "justify-center px-1.5"
+        "w-full justify-start text-xs py-1",
+        isCollapsed && "justify-center px-1"
       )}>
-        <List className={cn("h-4 w-4", !isCollapsed && "mr-1.5")} />
+        <List className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
         {!isCollapsed && <span>Groups</span>}
       </Button>
     </Link>
     <Link href="/create">
       <Button variant="ghost" size="sm" className={cn(
-        "w-full justify-start text-sm py-1.5",
-        isCollapsed && "justify-center px-1.5"
+        "w-full justify-start text-xs py-1",
+        isCollapsed && "justify-center px-1"
       )}>
-        <PlusCircle className={cn("h-4 w-4", !isCollapsed && "mr-1.5")} />
+        <PlusCircle className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
         {!isCollapsed && <span>Create Group</span>}
       </Button>
     </Link>
@@ -62,19 +62,19 @@ export function MobileSidebarTrigger() {
       <SheetTrigger asChild>
         <Button 
           variant="outline" 
-          size="icon" 
-          className="block md:hidden"
+          size="sm"
+          className="block md:hidden h-7 w-7 p-1"
           aria-label="Open menu"
         >
-          <Menu className="h-5 w-5 text-primary" />
+          <Menu className="h-4 w-4 text-primary" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[200px] sm:w-[220px] p-0">
+      <SheetContent side="left" className="w-[160px] sm:w-[180px] p-0">
         <nav className="h-full flex flex-col bg-muted/40">
-          <div className="px-3 py-4">
-            <div className="flex items-center mb-6">
+          <div className="px-2 py-3">
+            <div className="flex items-center mb-4">
               <Logo />
-              <h1 className="ml-2 font-bold text-lg bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
+              <h1 className="ml-1.5 font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
             </div>
             <NavLinks />
           </div>
@@ -96,17 +96,17 @@ export function Sidebar({ className }: SidebarProps) {
     <div 
       className={cn(
         "hidden md:flex flex-col h-screen bg-muted/40 border-r transition-all duration-300",
-        isCollapsed ? "w-[50px]" : "w-[200px]",
+        isCollapsed ? "w-[40px]" : "w-[160px]",
         className
       )}
     >
-      <div className="px-2 py-4 flex-1">
+      <div className="px-1.5 py-3 flex-1">
         <div className={cn(
-          "flex items-center mb-6",
+          "flex items-center mb-4",
           isCollapsed && "justify-center"
         )}>
           <Logo />
-          {!isCollapsed && <h1 className="ml-2 font-bold text-lg bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
+          {!isCollapsed && <h1 className="ml-1.5 font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
         </div>
         
         <NavLinks isCollapsed={isCollapsed} />
@@ -114,17 +114,18 @@ export function Sidebar({ className }: SidebarProps) {
       
       <Separator />
       
-      <div className="p-2 flex justify-end">
+      <div className="p-1.5 flex justify-end">
         <Button 
           variant="ghost" 
-          size="icon" 
+          size="sm" 
+          className="h-6 w-6 p-0.5"
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           )}
         </Button>
       </div>
