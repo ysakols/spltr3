@@ -85,13 +85,21 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
     const { toast } = useToast();
 
     const resetForm = () => {
+      // Reset form data
       setExpenseData({
         description: '',
         amount: '',
         paidByUserId: members.length > 0 ? members[0].id : 0,
         splitType: SplitType.EQUAL as string,
       });
-      setSplitDetails({});
+      
+      // For equal splits, initialize with placeholder values for all members
+      const initialSplitDetails: Record<string, number> = {};
+      members.forEach(member => {
+        initialSplitDetails[member.id] = 0;
+      });
+      
+      setSplitDetails(initialSplitDetails);
       setExpenseDate(new Date());
     };
     
@@ -161,48 +169,58 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
     const handleSplitTypeChange = (value: string) => {
       setExpenseData(prev => ({ ...prev, splitType: value }));
       
-      // Reset split details when changing split type
+      // Initialize split details based on the split type
+      const newSplitDetails: Record<string, number> = {};
+      
       if (value === SplitType.EQUAL) {
-        setSplitDetails({});
-      } else {
-        // Initialize split details based on the split type
-        const newSplitDetails: Record<string, number> = {};
+        // For equal splits, we still need to include all members in splitDetails
+        // even though the actual amounts will be calculated on the server
+        members.forEach(member => {
+          // Just set a placeholder value to identify which users are in the split
+          newSplitDetails[member.id] = 0;  
+        });
+      } else if (value === SplitType.PERCENTAGE) {
+        // Initialize with equal percentages
+        const equalPercentage = parseFloat((100 / members.length).toFixed(2));
+        let totalAssigned = 0;
         
-        if (value === SplitType.PERCENTAGE) {
-          // Initialize with equal percentages
-          const equalPercentage = parseFloat((100 / members.length).toFixed(2));
-          members.forEach(member => {
-            newSplitDetails[member.id] = equalPercentage;
-          });
-        } else if (value === SplitType.EXACT) {
-          // Initialize with equal amounts if there's a current amount,
-          // otherwise initialize with zeros
-          if (expenseData.amount) {
-            const totalAmount = parseFloat(expenseData.amount);
-            const perPersonAmount = parseFloat((totalAmount / members.length).toFixed(2));
-            
-            // Distribute the amount evenly, adjusting the last person to account for rounding
-            let distributed = 0;
-            
-            members.forEach((member, index) => {
-              if (index === members.length - 1) {
-                // Last person gets remaining amount to avoid rounding errors
-                newSplitDetails[member.id] = parseFloat((totalAmount - distributed).toFixed(2));
-              } else {
-                newSplitDetails[member.id] = perPersonAmount;
-                distributed += perPersonAmount;
-              }
-            });
+        members.forEach((member, index) => {
+          if (index === members.length - 1) {
+            // Last person gets remaining percentage to avoid rounding errors
+            newSplitDetails[member.id] = parseFloat((100 - totalAssigned).toFixed(2)); 
           } else {
-            // No amount entered yet, initialize with zeros
-            members.forEach(member => {
-              newSplitDetails[member.id] = 0;
-            });
+            newSplitDetails[member.id] = equalPercentage;
+            totalAssigned += equalPercentage;
           }
+        });
+      } else if (value === SplitType.EXACT) {
+        // Initialize with equal amounts if there's a current amount,
+        // otherwise initialize with zeros
+        if (expenseData.amount) {
+          const totalAmount = parseFloat(expenseData.amount);
+          const perPersonAmount = parseFloat((totalAmount / members.length).toFixed(2));
+          
+          // Distribute the amount evenly, adjusting the last person to account for rounding
+          let distributed = 0;
+          
+          members.forEach((member, index) => {
+            if (index === members.length - 1) {
+              // Last person gets remaining amount to avoid rounding errors
+              newSplitDetails[member.id] = parseFloat((totalAmount - distributed).toFixed(2));
+            } else {
+              newSplitDetails[member.id] = perPersonAmount;
+              distributed += perPersonAmount;
+            }
+          });
+        } else {
+          // No amount entered yet, initialize with zeros
+          members.forEach(member => {
+            newSplitDetails[member.id] = 0;
+          });
         }
-        
-        setSplitDetails(newSplitDetails);
       }
+      
+      setSplitDetails(newSplitDetails);
     };
     
     const handleSplitDetailChange = (userId: number, value: string) => {
