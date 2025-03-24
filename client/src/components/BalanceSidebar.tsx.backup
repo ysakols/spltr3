@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from '@/components/ui/card';
 import { Users } from 'lucide-react';
 import GroupSummary from './GroupSummary';
+import { useMemo } from "react";
 
 // For demo purposes, we'll hardcode current user
 // This should eventually be replaced with actual auth logic
@@ -54,6 +55,49 @@ export function BalanceSidebar() {
     gcTime: 30000,
   });
   
+  // Process and memoize settlement data
+  const { peopleWhoOweMe, peopleIOwe, userMap } = useMemo(() => {
+    // Default empty values
+    if (!summary) {
+      return {
+        peopleWhoOweMe: [],
+        peopleIOwe: [],
+        userMap: {},
+      };
+    }
+    
+    // Filter settlements
+    const peopleWhoOweMe = summary.settlements.filter((s: Settlement) => 
+      s.to === CURRENT_USER_ID.toString()
+    );
+    
+    const peopleIOwe = summary.settlements.filter((s: Settlement) => 
+      s.from === CURRENT_USER_ID.toString()
+    );
+    
+    // Build user mapping
+    const userMap: Record<string, string> = {};
+    
+    // Add current group members first (if any)
+    if (currentMembers) {
+      currentMembers.forEach(member => {
+        userMap[member.id.toString()] = member.username;
+      });
+    }
+    
+    // Then add all other users from the global list
+    allUsers.forEach(user => {
+      userMap[user.id.toString()] = user.username;
+    });
+    
+    return { peopleWhoOweMe, peopleIOwe, userMap };
+  }, [summary, currentMembers, allUsers]);
+  
+  // Function to get username from ID
+  const getUserName = (userId: string) => {
+    return userMap[userId] || `User ${userId}`;
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -73,35 +117,6 @@ export function BalanceSidebar() {
       </div>
     );
   }
-  
-  // Create a mapping of user IDs to usernames
-  const userMap: Record<string, string> = {};
-  
-  // Add current group members first (if any)
-  if (currentMembers) {
-    currentMembers.forEach(member => {
-      userMap[member.id.toString()] = member.username;
-    });
-  }
-  
-  // Then add all other users from the global list
-  allUsers.forEach(user => {
-    userMap[user.id.toString()] = user.username;
-  });
-  
-  // Get settlements that involve the current user
-  const peopleWhoOweMe = summary.settlements.filter(
-    s => s.to === CURRENT_USER_ID.toString()
-  );
-  
-  const peopleIOwe = summary.settlements.filter(
-    s => s.from === CURRENT_USER_ID.toString()
-  );
-  
-  // Function to get username from ID
-  const getUserName = (userId: string) => {
-    return userMap[userId] || `User ${userId}`;
-  };
 
   return (
     <div className="h-full p-2 overflow-y-auto text-xs">
@@ -136,9 +151,9 @@ export function BalanceSidebar() {
           <div className="border rounded-lg p-2 bg-card">
             <h3 className="text-xs font-medium text-muted-foreground mb-1">People who owe you</h3>
             <div className="space-y-1">
-              {[...peopleWhoOweMe]
-                .sort((a, b) => b.amount - a.amount)
-                .map((settlement, idx) => (
+              {peopleWhoOweMe
+                .sort((a: Settlement, b: Settlement) => b.amount - a.amount)
+                .map((settlement: Settlement, idx: number) => (
                   <div key={idx} className="flex justify-between items-center">
                     <span className="font-medium text-xs">{getUserName(settlement.from)}</span>
                     <span className="text-green-600 font-semibold text-xs">
@@ -155,9 +170,9 @@ export function BalanceSidebar() {
           <div className="border rounded-lg p-2 bg-card">
             <h3 className="text-xs font-medium text-muted-foreground mb-1">You owe</h3>
             <div className="space-y-1">
-              {[...peopleIOwe]
-                .sort((a, b) => b.amount - a.amount)
-                .map((settlement, idx) => (
+              {peopleIOwe
+                .sort((a: Settlement, b: Settlement) => b.amount - a.amount)
+                .map((settlement: Settlement, idx: number) => (
                   <div key={idx} className="flex justify-between items-center">
                     <span className="font-medium text-xs">{getUserName(settlement.to)}</span>
                     <span className="text-red-600 font-semibold text-xs">
