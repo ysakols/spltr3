@@ -6,8 +6,159 @@ import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { db } from "./db";
+import passport from "./auth";
+import { isAuthenticated } from "./auth";
+import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  // ==========================================================
+  
+  // Get current authenticated user
+  app.get('/api/auth/me', isAuthenticated, (req: Request, res: Response) => {
+    res.json(req.user);
+  });
+  
+  // Google OAuth routes
+  app.get('/auth/google', 
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'] 
+    })
+  );
+  
+  app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+      failureRedirect: '/login' 
+    }),
+    (req: Request, res: Response) => {
+      // Successful authentication, redirect to home
+      res.redirect('/');
+    }
+  );
+  
+  // Logout route
+  app.get('/auth/logout', (req: Request, res: Response) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: err.message });
+      }
+      res.redirect('/');
+    });
+  });
+  
+  // Group invitation handling
+  app.get('/api/invitations/:token', async (req: Request, res: Response) => {
+    try {
+      const token = req.params.token;
+      const invitation = await storage.getGroupInvitationByToken(token);
+      
+      if (!invitation) {
+        return res.status(404).json({ message: 'Invitation not found' });
+      }
+      
+      // Check if the invitation is expired
+      const now = new Date();
+      const expired = invitation.expiresAt && new Date(invitation.expiresAt) < now;
+      
+      if (expired) {
+        return res.status(400).json({ message: 'Invitation has expired' });
+      }
+      
+      // If user is logged in, process the invitation immediately
+      if (req.isAuthenticated() && req.user) {
+        const user = req.user as User;
+        
+        // Add the user to the group
+        await storage.addUserToGroup(invitation.groupId, user.id);
+        
+        // Mark invitation as accepted
+        await storage.updateGroupInvitation(invitation.id, {
+          status: 'accepted',
+          acceptedAt: new Date()
+        });
+        
+        return res.json({ 
+          message: 'Invitation accepted',
+          groupId: invitation.groupId
+        });
+      }
+      
+      // If not logged in, return the invitation details so frontend
+      // can prompt user to login/register
+      return res.json({
+        invitation: {
+          ...invitation,
+          isExpired: expired,
+          requiresAuthentication: true
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Create a group invitation
+  app.post('/api/groups/:groupId/invitations', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      if (isNaN(groupId)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+      
+      const schema = z.object({
+        email: z.string().email()
+      });
+      
+      const validatedData = schema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      const { email } = validatedData.data;
+      const currentUser = req.user as User;
+      
+      // Generate a unique token
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Create invitation
+      const invitation = await storage.createGroupInvitation({
+        groupId,
+        inviterUserId: currentUser.id,
+        inviteeEmail: email,
+        token,
+        status: 'pending',
+        invitedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+      });
+      
+      res.status(201).json(invitation);
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Get user's contacts for quick selection
+  app.get('/api/users/:userId/contacts', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Check if user is requesting their own contacts
+      const currentUser = req.user as User;
+      if (currentUser.id !== userId) {
+        return res.status(403).json({ message: 'Not authorized to view these contacts' });
+      }
+      
+      const contacts = await storage.getUserContacts(userId);
+      res.json(contacts);
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
   // User routes
   // ==========================================================
   

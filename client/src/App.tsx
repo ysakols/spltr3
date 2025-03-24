@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,8 +6,11 @@ import NotFound from "@/pages/not-found";
 import GroupList from "@/pages/GroupList";
 import CreateGroup from "@/pages/CreateGroup";
 import GroupDetail from "@/pages/GroupDetail";
+import Login from "@/pages/Login";
+import Invitation from "@/pages/Invitation";
 import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
 import { BalanceSidebar } from "@/components/BalanceSidebar";
+import { useState, useEffect } from "react";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
