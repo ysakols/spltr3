@@ -186,7 +186,8 @@ function GroupDetail() {
               <TabsContent value="summary" className="pt-2">
                 <GroupSummary 
                   group={group} 
-                  summary={summary} 
+                  summary={summary}
+                  members={members || []}
                 />
               </TabsContent>
             </Tabs>
