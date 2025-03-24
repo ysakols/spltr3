@@ -228,10 +228,9 @@ export class DatabaseStorage implements IStorage {
         .delete(groupInvitations)
         .where(eq(groupInvitations.groupId, id));
       
-      // Mark all user-group associations as inactive
+      // Delete all user-group associations for this group
       await tx
-        .update(userGroups)
-        .set({ isActive: false })
+        .delete(userGroups)
         .where(eq(userGroups.groupId, id));
       
       // Finally delete the group
