@@ -268,7 +268,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           splitWithUserIds: members.map(member => member.id), // Split with all group members by default
           splitType: expenseData.splitType,
           splitDetails: JSON.stringify(splitDetails),
-          date: expenseDate // Include the selected date
+          date: expenseDate instanceof Date ? expenseDate : new Date() // Ensure date is a Date object
         };
         
         if (isEditing && expenseToEdit) {
