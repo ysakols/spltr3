@@ -30,11 +30,14 @@ import type { Group, Expense, Balance, User } from '@shared/schema';
 
 function GroupDetail() {
   const [, params] = useRoute<{ groupId: string }>('/groups/:groupId');
+  const [, setLocation] = useLocation();
   const groupId = params?.groupId ? parseInt(params.groupId) : 0;
   const handleError = useQueryErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const expenseFormRef = useRef<{ setOpen: (open: boolean) => void } | null>(null);
+  const { toast } = useToast();
   
   // Queries
   const { data: group, isLoading: isLoadingGroup, error: groupError } = useQuery<Group>({
@@ -91,6 +94,27 @@ function GroupDetail() {
   const handleCancelEdit = () => {
     setExpenseToEdit(null);
   };
+  
+  const handleDeleteGroup = async () => {
+    try {
+      await apiRequest(`/api/groups/${groupId}`, { method: 'DELETE' });
+      toast({
+        title: "Group deleted",
+        description: "The group has been successfully deleted.",
+      });
+      // Redirect to the groups list page
+      setLocation('/');
+      // Invalidate the groups list cache
+      queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Error deleting group",
+        description: "There was a problem deleting the group. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const isLoading = isLoadingGroup || isLoadingExpenses || isLoadingSummary || isLoadingMembers;
 
@@ -144,15 +168,51 @@ function GroupDetail() {
                   <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
                   <span>{members ? `${members.length} members: ${members.map(m => m.username).join(', ')}` : 'Loading members...'}</span>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-3 w-3" /> 
-                  Edit Group
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="h-3 w-3" /> 
+                    Edit Group
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
+                      >
+                        <Trash className="h-3 w-3" /> 
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Delete Group
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this group? This will permanently remove 
+                          <strong> {group.name}</strong> and all its expenses. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteGroup}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete Group
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </div>
           )}
