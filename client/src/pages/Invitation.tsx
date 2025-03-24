@@ -31,7 +31,7 @@ function Invitation() {
       if (params?.token) {
         try {
           setLoading(true);
-          const data: InvitationResponse = await apiRequest(`/api/invitations/${params.token}`);
+          const data = await apiRequest<InvitationResponse>(`/api/invitations/${params.token}`);
           
           if (data && 'groupId' in data) {
             // The invitation was automatically accepted

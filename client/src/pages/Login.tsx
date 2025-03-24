@@ -2,14 +2,78 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { FaGoogle } from "react-icons/fa";
 import { useLocation } from "wouter";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { apiRequest } from "@/lib/queryClient";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 function Login() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   
   // Function to redirect to Google OAuth
   const handleGoogleLogin = () => {
     // Use absolute URL to ensure correct path
     window.location.href = "/auth/google";
+  };
+
+  // Function to handle local login
+  const handleLocalLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      interface LoginResponse {
+        success: boolean;
+        message?: string;
+        user?: any;
+      }
+      
+      const response = await apiRequest<LoginResponse>("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Logged in successfully"
+        });
+        setLocation("/");
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Invalid email or password",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -29,6 +93,40 @@ function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
+              {/* Local login form */}
+              <form onSubmit={handleLocalLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="name@example.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign in"}
+                </Button>
+              </form>
+              
+              <div className="relative my-4">
+                <Separator />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="bg-card px-2 text-xs text-muted-foreground">OR</span>
+                </div>
+              </div>
+              
               <Button 
                 variant="outline" 
                 className="flex items-center justify-center gap-2"

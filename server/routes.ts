@@ -19,6 +19,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
   
+  // Local login route
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Email and password are required' 
+        });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Invalid email or password' 
+        });
+      }
+      
+      // Simple password comparison for development
+      // In production, you'd use bcrypt.compare or similar
+      if (user.password !== password) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Invalid email or password' 
+        });
+      }
+      
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Error during login' 
+          });
+        }
+        
+        return res.json({ 
+          success: true, 
+          user 
+        });
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Server error during login' 
+      });
+    }
+  });
+  
   // Google OAuth routes
   app.get('/auth/google', 
     passport.authenticate('google', { 
