@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -8,7 +8,8 @@ import {
   Menu,
   List,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from "lucide-react";
 
 // UI Components
@@ -32,28 +33,57 @@ const Logo = () => (
 );
 
 // Navigation Links Component
-const NavLinks = ({ isCollapsed = false }: { isCollapsed?: boolean }) => (
-  <div className="space-y-0.5">
-    <Link href="/">
-      <Button variant="ghost" size="sm" className={cn(
-        "w-full justify-start text-xs py-1",
-        isCollapsed && "justify-center px-1"
-      )}>
-        <List className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-        {!isCollapsed && <span>Groups</span>}
+const NavLinks = ({ isCollapsed = false }: { isCollapsed?: boolean }) => {
+  const [, setLocation] = useLocation();
+  
+  const handleLogout = async () => {
+    try {
+      await fetch('/auth/logout');
+      // Redirect to login page after logout
+      setLocation('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-0.5">
+      <Link href="/">
+        <Button variant="ghost" size="sm" className={cn(
+          "w-full justify-start text-xs py-1",
+          isCollapsed && "justify-center px-1"
+        )}>
+          <List className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
+          {!isCollapsed && <span>Groups</span>}
+        </Button>
+      </Link>
+      <Link href="/create">
+        <Button variant="ghost" size="sm" className={cn(
+          "w-full justify-start text-xs py-1",
+          isCollapsed && "justify-center px-1"
+        )}>
+          <PlusCircle className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
+          {!isCollapsed && <span>Create Group</span>}
+        </Button>
+      </Link>
+      
+      <Separator className="my-2" />
+      
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={handleLogout}
+        className={cn(
+          "w-full justify-start text-xs py-1 text-red-600 hover:text-red-700 hover:bg-red-100/30",
+          isCollapsed && "justify-center px-1"
+        )}
+      >
+        <LogOut className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
+        {!isCollapsed && <span>Sign Out</span>}
       </Button>
-    </Link>
-    <Link href="/create">
-      <Button variant="ghost" size="sm" className={cn(
-        "w-full justify-start text-xs py-1",
-        isCollapsed && "justify-center px-1"
-      )}>
-        <PlusCircle className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-        {!isCollapsed && <span>Create Group</span>}
-      </Button>
-    </Link>
-  </div>
-);
+    </div>
+  );
+};
 
 // Mobile Menu Trigger
 export function MobileSidebarTrigger() {

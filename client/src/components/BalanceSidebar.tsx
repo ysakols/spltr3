@@ -191,7 +191,7 @@ export function BalanceSidebar() {
               <div className="w-full border-t border-primary/30"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-4 text-sm font-medium text-primary/80">Group Details</span>
+              <span className="bg-background px-4 text-sm font-medium text-primary/80">Details</span>
             </div>
           </div>
           
