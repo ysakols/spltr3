@@ -3,14 +3,18 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Enhanced Users table with more profile information
+// Enhanced Users table with more profile information and Google auth
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  email: text("email").unique(), // Optional email for notifications (nullable)
+  email: text("email").unique(), // Email for notifications and authentication
   displayName: text("display_name"), // Optional display name (nullable)
   avatarUrl: text("avatar_url"), // Optional profile picture URL (nullable)
+  googleId: text("google_id").unique(), // Google OAuth ID (nullable)
+  googleAccessToken: text("google_access_token"), // Google access token (nullable)
+  googleRefreshToken: text("google_refresh_token"), // Google refresh token (nullable)
+  lastLogin: timestamp("last_login"), // Track last login time
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
