@@ -105,7 +105,10 @@ export function BalanceSidebar() {
 
   return (
     <div className="h-full p-2 overflow-y-auto text-xs">
-      <h2 className="font-semibold mb-2.5 text-sm">Balance Summary</h2>
+      <h2 className="font-semibold mb-2.5 text-sm flex items-center">
+        <span className="inline-block w-2 h-6 bg-primary mr-2 rounded"></span>
+        Balance Summary
+      </h2>
       
       {/* Global Balance Section */}
       <div className="space-y-2.5 mb-4">
@@ -181,8 +184,21 @@ export function BalanceSidebar() {
       
       {/* Current Group Details Section - Only show when on a group page */}
       {currentGroupId && currentGroup && currentSummary && currentMembers && (
-        <div className="mt-4">
-          <h2 className="font-semibold mb-2 text-sm">Group Summary</h2>
+        <div className="mt-6">
+          {/* Prominent divider between sections */}
+          <div className="relative py-3">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-primary/30"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-4 text-sm font-medium text-primary/80">Group Details</span>
+            </div>
+          </div>
+          
+          <h2 className="font-semibold mb-2 text-sm flex items-center">
+            <span className="inline-block w-2 h-6 bg-primary mr-2 rounded"></span>
+            Group Summary
+          </h2>
           <div className="max-h-[50vh] overflow-y-auto pr-1">
             <GroupSummary 
               group={currentGroup} 
