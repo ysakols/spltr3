@@ -193,6 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         inviterUserId: currentUser.id,
         inviteeEmail: email,
+        inviteeFirstName: firstName || null,
         token,
         status: 'pending',
         invitedAt: new Date(),

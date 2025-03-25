@@ -279,6 +279,7 @@ export const groupInvitations = pgTable("group_invitations", {
   groupId: integer("group_id").notNull().references(() => groups.id),
   inviterUserId: integer("inviter_user_id").notNull().references(() => users.id),
   inviteeEmail: text("invitee_email").notNull(), // Email of the invited user
+  inviteeFirstName: text("invitee_first_name"), // First name of the invited user (optional)
   status: text("status").notNull().default('pending'), // pending, accepted, rejected
   invitedAt: timestamp("invited_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // Optional expiration date
@@ -329,6 +330,7 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
     groupId: true,
     inviterUserId: true,
     inviteeEmail: true,
+    inviteeFirstName: true,
     status: true,
     token: true,
     expiresAt: true,
@@ -337,6 +339,7 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
   })
   .extend({
     inviteeEmail: z.string().email(),
+    inviteeFirstName: z.string().optional().nullable(),
     expiresAt: z.date().optional().nullable(),
     invitedAt: z.date().optional(),
     acceptedAt: z.date().optional().nullable()
