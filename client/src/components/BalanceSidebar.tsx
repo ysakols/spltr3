@@ -5,6 +5,8 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from '@/components/ui/card';
 import { Users } from 'lucide-react';
 import GroupSummary from './GroupSummary';
+import { SettlementButton } from '@/components/SettlementButton';
+import { useState, useEffect } from 'react';
 
 // For demo purposes, we'll hardcode current user
 // This should eventually be replaced with actual auth logic

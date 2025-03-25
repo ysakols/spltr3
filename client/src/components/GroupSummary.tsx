@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { CircleDollarSign } from 'lucide-react';
+import { SettlementButton } from '@/components/SettlementButton';
+import { SettlementHistory } from '@/components/SettlementHistory';
 
 import type { Group, Balance, User } from '@shared/schema';
 
@@ -14,6 +16,7 @@ interface GroupSummaryProps {
 
 function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
   const { formatCurrency } = useExpenseFunctions();
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   
   // Get all member IDs from the paid/owes objects in the summary
   const memberIds = Object.keys(summary.paid || {});
@@ -28,6 +31,23 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
   const getUserName = (userId: string) => {
     return userMap[userId] || `User ${userId}`;
   };
+  
+  // Get current user ID on component mount
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUserId(userData.id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
 
   return (
     <div className="space-y-2">
@@ -78,21 +98,44 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
             <CardTitle className="text-xs">Settlement Plan</CardTitle>
           </CardHeader>
           <CardContent className="p-2">
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {summary.settlements.map((settlement, index) => (
-                <li key={index} className="text-[10px] flex items-center space-x-1">
-                  <CircleDollarSign className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span className="font-medium">{getUserName(settlement.from)}</span>
-                  <span className="text-muted-foreground">pays</span>
-                  <span className="font-medium">{getUserName(settlement.to)}</span>
-                  <span className="font-semibold text-primary ml-auto">
-                    {formatCurrency(settlement.amount)}
-                  </span>
+                <li key={index} className="text-[10px] flex items-center">
+                  <div className="flex items-center space-x-1 flex-grow">
+                    <CircleDollarSign className="h-3 w-3 text-primary flex-shrink-0" />
+                    <span className="font-medium">{getUserName(settlement.from)}</span>
+                    <span className="text-muted-foreground">pays</span>
+                    <span className="font-medium">{getUserName(settlement.to)}</span>
+                    <span className="font-semibold text-primary ml-auto">
+                      {formatCurrency(settlement.amount)}
+                    </span>
+                  </div>
+                  
+                  {currentUserId && (
+                    <div className="ml-2">
+                      <SettlementButton
+                        settlement={settlement}
+                        currentUserId={currentUserId}
+                        userMap={userMap}
+                        groupId={group.id}
+                        size="sm"
+                        variant="outline"
+                        buttonText="Settle"
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
+      )}
+      
+      {/* Settlement History */}
+      {currentUserId && (
+        <div className="mt-8">
+          <SettlementHistory userId={currentUserId} groupId={group.id} />
+        </div>
       )}
     </div>
   );

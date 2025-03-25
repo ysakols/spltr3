@@ -21,5 +21,6 @@ export const useSettlementModal = create<SettlementModalStore>((set) => ({
   settlementDetails: null,
   setSettlementDetails: (details: SettlementDetails) => 
     set({ isOpen: true, settlementDetails: details }),
-  clearSettlementDetails: () => set({ isOpen: false, settlementDetails: null }),
+  clearSettlementDetails: () => 
+    set({ isOpen: false, settlementDetails: null }),
 }));

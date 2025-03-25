@@ -38,13 +38,13 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
   });
 
   // Fetch all users to get usernames
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<{ id: number; username: string }[]>({
     queryKey: ['/api/users'],
   });
 
   // Create a mapping of user IDs to usernames
   const userMap: Record<number, string> = {};
-  users.forEach(user => {
+  users.forEach((user: { id: number; username: string }) => {
     userMap[user.id] = user.username;
   });
 
