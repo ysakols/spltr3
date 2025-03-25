@@ -10,16 +10,24 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
 function Login() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   
+  // Parse redirect parameter from URL if it exists
+  const getRedirectPath = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get("redirect") || "/";
+  };
+  
   // Function to redirect to Google OAuth
   const handleGoogleLogin = () => {
-    // Use absolute URL to ensure correct path
-    window.location.href = "/auth/google";
+    // Add redirect parameter to Google OAuth URL if needed
+    const redirectPath = getRedirectPath();
+    const redirectParam = redirectPath !== "/" ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
+    window.location.href = `/auth/google${redirectParam}`;
   };
 
   // Function to handle local login
@@ -44,12 +52,9 @@ function Login() {
         user?: any;
       }
       
-      const response = await apiRequest<LoginResponse>("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      const response = await apiRequest<LoginResponse>('POST', "/api/auth/login", {
+        email,
+        password
       });
       
       if (response.success) {
@@ -57,7 +62,9 @@ function Login() {
           title: "Success",
           description: "Logged in successfully"
         });
-        setLocation("/");
+        // Redirect to original destination if specified in URL
+        const redirectPath = getRedirectPath();
+        setLocation(redirectPath);
       } else {
         toast({
           title: "Error",

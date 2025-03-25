@@ -54,6 +54,25 @@ function CreateGroup() {
     try {
       setLoading(true);
       
+      // Step 1: Check if user is logged in
+      const authResponse = await fetch('/api/auth/me', {
+        credentials: 'include' // Important to include credentials
+      });
+      
+      // If not authenticated, redirect to login page
+      if (!authResponse.ok) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please login to create a group',
+          variant: 'destructive',
+        });
+        
+        navigate('/login?redirect=/create-group');
+        return;
+      }
+      
+      const currentUser = await authResponse.json();
+      
       // First, we need to find or create users based on the names provided
       const userPromises = filteredPeople.map(async (personName) => {
         // Try to find existing user by username
@@ -91,13 +110,16 @@ function CreateGroup() {
       // Wait for all user creation/lookup to complete
       const userIds = await Promise.all(userPromises);
       
-      // Create the group with the first user as the creator
-      const creatorId = userIds[0];
+      // Make sure the current user is included in the list
+      if (!userIds.includes(currentUser.id)) {
+        userIds.push(currentUser.id);
+      }
       
+      // Create the group with current user as creator
       const response = await apiRequest('POST', '/api/groups', {
         name: groupName,
         description: null,
-        createdById: creatorId,
+        createdById: currentUser.id,
         initialMembers: userIds
       });
       
@@ -120,6 +142,7 @@ function CreateGroup() {
       // Navigate to the new group
       navigate(`/groups/${groupData.id}`);
     } catch (err) {
+      console.error('Error creating group:', err);
       setError((err as Error).message || 'Error creating group');
       setLoading(false);
     }
