@@ -98,11 +98,11 @@ function GroupList() {
       ) : groups && groups.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map(group => (
-            <div key={group.id} className="col-span-1 bg-white rounded-lg shadow-md divide-y divide-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => window.location.href = `/groups/${group.id}`}>
-              <div className="p-6">
+            <div key={group.id} className="col-span-1 bg-white rounded-lg shadow-md divide-y divide-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full flex flex-col" onClick={() => window.location.href = `/groups/${group.id}`}>
+              <div className="p-6 flex-1 flex flex-col">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">{group.name}</h3>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <h3 className="text-lg font-medium text-gray-900 line-clamp-1">{group.name}</h3>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2 whitespace-nowrap">
                     Active
                   </span>
                 </div>
@@ -112,20 +112,21 @@ function GroupList() {
                     {users && users.length > 0 && (
                       <div className="flex flex-wrap items-center">
                         <span className="mr-1">Created by:</span>
-                        <span>
+                        <span className="mr-1">
                           {users.find(user => user.id === group.createdById)?.username || 'Unknown'}
                         </span>
-                        <span className="font-medium text-primary ml-1">(Admin)</span>
+                        <span className="font-medium text-primary">(Admin)</span>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="mt-2 flex items-start text-sm text-gray-500">
+                <div className="mt-3 flex items-start text-sm text-gray-500">
                   <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
                   <div className="flex-1">
                     <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
+                <div className="mt-auto pt-2"></div> {/* Spacer to push content to top */}
               </div>
             </div>
           ))}
