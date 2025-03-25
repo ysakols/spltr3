@@ -314,7 +314,7 @@ export class DatabaseStorage implements IStorage {
           groupId: group.id,
           userId: insertGroup.createdById,
           isActive: true,
-          createdAt: new Date()
+          joinedAt: new Date()
         });
       
       return group;
@@ -406,7 +406,7 @@ export class DatabaseStorage implements IStorage {
         groupId,
         userId,
         isActive: true,
-        createdAt: new Date()
+        joinedAt: new Date()
       })
       .returning();
     
