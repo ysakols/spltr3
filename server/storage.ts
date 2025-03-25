@@ -62,6 +62,14 @@ export interface IStorage {
   
   // Global summary
   calculateGlobalSummary(userId: number): Promise<Balance>;
+  
+  // Settlement methods
+  createSettlement(settlement: InsertSettlement): Promise<Settlement>;
+  getSettlement(id: number): Promise<Settlement | undefined>;
+  getUserSettlements(userId: number): Promise<Settlement[]>;
+  getGroupSettlements(groupId: number): Promise<Settlement[]>;
+  updateSettlement(id: number, data: Partial<InsertSettlement>): Promise<Settlement | undefined>;
+  markExpenseSplitsAsSettled(settlementId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -787,7 +795,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Helper function to generate settlements
-  private generateSettlements(balances: Record<string, number>): Settlement[] {
+  private generateSettlements(balances: Record<string, number>): SettlementCalculation[] {
     const settlements: Settlement[] = [];
     
     // Identify debtors and creditors

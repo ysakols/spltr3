@@ -357,8 +357,8 @@ export type GroupInvitation = typeof groupInvitations.$inferSelect;
 export type InsertContact = z.infer<typeof insertContactSchema>;
 export type Contact = typeof contacts.$inferSelect;
 
-// Settlement type (not stored in database, calculated on demand)
-export type Settlement = {
+// Settlement calculation type (not stored in database, calculated on demand)
+export type SettlementCalculation = {
   from: string;
   to: string;
   amount: number;
@@ -369,6 +369,75 @@ export type Balance = {
   paid: Record<string, number>;
   owes: Record<string, number>;
   balances: Record<string, number>;
-  settlements: Settlement[];
+  settlements: SettlementCalculation[];
   totalExpenses: number;
 };
+
+// Payment method enum
+export enum PaymentMethod {
+  CASH = 'cash',
+  VENMO = 'venmo',
+  OTHER = 'other'
+}
+
+// Settlement status enum
+export enum SettlementStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  CANCELED = 'canceled'
+}
+
+// Settlements table to track debt settlements
+export const settlements = pgTable("settlements", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull().references(() => users.id),
+  toUserId: integer("to_user_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  groupId: integer("group_id").references(() => groups.id), // Optional - may be a global settlement
+  paymentMethod: text("payment_method").notNull(), // cash, venmo, other
+  status: text("status").notNull().default(SettlementStatus.PENDING),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  transactionReference: text("transaction_reference"), // For external payment references
+});
+
+// Define settlement relations
+export const settlementsRelations = relations(settlements, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [settlements.fromUserId],
+    references: [users.id]
+  }),
+  toUser: one(users, {
+    fields: [settlements.toUserId],
+    references: [users.id]
+  }),
+  group: one(groups, {
+    fields: [settlements.groupId],
+    references: [groups.id]
+  })
+}));
+
+// Insert schema for settlements
+export const insertSettlementSchema = createInsertSchema(settlements)
+  .pick({
+    fromUserId: true,
+    toUserId: true,
+    amount: true,
+    groupId: true,
+    paymentMethod: true,
+    status: true,
+    notes: true,
+    transactionReference: true
+  })
+  .extend({
+    amount: z.coerce.string(),
+    groupId: z.number().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    transactionReference: z.string().optional().nullable(),
+    completedAt: z.date().optional().nullable(),
+  });
+
+// Types for settlements
+export type InsertSettlement = z.infer<typeof insertSettlementSchema>;
+export type Settlement = typeof settlements.$inferSelect;

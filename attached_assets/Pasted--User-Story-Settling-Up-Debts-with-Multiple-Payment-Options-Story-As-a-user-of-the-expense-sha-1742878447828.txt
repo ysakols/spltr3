@@ -1,0 +1,46 @@
+# User Story: Settling Up Debts with Multiple Payment Options
+
+## Story
+As a user of the expense-sharing app, I want flexible options to mark debts as "settled" - either by recording a cash payment or by directly completing the transaction through Venmo - so I can choose the most convenient payment method while maintaining an accurate record of all my financial obligations.
+
+## Acceptance Criteria
+1. Users should see a clear list of who owes them money and who they owe money to in the balance summary
+2. Each settlement should have a prominent "Settle Up" button
+3. When a user clicks "Settle Up," they should see two clear options:
+   - "Mark as Settled (Cash/Other)" - For recording payments made outside the app
+   - "Pay with Venmo" - For initiating a payment directly through Venmo
+
+4. For the "Mark as Settled" option:
+   - Users should be able to enter details about how the payment was made
+   - Users can add notes about the settlement
+   - The debt is immediately marked as settled in the system
+
+5. For the "Pay with Venmo" option:
+   - The app should deep link to Venmo with the correct recipient and amount
+   - The transaction description should reference the expense group
+   - After completing the Venmo payment, users return to the app
+   - The debt is automatically marked as settled
+
+6. After settlement (by either method):
+   - The transaction should be visually distinguished from unsettled debts
+   - It should appear in a "Settled Transactions" history section
+   - The recipient receives a notification about the settlement
+
+7. Users should be able to view their complete settlement history with clear status indicators showing:
+   - Payment method used (Cash/Venmo/Other)
+   - Date of settlement
+   - Related expense group
+
+## User Experience Flow
+1. User views their balance summary showing who they owe and who owes them
+2. User selects "Settle Up" on a specific debt
+3. User chooses either "Mark as Settled" or "Pay with Venmo"
+4. If "Mark as Settled":
+   - User completes a simple form with payment details and notes
+   - Debt is marked as settled immediately
+5. If "Pay with Venmo":
+   - User is directed to Venmo to complete the payment
+   - Upon returning to the app, the debt is marked as settled
+6. The transaction appears in the settlement history for both users
+
+This flexible approach accommodates different user preferences while keeping the core settlement process simple and straightforward.
