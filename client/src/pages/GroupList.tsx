@@ -106,22 +106,25 @@ function GroupList() {
                     Active
                   </span>
                 </div>
-                <div className="mt-4 flex items-center text-sm text-gray-500">
-                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                  <span>
+                <div className="mt-4 flex items-start text-sm text-gray-500">
+                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
                     {users && users.length > 0 && (
-                      <>
-                        Created by: {
-                          users.find(user => user.id === group.createdById)?.username || 'Unknown'
-                        }
-                        <span className="font-medium text-primary"> (Admin)</span>
-                      </>
+                      <div className="flex flex-wrap items-center">
+                        <span className="mr-1">Created by:</span>
+                        <span>
+                          {users.find(user => user.id === group.createdById)?.username || 'Unknown'}
+                        </span>
+                        <span className="font-medium text-primary ml-1">(Admin)</span>
+                      </div>
                     )}
-                  </span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center text-sm text-gray-500">
-                  <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                  <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
+                <div className="mt-2 flex items-start text-sm text-gray-500">
+                  <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
             </div>
