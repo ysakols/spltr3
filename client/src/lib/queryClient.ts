@@ -12,7 +12,7 @@ export async function apiRequest<T = any>(
   url: string,
   body?: any,
   options?: RequestInit,
-): Promise<Response> {
+): Promise<T> {
   const res = await fetch(url, {
     method,
     headers: {
@@ -23,7 +23,8 @@ export async function apiRequest<T = any>(
     credentials: "include",
   });
   
-  return res;
+  await throwIfResNotOk(res);
+  return await res.json();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

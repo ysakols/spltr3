@@ -7,6 +7,13 @@ declare global {
   }
 }
 
+// Extend express-session with our custom properties
+declare module 'express-session' {
+  interface SessionData {
+    redirectTo?: string;
+  }
+}
+
 // Add declaration for passport-google-oauth20
 declare module 'passport-google-oauth20' {
   import { Strategy as PassportStrategy } from 'passport';

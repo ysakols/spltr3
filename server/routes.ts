@@ -78,6 +78,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Google OAuth routes
   app.get('/auth/google', 
+    (req: Request, res: Response, next: NextFunction) => {
+      // Store redirect URL in session if provided
+      if (req.query.redirect) {
+        req.session.redirectTo = req.query.redirect as string;
+      }
+      next();
+    },
     passport.authenticate('google', { 
       scope: ['profile', 'email'] 
     })
@@ -88,8 +95,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       failureRedirect: '/login' 
     }),
     (req: Request, res: Response) => {
-      // Successful authentication, redirect to home
-      res.redirect('/');
+      // Successful authentication, redirect to stored path or home
+      const redirectTo = req.session.redirectTo || '/';
+      delete req.session.redirectTo; // Clean up
+      res.redirect(redirectTo);
     }
   );
   
