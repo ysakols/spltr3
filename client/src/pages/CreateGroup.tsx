@@ -97,7 +97,8 @@ function CreateGroup() {
       const response = await apiRequest('POST', '/api/groups', {
         name: groupName,
         description: null,
-        createdById: creatorId
+        createdById: creatorId,
+        initialMembers: userIds
       });
       
       if (!response.ok) {
@@ -107,21 +108,6 @@ function CreateGroup() {
       }
       
       const groupData = await response.json();
-      
-      // Add the other members to the group
-      for (let i = 1; i < userIds.length; i++) {
-        try {
-          const addMemberResponse = await apiRequest('POST', `/api/groups/${groupData.id}/members`, {
-            userId: userIds[i]
-          });
-          
-          if (!addMemberResponse.ok) {
-            console.warn(`Failed to add user ${userIds[i]} to group`, await addMemberResponse.text());
-          }
-        } catch (err) {
-          console.warn(`Failed to add user ${userIds[i]} to group:`, err);
-        }
-      }
       
       // Invalidate groups query to refresh list
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
