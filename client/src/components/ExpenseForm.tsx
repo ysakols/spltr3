@@ -95,9 +95,12 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       
       // For equal splits, initialize with placeholder values for all members
       const initialSplitDetails: Record<string, number> = {};
-      members.forEach(member => {
-        initialSplitDetails[member.id] = 0;
-      });
+      // Ensure we add entries for all members to make it easier to display in the table
+      if (members && members.length > 0) {
+        members.forEach(member => {
+          initialSplitDetails[member.id] = 0;
+        });
+      }
       
       setSplitDetails(initialSplitDetails);
       setExpenseDate(new Date());
@@ -119,17 +122,30 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
           setExpenseDate(new Date(expenseToEdit.date));
         }
         
-        // Update split details if they exist
-        if (expenseToEdit.splitDetails && expenseToEdit.splitDetails !== '{}') {
+        // Handle split details based on split type
+        if (expenseToEdit.splitType === SplitType.EQUAL) {
+          // For equal splits, initialize with placeholder values for all members
+          const initialSplitDetails: Record<string, number> = {};
+          if (members && members.length > 0) {
+            members.forEach(member => {
+              initialSplitDetails[member.id] = 0;
+            });
+          }
+          setSplitDetails(initialSplitDetails);
+        } else if (expenseToEdit.splitDetails && expenseToEdit.splitDetails !== '{}') {
+          // For other split types, parse the details from the expense
           try {
             const details = JSON.parse(expenseToEdit.splitDetails);
             setSplitDetails(details);
           } catch (e) {
             console.error('Error parsing split details in useEffect', e);
-            setSplitDetails({});
+            
+            // Fallback: initialize with defaults based on split type
+            handleSplitTypeChange(expenseToEdit.splitType);
           }
         } else {
-          setSplitDetails({});
+          // Default: initialize with the right split type handler
+          handleSplitTypeChange(expenseToEdit.splitType);
         }
       }
     }, [expenseToEdit]);

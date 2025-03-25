@@ -189,11 +189,25 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
                       {/* Get split details from JSON string */}
                       {(() => {
                         try {
-                          const details = JSON.parse(expense.splitDetails);
-                          return Object.keys(details).map(userId => 
-                            getUsernameById(parseInt(userId))
-                          ).join(", ");
+                          // If it's an equal split, we'll show all members regardless of splitDetails
+                          if (expense.splitType === SplitType.EQUAL) {
+                            return "All members equally";
+                          }
+                          
+                          // For other split types, parse the details
+                          if (expense.splitDetails && expense.splitDetails !== '{}') {
+                            const details = JSON.parse(expense.splitDetails);
+                            // Make sure we have details
+                            if (Object.keys(details).length > 0) {
+                              return Object.keys(details).map(userId => 
+                                getUsernameById(parseInt(userId))
+                              ).join(", ");
+                            }
+                          }
+                          // Fallback for empty split details
+                          return "All members";
                         } catch (e) {
+                          console.error("Error parsing split details:", e, expense.splitDetails);
                           return "All members";
                         }
                       })()}
