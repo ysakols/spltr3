@@ -40,6 +40,10 @@ function GroupDetail() {
   const { toast } = useToast();
   
   // Queries
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ['/api/auth/me'],
+  });
+  
   const { data: group, isLoading: isLoadingGroup, error: groupError } = useQuery<Group>({
     queryKey: [`/api/groups/${groupId}`],
     enabled: !!groupId,
@@ -172,49 +176,55 @@ function GroupDetail() {
                   <span>{members ? `${members.length} members: ${members.map(m => m.username).join(', ')}` : 'Loading members...'}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="h-3 w-3" /> 
-                    Edit Group
-                  </Button>
+                  {/* Only show edit button if current user is the group creator */}
+                  {currentUser && group.createdById === currentUser.id && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit className="h-3 w-3" /> 
+                      Edit Group
+                    </Button>
+                  )}
                   
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
-                      >
-                        <Trash className="h-3 w-3" /> 
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-destructive" />
-                          Delete Group
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this group? This will permanently remove 
-                          <strong> {group.name}</strong> and all its expenses. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={handleDeleteGroup}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  {/* Only show delete button if current user is the group creator */}
+                  {currentUser && group.createdById === currentUser.id && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
                         >
-                          Delete Group
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <Trash className="h-3 w-3" /> 
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                            Delete Group
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this group? This will permanently remove 
+                            <strong> {group.name}</strong> and all its expenses. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteGroup}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete Group
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </div>
             </div>
