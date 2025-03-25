@@ -78,39 +78,49 @@ function GroupList() {
       </div>
 
       {isLoadingUser || isLoadingGroups || isLoadingUsers ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-4">
           {[1, 2, 3].map(i => (
-            <Card key={i} className="col-span-1">
-              <CardContent className="p-6">
-                <Skeleton className="h-6 w-2/3 mb-4" />
-                <Skeleton className="h-4 w-1/2 mb-2" />
-                <Skeleton className="h-4 w-2/3 mb-4" />
-                <div className="border-t border-gray-100 pt-4 mt-4">
-                  <div className="flex justify-between items-center">
-                    <Skeleton className="h-4 w-1/4" />
-                    <Skeleton className="h-6 w-1/4" />
+            <div key={i} className="bg-white rounded-lg shadow-md p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center space-x-3 mb-2 sm:mb-0">
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <div className="flex flex-wrap items-center space-x-4">
+                  <div className="flex items-center">
+                    <Skeleton className="h-4 w-4 mr-2 rounded-full" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="flex items-center">
+                    <Skeleton className="h-4 w-4 mr-2 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       ) : groups && groups.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-4">
           {groups.map(group => (
-            <div key={group.id} className="col-span-1 bg-white rounded-lg shadow-md divide-y divide-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full flex flex-col" onClick={() => window.location.href = `/groups/${group.id}`}>
-              <div className="p-6 flex-1 flex flex-col">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900 line-clamp-1">{group.name}</h3>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2 whitespace-nowrap">
-                    Active
-                  </span>
-                </div>
-                <div className="mt-4 flex items-start text-sm text-gray-500">
-                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
-                  <div className="flex-1">
+            <div 
+              key={group.id} 
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer" 
+              onClick={() => window.location.href = `/groups/${group.id}`}
+            >
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center space-x-3 mb-2 sm:mb-0">
+                    <h3 className="text-lg font-medium text-gray-900">{group.name}</h3>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Active
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center text-sm text-gray-500">
                     {users && users.length > 0 && (
-                      <div className="flex flex-wrap items-center">
+                      <div className="flex items-center mr-4">
+                        <Users className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                         <span className="mr-1">Created by:</span>
                         <span className="mr-1">
                           {users.find(user => user.id === group.createdById)?.username || 'Unknown'}
@@ -118,15 +128,13 @@ function GroupList() {
                         <span className="font-medium text-primary">(Admin)</span>
                       </div>
                     )}
+                    
+                    <div className="flex items-center">
+                      <Calendar className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                      <span>{new Date(group.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-3 flex items-start text-sm text-gray-500">
-                  <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400 mt-0.5" />
-                  <div className="flex-1">
-                    <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div className="mt-auto pt-2"></div> {/* Spacer to push content to top */}
               </div>
             </div>
           ))}
