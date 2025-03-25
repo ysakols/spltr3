@@ -101,7 +101,7 @@ function GroupDetail() {
   
   const handleDeleteGroup = async () => {
     try {
-      await apiRequest(`/api/groups/${groupId}`, { method: 'DELETE' });
+      await apiRequest('DELETE', `/api/groups/${groupId}`);
       toast({
         title: "Group deleted",
         description: "The group has been successfully deleted.",

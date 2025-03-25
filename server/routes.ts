@@ -314,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new group
-  app.post('/api/groups', async (req: Request, res: Response) => {
+  app.post('/api/groups', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const validatedData = insertGroupSchema.safeParse(req.body);
       

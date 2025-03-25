@@ -67,10 +67,17 @@ function CreateGroup() {
         }
         
         // If not found, create a new user
-        const createResponse = await apiRequest('POST', '/api/users', {
-          username: personName,
-          password: 'password123', // Default password
-          displayName: personName
+        const createResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: personName,
+            password: 'password123', // Default password
+            displayName: personName
+          }),
+          credentials: 'include'
         });
         
         if (!createResponse.ok) {

@@ -73,9 +73,7 @@ export function SettlementModal() {
   const handleVenmoPayment = async () => {
     try {
       // Create a settlement record with status pending
-      const response = await apiRequest('/api/settlements', {
-        method: 'POST',
-        body: JSON.stringify({
+      const response = await apiRequest('POST', '/api/settlements', {
           fromUserId,
           toUserId,
           amount: amount.toString(),
@@ -83,7 +81,6 @@ export function SettlementModal() {
           paymentMethod: PaymentMethod.VENMO,
           status: SettlementStatus.PENDING,
           notes: form.getValues().notes,
-        }),
       });
 
       // Generate Venmo deep link - would usually get proper Venmo username
@@ -122,9 +119,7 @@ export function SettlementModal() {
     setIsSubmitting(true);
     try {
       // Create settlement record with status completed
-      await apiRequest('/api/settlements', {
-        method: 'POST',
-        body: JSON.stringify({
+      await apiRequest('POST', '/api/settlements', {
           fromUserId,
           toUserId,
           amount: amount.toString(),
@@ -134,7 +129,6 @@ export function SettlementModal() {
           notes: values.notes,
           transactionReference: values.transactionReference,
           completedAt: new Date(),
-        }),
       });
 
       toast({
