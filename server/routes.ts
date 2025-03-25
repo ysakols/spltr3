@@ -1,7 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertGroupSchema, insertExpenseSchema, insertUserSchema, users, User } from "@shared/schema";
+import { 
+  insertGroupSchema, insertExpenseSchema, insertUserSchema, users, User,
+  insertSettlementSchema, Settlement, SettlementStatus, PaymentMethod
+} from "@shared/schema";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -660,6 +663,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(summary);
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Settlement routes
+  // ==========================================================
+  
+  // Create a new settlement
+  app.post('/api/settlements', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertSettlementSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      const settlement = await storage.createSettlement(validatedData.data);
+      res.status(201).json(settlement);
+    } catch (error) {
+      console.error('Error creating settlement:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Get a specific settlement
+  app.get('/api/settlements/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid settlement ID' });
+      }
+      
+      const settlement = await storage.getSettlement(id);
+      if (!settlement) {
+        return res.status(404).json({ message: 'Settlement not found' });
+      }
+      
+      // Check if the requesting user is part of the settlement
+      const user = req.user as User;
+      if (settlement.fromUserId !== user.id && settlement.toUserId !== user.id) {
+        return res.status(403).json({ message: 'Not authorized to view this settlement' });
+      }
+      
+      res.json(settlement);
+    } catch (error) {
+      console.error('Error getting settlement:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Get all settlements for a user
+  app.get('/api/users/:userId/settlements', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Check if the requesting user is allowed to see these settlements
+      const user = req.user as User;
+      if (userId !== user.id) {
+        return res.status(403).json({ message: 'Not authorized to view these settlements' });
+      }
+      
+      const settlements = await storage.getUserSettlements(userId);
+      res.json(settlements);
+    } catch (error) {
+      console.error('Error getting user settlements:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Get all settlements for a group
+  app.get('/api/groups/:groupId/settlements', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      if (isNaN(groupId)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+      
+      // Check if the requesting user is a member of the group
+      const user = req.user as User;
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.id === user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ message: 'Not authorized to view these settlements' });
+      }
+      
+      const settlements = await storage.getGroupSettlements(groupId);
+      res.json(settlements);
+    } catch (error) {
+      console.error('Error getting group settlements:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Update a settlement (mark as completed, etc.)
+  app.put('/api/settlements/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid settlement ID' });
+      }
+      
+      const updateSettlementSchema = z.object({
+        status: z.string().optional(),
+        notes: z.string().nullable().optional(),
+        transactionReference: z.string().nullable().optional(),
+        completedAt: z.date().nullable().optional()
+      });
+      
+      const existingSettlement = await storage.getSettlement(id);
+      if (!existingSettlement) {
+        return res.status(404).json({ message: 'Settlement not found' });
+      }
+      
+      // Check if the requesting user is part of the settlement
+      const user = req.user as User;
+      if (existingSettlement.fromUserId !== user.id && existingSettlement.toUserId !== user.id) {
+        return res.status(403).json({ message: 'Not authorized to update this settlement' });
+      }
+      
+      const validatedData = updateSettlementSchema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      // If status is being updated to 'completed', set the completedAt date
+      if (validatedData.data.status === SettlementStatus.COMPLETED && !validatedData.data.completedAt) {
+        validatedData.data.completedAt = new Date();
+      }
+      
+      const updatedSettlement = await storage.updateSettlement(id, validatedData.data);
+      
+      // If the status was changed to completed, mark expense splits as settled
+      if (validatedData.data.status === SettlementStatus.COMPLETED) {
+        await storage.markExpenseSplitsAsSettled(id);
+      }
+      
+      res.json(updatedSettlement);
+    } catch (error) {
+      console.error('Error updating settlement:', error);
+      res.status(500).json({ message: (error as Error).message });
     }
   });
 

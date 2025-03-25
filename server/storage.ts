@@ -151,7 +151,7 @@ export class DatabaseStorage implements IStorage {
       
       for (const expense of groupExpenses) {
         // Get all unsettled splits where the payer is the creditor and the debtor has a split
-        if (expense.paidById === toUserId) {
+        if (expense.paidByUserId === toUserId) {
           // Update the expense splits
           await db
             .update(expenseSplits)
@@ -174,7 +174,7 @@ export class DatabaseStorage implements IStorage {
       const paidExpenses = await db
         .select()
         .from(expenses)
-        .where(eq(expenses.paidById, toUserId));
+        .where(eq(expenses.paidByUserId, toUserId));
       
       for (const expense of paidExpenses) {
         // Update the expense splits
