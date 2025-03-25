@@ -298,11 +298,14 @@ export class DatabaseStorage implements IStorage {
 
   async createGroup(insertGroup: InsertGroup): Promise<Group> {
     return await db.transaction(async (tx) => {
+      // Extract initialMembers if present before inserting into group
+      const { initialMembers, ...groupData } = insertGroup;
+      
       // Create the group
       const [group] = await tx
         .insert(groups)
         .values({
-          ...insertGroup,
+          ...groupData,
           createdAt: new Date()
         })
         .returning();
@@ -316,6 +319,24 @@ export class DatabaseStorage implements IStorage {
           isActive: true,
           joinedAt: new Date()
         });
+      
+      // Add additional members if provided
+      if (initialMembers && initialMembers.length > 0) {
+        // Prepare user group entries for all other members
+        const memberEntries = initialMembers
+          .filter(userId => userId !== insertGroup.createdById) // Skip creator as they're already added
+          .map(userId => ({
+            groupId: group.id,
+            userId,
+            isActive: true,
+            joinedAt: new Date()
+          }));
+        
+        // Insert additional members if there are any
+        if (memberEntries.length > 0) {
+          await tx.insert(userGroups).values(memberEntries);
+        }
+      }
       
       return group;
     });
