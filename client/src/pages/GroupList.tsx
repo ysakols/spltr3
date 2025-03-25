@@ -34,6 +34,13 @@ function GroupList() {
     enabled: !!currentUser?.id
   });
   
+  // Fetch all users for displaying creator names
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+    staleTime: 60000,
+    enabled: !!currentUser
+  });
+  
   // Redirect to login if not authenticated
   React.useEffect(() => {
     if (userError) {
@@ -70,7 +77,7 @@ function GroupList() {
         </Button>
       </div>
 
-      {isLoadingUser || isLoadingGroups ? (
+      {isLoadingUser || isLoadingGroups || isLoadingUsers ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map(i => (
             <Card key={i} className="col-span-1">
@@ -101,7 +108,16 @@ function GroupList() {
                 </div>
                 <div className="mt-4 flex items-center text-sm text-gray-500">
                   <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                  <span>Group Members</span>
+                  <span>
+                    {users && users.length > 0 && (
+                      <>
+                        Created by: {
+                          users.find(user => user.id === group.createdById)?.username || 'Unknown'
+                        }
+                        <span className="font-medium text-primary"> (Admin)</span>
+                      </>
+                    )}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center text-sm text-gray-500">
                   <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />

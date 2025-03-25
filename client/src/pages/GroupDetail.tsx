@@ -173,7 +173,20 @@ function GroupDetail() {
               <div className="flex items-center gap-2">
                 <div className="flex items-center text-xs text-gray-500">
                   <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
-                  <span>{members ? `${members.length} members: ${members.map(m => m.username).join(', ')}` : 'Loading members...'}</span>
+                  <span>
+                    {members ? (
+                      <>
+                        {`${members.length} members: `}
+                        {members.map((m, index) => (
+                          <span key={m.id}>
+                            {m.username}
+                            {group.createdById === m.id && <span className="font-medium text-primary"> (Admin)</span>}
+                            {index < members.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
+                      </>
+                    ) : 'Loading members...'}
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   {/* Only show edit button if current user is the group creator */}
