@@ -110,12 +110,16 @@ function CreateGroup() {
       
       // Add the other members to the group
       for (let i = 1; i < userIds.length; i++) {
-        const addMemberResponse = await apiRequest('POST', `/api/groups/${groupData.id}/members`, {
-          userId: userIds[i]
-        });
-        
-        if (!addMemberResponse.ok) {
-          console.warn(`Failed to add user ${userIds[i]} to group`, await addMemberResponse.text());
+        try {
+          const addMemberResponse = await apiRequest('POST', `/api/groups/${groupData.id}/members`, {
+            userId: userIds[i]
+          });
+          
+          if (!addMemberResponse.ok) {
+            console.warn(`Failed to add user ${userIds[i]} to group`, await addMemberResponse.text());
+          }
+        } catch (err) {
+          console.warn(`Failed to add user ${userIds[i]} to group:`, err);
         }
       }
       
