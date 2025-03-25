@@ -10,6 +10,7 @@ import Login from "@/pages/Login";
 import Invitation from "@/pages/Invitation";
 import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
 import { BalanceSidebar } from "@/components/BalanceSidebar";
+import { SettlementModal } from "@/components/SettlementModal";
 import { useState, useEffect } from "react";
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -106,6 +107,7 @@ function App() {
           </Switch>
         </Layout>
       )}
+      <SettlementModal />
       <Toaster />
     </QueryClientProvider>
   );
