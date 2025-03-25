@@ -1,8 +1,9 @@
 import { 
   groups, expenses, users, userGroups, expenseSplits, friendships,
-  contacts, groupInvitations,
+  contacts, groupInvitations, settlements,
   type Group, type InsertGroup, type Expense, type InsertExpense, 
-  type Balance, type Settlement, SplitType, 
+  type Balance, type SettlementCalculation, type Settlement, type InsertSettlement,
+  SplitType, SettlementStatus, PaymentMethod,
   type User, type InsertUser, type UserGroup, type InsertUserGroup, 
   type ExpenseSplit, type InsertExpenseSplit, type Friendship, type InsertFriendship,
   type Contact, type InsertContact, type GroupInvitation, type InsertGroupInvitation
@@ -73,6 +74,126 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Settlement methods
+  async createSettlement(settlement: InsertSettlement): Promise<Settlement> {
+    const [newSettlement] = await db
+      .insert(settlements)
+      .values(settlement)
+      .returning();
+    
+    return newSettlement;
+  }
+  
+  async getSettlement(id: number): Promise<Settlement | undefined> {
+    const [settlement] = await db
+      .select()
+      .from(settlements)
+      .where(eq(settlements.id, id));
+    
+    return settlement;
+  }
+  
+  async getUserSettlements(userId: number): Promise<Settlement[]> {
+    return await db
+      .select()
+      .from(settlements)
+      .where(
+        or(
+          eq(settlements.fromUserId, userId),
+          eq(settlements.toUserId, userId)
+        )
+      )
+      .orderBy(desc(settlements.createdAt));
+  }
+  
+  async getGroupSettlements(groupId: number): Promise<Settlement[]> {
+    return await db
+      .select()
+      .from(settlements)
+      .where(eq(settlements.groupId, groupId))
+      .orderBy(desc(settlements.createdAt));
+  }
+  
+  async updateSettlement(id: number, data: Partial<InsertSettlement>): Promise<Settlement | undefined> {
+    const [updatedSettlement] = await db
+      .update(settlements)
+      .set(data)
+      .where(eq(settlements.id, id))
+      .returning();
+    
+    return updatedSettlement;
+  }
+  
+  async markExpenseSplitsAsSettled(settlementId: number): Promise<void> {
+    // Get the settlement details
+    const settlement = await this.getSettlement(settlementId);
+    if (!settlement) {
+      throw new Error(`Settlement with ID ${settlementId} not found`);
+    }
+    
+    // Only mark as settled if the settlement is completed
+    if (settlement.status !== SettlementStatus.COMPLETED) {
+      return;
+    }
+    
+    // Get the user IDs involved
+    const fromUserId = settlement.fromUserId;
+    const toUserId = settlement.toUserId;
+    const groupId = settlement.groupId;
+    
+    // If this is a group-specific settlement, only mark expense splits in that group
+    if (groupId) {
+      // Get all expenses in this group
+      const groupExpenses = await db
+        .select()
+        .from(expenses)
+        .where(eq(expenses.groupId, groupId));
+      
+      for (const expense of groupExpenses) {
+        // Get all unsettled splits where the payer is the creditor and the debtor has a split
+        if (expense.paidById === toUserId) {
+          // Update the expense splits
+          await db
+            .update(expenseSplits)
+            .set({ 
+              isSettled: true,
+              settledAt: new Date()
+            })
+            .where(
+              and(
+                eq(expenseSplits.expenseId, expense.id),
+                eq(expenseSplits.userId, fromUserId),
+                eq(expenseSplits.isSettled, false)
+              )
+            );
+        }
+      }
+    } else {
+      // For global settlements, update across all groups
+      // Get all expenses paid by the creditor
+      const paidExpenses = await db
+        .select()
+        .from(expenses)
+        .where(eq(expenses.paidById, toUserId));
+      
+      for (const expense of paidExpenses) {
+        // Update the expense splits
+        await db
+          .update(expenseSplits)
+          .set({ 
+            isSettled: true,
+            settledAt: new Date()
+          })
+          .where(
+            and(
+              eq(expenseSplits.expenseId, expense.id),
+              eq(expenseSplits.userId, fromUserId),
+              eq(expenseSplits.isSettled, false)
+            )
+          );
+      }
+    }
+  }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -796,7 +917,7 @@ export class DatabaseStorage implements IStorage {
 
   // Helper function to generate settlements
   private generateSettlements(balances: Record<string, number>): SettlementCalculation[] {
-    const settlements: Settlement[] = [];
+    const settlements: SettlementCalculation[] = [];
     
     // Identify debtors and creditors
     const debtors: { id: string; amount: number }[] = [];
