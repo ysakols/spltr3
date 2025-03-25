@@ -331,11 +331,15 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
     inviteeEmail: true,
     status: true,
     token: true,
-    expiresAt: true
+    expiresAt: true,
+    invitedAt: true,
+    acceptedAt: true
   })
   .extend({
     inviteeEmail: z.string().email(),
-    expiresAt: z.date().optional().nullable()
+    expiresAt: z.date().optional().nullable(),
+    invitedAt: z.date().optional(),
+    acceptedAt: z.date().optional().nullable()
   });
 
 // Insert schema for contacts

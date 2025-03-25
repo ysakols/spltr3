@@ -43,12 +43,14 @@ passport.use(
             }
           }
           
-          // Create a new user
+          // Create a new user, prioritizing first name for the username
+          const firstName = profile.name?.givenName;
           const newUser: InsertUser = {
-            username: email || `user_${profile.id}`,
+            // Use first name for username if available, fallback to email or Google ID
+            username: firstName || email || `user_${profile.id}`,
             password: "", // Empty password for OAuth users
             email: email,
-            firstName: profile.name?.givenName || null,
+            firstName: firstName || null,
             lastName: profile.name?.familyName || null,
             displayName: profile.displayName || null,
             avatarUrl: profile.photos && profile.photos[0] ? profile.photos[0].value : null,

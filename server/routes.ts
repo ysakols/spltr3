@@ -172,7 +172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const schema = z.object({
-        email: z.string().email()
+        email: z.string().email(),
+        firstName: z.string().min(1).optional()
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -181,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const { email } = validatedData.data;
+      const { email, firstName } = validatedData.data;
       const currentUser = req.user as User;
       
       // Generate a unique token
