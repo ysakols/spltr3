@@ -408,11 +408,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Group not found' });
       }
       
-      // Check if the current user is the creator of the group
+      // Get current user and check if they are a member of the group
       const currentUser = req.user as User;
-      if (group.createdById !== currentUser.id) {
+      const members = await storage.getGroupMembers(id);
+      const isMember = members.some(member => member.id === currentUser.id);
+      
+      if (!isMember) {
         return res.status(403).json({ 
-          message: 'Only the group creator can delete this group' 
+          message: 'Only group members can delete this group' 
         });
       }
       

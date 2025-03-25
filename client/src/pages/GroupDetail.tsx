@@ -200,8 +200,8 @@ function GroupDetail() {
                     Edit Group
                   </Button>
                   
-                  {/* Only show delete button if current user is the group creator */}
-                  {currentUser && group.createdById === currentUser.id && (
+                  {/* Show delete button for all members */}
+                  {currentUser && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button 
