@@ -189,18 +189,16 @@ function GroupDetail() {
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  {/* Only show edit button if current user is the group creator */}
-                  {currentUser && group.createdById === currentUser.id && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit className="h-3 w-3" /> 
-                      Edit Group
-                    </Button>
-                  )}
+                  {/* Show edit button for all group members */}
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="h-3 w-3" /> 
+                    Edit Group
+                  </Button>
                   
                   {/* Only show delete button if current user is the group creator */}
                   {currentUser && group.createdById === currentUser.id && (
