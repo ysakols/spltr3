@@ -20,7 +20,16 @@ export function BalanceSidebar() {
   
   // Fetch all groups for the user
   const { data: groups = [] } = useQuery<Group[]>({
-    queryKey: ['/api/groups'],
+    queryKey: ['/api/groups', CURRENT_USER_ID],
+    queryFn: async ({ queryKey }) => {
+      const res = await fetch(`${queryKey[0]}?userId=${queryKey[1]}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch groups');
+      }
+      return res.json();
+    },
   });
   
   // Get all users for usernames
