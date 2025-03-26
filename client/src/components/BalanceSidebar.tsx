@@ -7,10 +7,7 @@ import { Users } from 'lucide-react';
 import GroupSummary from './GroupSummary';
 import { SettlementButton } from '@/components/SettlementButton';
 import { useState, useEffect } from 'react';
-
-// For demo purposes, we'll hardcode current user
-// This should eventually be replaced with actual auth logic
-const CURRENT_USER_ID = 3; // Using Sam's user ID
+import { getQueryFn } from '@/lib/queryClient';
 
 export function BalanceSidebar() {
   // Get current location to detect if we're on a group details page
@@ -18,11 +15,25 @@ export function BalanceSidebar() {
   const groupIdMatch = location.match(/\/groups\/(\d+)/);
   const currentGroupId = groupIdMatch ? parseInt(groupIdMatch[1]) : null;
   
+  // Get the current user first
+  const { data: currentUser } = useQuery<User | null>({
+    queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn({ 
+      on401: "returnNull" 
+    }),
+    staleTime: 60000,
+    retry: false
+  });
+  
+  // Use current user ID or fallback to userId 3 for demo purposes
+  const userId = currentUser?.id || 3;
+  
   // Fetch all groups for the user
   const { data: groups = [] } = useQuery<Group[]>({
-    queryKey: ['/api/groups', CURRENT_USER_ID],
+    queryKey: ['/api/groups', userId],
     queryFn: async ({ queryKey }) => {
-      const res = await fetch(`${queryKey[0]}?userId=${queryKey[1]}`, {
+      const id = queryKey[1];
+      const res = await fetch(`${queryKey[0] as string}?userId=${id}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -58,7 +69,7 @@ export function BalanceSidebar() {
   
   // Fetch global summary for the current user
   const { data: summary, isLoading } = useQuery<Balance>({
-    queryKey: [`/api/users/${CURRENT_USER_ID}/global-summary`],
+    queryKey: [`/api/users/${userId}/global-summary`],
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 2000,
@@ -102,11 +113,11 @@ export function BalanceSidebar() {
   
   // Get settlements that involve the current user
   const peopleWhoOweMe = summary.settlements.filter(
-    s => s.to === CURRENT_USER_ID.toString()
+    s => s.to === userId.toString()
   );
   
   const peopleIOwe = summary.settlements.filter(
-    s => s.from === CURRENT_USER_ID.toString()
+    s => s.from === userId.toString()
   );
   
   // Function to get username from ID

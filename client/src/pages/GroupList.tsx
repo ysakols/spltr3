@@ -24,14 +24,24 @@ function GroupList() {
     retry: false
   });
   
-  // Fetch groups for the logged-in user only
+  // Fetch groups for the logged-in user if authenticated, otherwise fetch all groups
   const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery<Group[]>({
     queryKey: ['/api/groups', currentUser?.id],
-    queryFn: getQueryFn({
-      on401: "returnNull"
-    }),
-    staleTime: 30000,
-    enabled: !!currentUser?.id
+    queryFn: async ({ queryKey }) => {
+      const userId = queryKey[1] as number | undefined;
+      const url = userId ? `${queryKey[0] as string}?userId=${userId}` : queryKey[0] as string;
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+      if (res.status === 401 && !currentUser) {
+        return []; // Return empty array when not authenticated
+      }
+      if (!res.ok) {
+        throw new Error('Failed to fetch groups');
+      }
+      return res.json();
+    },
+    staleTime: 30000
   });
   
   // Fetch all users for displaying creator names
