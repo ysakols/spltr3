@@ -222,40 +222,42 @@ export function SettlementModal() {
           </TabsContent>
 
           <TabsContent value={PaymentMethod.VENMO}>
-            <div className="space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">
-                You'll be redirected to Venmo to complete the payment.
-                After you complete the payment, the debt will be marked as settled.
-              </p>
-              
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Add a note for this payment" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <Form {...form}>
+              <div className="space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  You'll be redirected to Venmo to complete the payment.
+                  After you complete the payment, the debt will be marked as settled.
+                </p>
+                
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Notes (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Add a note for this payment" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <DialogFooter className="mt-4">
-                <Button type="button" variant="outline" onClick={onDismiss}>
-                  Cancel
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={handleVenmoPayment}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Continue to Venmo
-                </Button>
-              </DialogFooter>
-            </div>
+                <DialogFooter className="mt-4">
+                  <Button type="button" variant="outline" onClick={onDismiss}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button" 
+                    onClick={handleVenmoPayment}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Continue to Venmo
+                  </Button>
+                </DialogFooter>
+              </div>
+            </Form>
           </TabsContent>
         </Tabs>
       </DialogContent>
