@@ -34,6 +34,11 @@ import {
   TabsList,
   TabsTrigger
 } from '@/components/ui/tabs';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription
+} from '@/components/ui/alert';
 
 // Form schema
 const settlementFormSchema = z.object({
