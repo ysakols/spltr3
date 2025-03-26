@@ -29,7 +29,8 @@ function GroupList() {
     queryKey: ['/api/groups', currentUser?.id],
     queryFn: async ({ queryKey }) => {
       const userId = queryKey[1] as number | undefined;
-      const url = userId ? `${queryKey[0] as string}?userId=${userId}` : queryKey[0] as string;
+      const baseUrl = queryKey[0] as string;
+      const url = userId ? `${baseUrl}?userId=${userId}` : baseUrl;
       const res = await fetch(url, {
         credentials: "include",
       });
