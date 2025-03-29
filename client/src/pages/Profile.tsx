@@ -45,7 +45,9 @@ function Profile() {
   // Get current user
   const { data: user, isLoading, isError } = useQuery<User>({
     queryKey: ['/api/auth/me'],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ 
+      on401: "returnNull" 
+    }),
     staleTime: 60000
   });
 
@@ -53,10 +55,7 @@ function Profile() {
   const profileMutation = useMutation({
     mutationFn: (values: ProfileFormValues) => {
       if (!user) throw new Error("User not found");
-      return apiRequest<User>(`/api/users/${user.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(values)
-      });
+      return apiRequest<User>('PUT', `/api/users/${user.id}`, values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
@@ -78,12 +77,9 @@ function Profile() {
   const passwordMutation = useMutation({
     mutationFn: (values: PasswordFormValues) => {
       if (!user) throw new Error("User not found");
-      return apiRequest<{ message: string }>(`/api/users/${user.id}/password`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          currentPassword: values.currentPassword,
-          newPassword: values.newPassword
-        })
+      return apiRequest<{ message: string }>('PUT', `/api/users/${user.id}/password`, {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword
       });
     },
     onSuccess: () => {

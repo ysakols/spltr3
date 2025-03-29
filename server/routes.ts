@@ -45,9 +45,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Simple password comparison for development
-      // In production, you'd use bcrypt.compare or similar
-      if (user.password !== password) {
+      // Check if using the bcrypt hashed password or still using plaintext
+      let isPasswordValid = false;
+      
+      if (user.password && user.password.startsWith('$2')) {
+        // This is a bcrypt hash, use proper comparison
+        isPasswordValid = await bcrypt.compare(password, user.password);
+      } else {
+        // Fall back to direct comparison for backward compatibility
+        // This is for existing accounts in the dev environment
+        isPasswordValid = user.password === password;
+      }
+      
+      if (!isPasswordValid) {
         return res.status(401).json({ 
           success: false, 
           message: 'Invalid email or password' 
@@ -63,9 +73,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
+        // Return user without password
+        const { password: _, ...userWithoutPassword } = user;
+        
         return res.json({ 
           success: true, 
-          user 
+          user: userWithoutPassword 
         });
       });
     } catch (error) {
