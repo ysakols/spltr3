@@ -202,7 +202,7 @@ export const insertGroupSchema = createInsertSchema(groups).pick({
   createdById: true
 }).extend({
   description: z.string().optional().nullable(),
-  initialMembers: z.array(z.number()) // Array of user IDs to add to the group
+  initialMembers: z.array(z.number()).optional() // Array of user IDs to add to the group
 });
 
 export const insertUserGroupSchema = createInsertSchema(userGroups);
@@ -351,10 +351,12 @@ export const insertContactSchema = createInsertSchema(contacts)
     userId: true,
     contactUserId: true,
     email: true,
-    frequency: true
+    frequency: true,
+    lastInteractionAt: true
   })
   .extend({
-    email: z.string().email()
+    email: z.string().email(),
+    lastInteractionAt: z.date().optional()
   });
 
 // Types for new schemas

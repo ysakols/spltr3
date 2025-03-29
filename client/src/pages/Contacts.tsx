@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Contact, User } from "@shared/schema";
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
 
 // UI Components
 import { 
@@ -10,7 +14,8 @@ import {
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { 
   Table, 
@@ -24,11 +29,29 @@ import {
   Avatar, 
   AvatarFallback 
 } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { 
   PlusCircle, 
   Users, 
   Mail,
-  Search
+  Search,
+  Send,
+  User as UserIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,9 +60,22 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+
+
+// Schema for adding a new contact
+const addContactSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  firstName: z.string().min(1, { message: "First name is required" }),
+});
+
+type AddContactFormValues = z.infer<typeof addContactSchema>;
+
 function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAddContactDialog, setShowAddContactDialog] = useState(false);
   const userId = (JSON.parse(localStorage.getItem("user") || "{}") as User)?.id;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: contacts, isLoading } = useQuery<Contact[]>({
     queryKey: ['/api/users', userId, 'contacts'],
@@ -52,6 +88,47 @@ function ContactsPage() {
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!userId,
   });
+
+  // Initialize form for adding a new contact
+  const form = useForm<AddContactFormValues>({
+    resolver: zodResolver(addContactSchema),
+    defaultValues: {
+      email: '',
+      firstName: '',
+    },
+  });
+
+  // Handle adding a new contact
+  const handleAddContact = async (values: AddContactFormValues) => {
+    try {
+      // Create a group invitation (this will establish a contact)
+      await apiRequest('POST', `/api/contacts`, { 
+        email: values.email,
+        firstName: values.firstName,
+        userId,
+      });
+      
+      toast({
+        title: "Contact added",
+        description: `${values.email} has been added to your contacts`,
+      });
+      
+      // Reset the form and close the dialog
+      form.reset();
+      setShowAddContactDialog(false);
+      
+      // Refresh the contact list
+      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'contacts'] });
+      
+    } catch (error) {
+      console.error('Error adding contact:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add contact. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Filter contacts based on search query
   const filteredContacts = contacts?.filter(contact => 
@@ -78,12 +155,22 @@ function ContactsPage() {
             Manage your contacts and past sharing relationships
           </p>
         </div>
-        <Link href="/create">
-          <Button className="mt-2 sm:mt-0">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Group
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            className="mt-2 sm:mt-0"
+            onClick={() => setShowAddContactDialog(true)}
+          >
+            <UserIcon className="mr-2 h-4 w-4" />
+            Add Contact
           </Button>
-        </Link>
+          <Link href="/create">
+            <Button className="mt-2 sm:mt-0">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Group
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Separator />
@@ -225,6 +312,88 @@ function ContactsPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Add Contact Dialog */}
+      <Dialog open={showAddContactDialog} onOpenChange={setShowAddContactDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Contact</DialogTitle>
+            <DialogDescription>
+              Enter contact details to add them to your contacts. They'll receive an email invitation.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAddContact)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <UserIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="John"
+                          className="pl-9"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="email@example.com"
+                          type="email"
+                          className="pl-9"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="mt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowAddContactDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? (
+                    <>Sending Invitation...</>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Add & Send Invitation
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

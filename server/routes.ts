@@ -227,6 +227,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add a new contact
+  app.post('/api/contacts', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { email, firstName, userId } = req.body;
+      
+      if (!email || !firstName || !userId) {
+        return res.status(400).json({ message: 'Email, firstName and userId are required' });
+      }
+      
+      // Check if the user adding the contact is the authenticated user
+      const currentUser = req.user as User;
+      if (currentUser.id !== userId) {
+        return res.status(403).json({ message: 'Not authorized to add contacts for this user' });
+      }
+      
+      // Check if user with this email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      
+      if (existingUser) {
+        // User exists, add as a contact
+        const contact = await storage.addContact({
+          userId,
+          contactUserId: existingUser.id,
+          email,
+          frequency: 0,
+          lastInteractionAt: new Date()
+        });
+        
+        return res.status(201).json(contact);
+      } else {
+        // No user found, create an invitation for a new user
+        const token = crypto.randomBytes(32).toString('hex');
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7); // 7-day expiration
+        
+        // Create a temporary group for invitation purposes
+        const tempGroup = await storage.createGroup({
+          name: `${firstName}'s Invitation Group`,
+          description: `Temporary group for inviting ${email}`,
+          createdById: userId,
+          initialMembers: [userId]
+        });
+        
+        // Create and send invitation
+        const invitation = await storage.createGroupInvitation({
+          inviterUserId: userId,
+          inviteeEmail: email,
+          inviteeFirstName: firstName,
+          groupId: tempGroup.id,
+          token,
+          status: 'pending',
+          expiresAt: expirationDate
+        });
+        
+        // Also create a contact entry
+        const contact = await storage.addContact({
+          userId,
+          contactUserId: 0, // Will be updated when the user registers
+          email,
+          frequency: 0,
+          lastInteractionAt: new Date()
+        });
+        
+        // In a real app, you'd send an email with the invitation link here
+        console.log(`Invitation link: ${req.protocol}://${req.get('host')}/invitation/${token}`);
+        
+        res.status(201).json({ contact, invitation });
+      }
+    } catch (err) {
+      console.error('Error adding contact:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
   // User routes
   // ==========================================================
   
