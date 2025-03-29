@@ -89,10 +89,30 @@ function CreateGroup() {
       
       const currentUser = await authResponse.json();
       
-      // Start with our current user ID
-      const initialMembers = [currentUser.id];
+      // Create the group with current user as creator first
+      const response = await fetch('/api/groups', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: groupName,
+          description: null,
+          createdById: currentUser.id,
+          // Don't add any initial members - creator is added automatically by the server
+          initialMembers: []
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
-      // Send email invitations to each member
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create group');
+      }
+      
+      const createdGroup = await response.json();
+      const groupId = createdGroup.id;
+      
+      // Now send email invitations to each member (AFTER the group is created)
       const invitationPromises = validMembers.map(async (member) => {
         try {
           // Skip adding the current user by email
@@ -105,14 +125,21 @@ function CreateGroup() {
           if (userByEmailResponse.ok) {
             const existingUsers = await userByEmailResponse.json();
             if (existingUsers && existingUsers.length > 0) {
-              // User exists, add to initial members
-              initialMembers.push(existingUsers[0].id);
-              return null;
+              // User exists, add them to the group directly
+              return fetch(`/api/groups/${groupId}/members`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  userId: existingUsers[0].id
+                })
+              });
             }
           }
           
-          // Send invitation via the API
-          return fetch(`/api/groups/${currentUser.id}/invitations`, {
+          // Send invitation via the API (with the correct group ID)
+          return fetch(`/api/groups/${groupId}/invitations`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -131,22 +158,6 @@ function CreateGroup() {
       // Wait for all invitations to be sent
       await Promise.all(invitationPromises);
       
-      // Create the group with current user as creator
-      const response = await fetch('/api/groups', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: groupName,
-          description: null,
-          createdById: currentUser.id,
-          initialMembers: initialMembers
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      const groupData = await response.json();
-      
       // Invalidate groups query to refresh list
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
       
@@ -156,7 +167,7 @@ function CreateGroup() {
       });
       
       // Navigate to the new group
-      navigate(`/groups/${groupData.id}`);
+      navigate(`/groups/${groupId}`);
     } catch (err) {
       console.error('Error creating group:', err);
       setError((err as Error).message || 'Error creating group');
