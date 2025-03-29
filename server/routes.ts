@@ -626,6 +626,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const savedGroup = await storage.createGroup(validatedData.data);
+      
+      // Automatically add the creator to the group
+      const userId = (req.user as User).id;
+      await storage.addUserToGroup(savedGroup.id, userId);
+      
       res.status(201).json(savedGroup);
     } catch (err) {
       res.status(400).json({ message: (err as Error).message });
@@ -733,6 +738,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get pending invitations for a group
+  app.get('/api/groups/:groupId/invitations', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      if (isNaN(groupId)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+      
+      // Check if group exists
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
+      // Get invitations for this group
+      const invitations = await storage.getGroupInvitationsByGroupId(groupId);
+      
+      // For each invitation, include the inviter's name if available
+      const invitationsWithDetails = await Promise.all(invitations.map(async (invitation) => {
+        let inviter = null;
+        if (invitation.inviterUserId) {
+          inviter = await storage.getUser(invitation.inviterUserId);
+        }
+        
+        return {
+          ...invitation,
+          inviterName: inviter ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) : null
+        };
+      }));
+      
+      res.json(invitationsWithDetails);
+    } catch (err) {
+      console.error('Error fetching group invitations:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+
   // Add a user to a group
   app.post('/api/groups/:groupId/members', async (req: Request, res: Response) => {
     try {

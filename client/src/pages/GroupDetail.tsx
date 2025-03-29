@@ -25,6 +25,7 @@ import ExpenseForm from '@/components/ExpenseForm';
 import ExpenseTable from '@/components/ExpenseTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
+import { PendingInvitations } from '@/components/PendingInvitations';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
 
@@ -74,6 +75,7 @@ function GroupDetail() {
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/expenses`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/members`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/invitations`] });
   };
   
   const handleGroupUpdated = () => {
@@ -179,7 +181,7 @@ function GroupDetail() {
                         {`${members.length} members: `}
                         {members.map((m, index) => (
                           <span key={m.id}>
-                            {m.username}
+                            {m.displayName || m.email}
                             {group.createdById === m.id && <span className="font-medium text-primary"> (Admin)</span>}
                             {index < members.length - 1 ? ', ' : ''}
                           </span>
@@ -263,6 +265,9 @@ function GroupDetail() {
                 onExpenseDeleted={refreshData}
                 onEditExpense={handleEditExpense}
               />
+              
+              {/* Show pending invitations */}
+              <PendingInvitations groupId={groupId} />
             </div>
           )}
         </div>
