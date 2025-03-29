@@ -53,16 +53,13 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
   });
 
   // Get the user's contact list
-  const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<Contact[]>({
+  const { data: contacts, isLoading: isLoadingContacts } = useQuery<Contact[]>({
     queryKey: [`/api/users/${currentUser?.id}/contacts`],
     enabled: !!currentUser?.id, // Only fetch when we have the user ID
-    onSuccess: (data) => {
-      console.log('Contacts loaded:', data);
-    },
-    onError: (error) => {
-      console.error('Error loading contacts:', error);
-    }
   });
+  
+  // Handle the contact list safely for TypeScript
+  const contactList = Array.isArray(contacts) ? contacts : [];
 
   // Initialize the form with react-hook-form and zod validation
   const form = useForm<InviteFormValues>({
@@ -107,16 +104,30 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
       console.log('Contact user ID:', contact.contactUserId);
       console.log('Group ID:', groupId);
       
-      // Ensure contactUserId is a number
-      const userId = typeof contact.contactUserId === 'string' 
-        ? parseInt(contact.contactUserId, 10) 
-        : contact.contactUserId;
+      let requestData;
+      
+      // If we have a valid contactUserId, use it
+      if (contact.contactUserId) {
+        // Ensure contactUserId is a number
+        const userId = typeof contact.contactUserId === 'string' 
+          ? parseInt(contact.contactUserId, 10) 
+          : contact.contactUserId;
+          
+        if (isNaN(userId)) {
+          throw new Error('Invalid contact user ID');
+        }
         
-      if (isNaN(userId)) {
-        throw new Error('Invalid contact user ID');
+        requestData = { userId };
+      } 
+      // If we don't have a valid contactUserId but have an email, use that instead
+      else if (contact.email) {
+        requestData = { username: contact.email };
+      }
+      // If we have neither, throw an error
+      else {
+        throw new Error('Contact has no user ID or email');
       }
       
-      const requestData = { userId };
       console.log('Request data:', requestData);
       
       const response = await apiRequest('POST', `/api/groups/${groupId}/members`, requestData);
@@ -202,13 +213,13 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
               <div className="py-8 text-center">
                 <p className="text-sm text-muted-foreground">Loading your contacts...</p>
               </div>
-            ) : contacts.length === 0 ? (
+            ) : contactList.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-muted-foreground">No contacts found. Add people to your groups to build a contact list.</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {contacts.map((contact) => (
+                {contactList.map((contact: Contact) => (
                   <div 
                     key={contact.contactUserId} 
                     className="flex items-center justify-between p-2 rounded-md hover:bg-muted group"

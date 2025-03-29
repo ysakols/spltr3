@@ -6,17 +6,38 @@ export function hasEmailConfiguration(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
 
-// Export the configuration check function
+// Export detailed configuration check function
 export function checkEmailConfig(): {
   configured: boolean;
+  provider: 'resend' | 'none';
   missingFields: string[];
+  details: {
+    resend?: {
+      configured: boolean;
+      apiKey: boolean;
+    };
+  };
 } {
-  const requiredFields = ['RESEND_API_KEY'];
-  const missingFields = requiredFields.filter(field => !process.env[field]);
+  const resendFields = ['RESEND_API_KEY'];
+  const missingResendFields = resendFields.filter(field => !process.env[field]);
+  
+  const hasResend = missingResendFields.length === 0;
+  
+  let provider: 'resend' | 'none' = 'none';
+  if (hasResend) {
+    provider = 'resend';
+  }
   
   return {
-    configured: missingFields.length === 0,
-    missingFields
+    configured: hasResend,
+    provider,
+    missingFields: hasResend ? [] : missingResendFields,
+    details: {
+      resend: {
+        configured: hasResend,
+        apiKey: !!process.env.RESEND_API_KEY
+      }
+    }
   };
 }
 
@@ -30,37 +51,31 @@ function createResendClient() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-// Send invitation email using Resend
-export async function sendInvitationEmail(
+// Create invitation email content (no sending)
+export function createInvitationEmailContent(
   invitation: GroupInvitation, 
   group: Group, 
   inviter?: User
-): Promise<boolean> {
-  const resend = createResendClient();
+): { html: string; text: string; subject: string } {
+  // Base URL for invitation link (from environment or default to localhost)
+  const baseUrl = process.env.APP_URL || 'http://localhost:5000';
+  const invitationLink = `${baseUrl}/invitation/${invitation.token}`;
+
+  // Format inviter's name if available
+  const inviterName = inviter 
+    ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) 
+    : 'Someone';
+
+  // Format expiration date if available
+  const expirationDate = invitation.expiresAt 
+    ? new Date(invitation.expiresAt).toLocaleDateString()
+    : 'one week from now';
   
-  // If client couldn't be created, fail silently
-  if (!resend) {
-    console.log(`Email would have been sent to ${invitation.inviteeEmail} for group "${group.name}"`);
-    return false;
-  }
-
-  try {
-    // Base URL for invitation link (from environment or default to localhost)
-    const baseUrl = process.env.APP_URL || 'http://localhost:5000';
-    const invitationLink = `${baseUrl}/invitation/${invitation.token}`;
-
-    // Format inviter's name if available
-    const inviterName = inviter 
-      ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) 
-      : 'Someone';
-
-    // Format expiration date if available
-    const expirationDate = invitation.expiresAt 
-      ? new Date(invitation.expiresAt).toLocaleDateString()
-      : 'one week from now';
-      
-    // HTML email content
-    const htmlContent = `
+  // Subject line
+  const subject = `You've been invited to join "${group.name}" on SplitSmart`;
+  
+  // HTML email content
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -134,10 +149,10 @@ export async function sendInvitationEmail(
   </div>
 </body>
 </html>
-    `;
-    
-    // Plain text content
-    const textContent = `
+  `;
+  
+  // Plain text content
+  const text = `
 Hello,
 
 ${inviterName} has invited you to join the expense group "${group.name}" on SplitSmart.
@@ -151,15 +166,36 @@ If you don't have an account yet, you'll be able to create one when you accept t
 
 Best regards,
 The SplitSmart Team
-    `;
+  `;
+  
+  return { html, text, subject };
+}
+
+// Send invitation email using Resend
+export async function sendInvitationEmail(
+  invitation: GroupInvitation, 
+  group: Group, 
+  inviter?: User
+): Promise<boolean> {
+  const resend = createResendClient();
+  
+  // If client couldn't be created, fail silently
+  if (!resend) {
+    console.log(`Email would have been sent to ${invitation.inviteeEmail} for group "${group.name}"`);
+    return false;
+  }
+
+  try {
+    // Generate email content
+    const { html, text, subject } = createInvitationEmailContent(invitation, group, inviter);
     
     // Send email using Resend
     const { data, error } = await resend.emails.send({
       from: 'SplitSmart <onboarding@resend.dev>', // Default sender for Resend free tier
       to: invitation.inviteeEmail,
-      subject: `You've been invited to join "${group.name}" on SplitSmart`,
-      html: htmlContent,
-      text: textContent,
+      subject,
+      html,
+      text,
     });
     
     if (error) {

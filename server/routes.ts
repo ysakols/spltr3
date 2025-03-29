@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertGroupSchema, insertExpenseSchema, insertUserSchema, users, User,
-  insertSettlementSchema, Settlement, SettlementStatus, PaymentMethod
+  insertSettlementSchema, Settlement, SettlementStatus, PaymentMethod,
+  Group, GroupInvitation
 } from "@shared/schema";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
@@ -743,9 +744,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Adding member to group:', groupId);
       console.log('Request body:', req.body);
       
-      // Validate request body - only accepting userId now
+      // Validate request body - accepting either userId or username/email
       const schema = z.object({
-        userId: z.number()
+        userId: z.number().optional(),
+        username: z.string().email().optional()
+      }).refine(data => data.userId !== undefined || data.username !== undefined, {
+        message: "Either userId or username must be provided"
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -755,14 +759,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const { userId } = validatedData.data;
-      console.log('Valid userId:', userId);
+      const { userId: userIdInput, username } = validatedData.data;
+      let user;
+      let userId: number;
       
-      // Get the user to make sure they exist
-      const user = await storage.getUser(userId);
-      if (!user) {
-        console.error('User not found with ID:', userId);
-        return res.status(404).json({ message: 'User not found' });
+      // If we have a username/email but no userId, look up the user
+      if (username && !userIdInput) {
+        console.log('Looking up user by email:', username);
+        user = await storage.getUserByEmail(username);
+        
+        if (!user) {
+          console.error('User not found with email:', username);
+          return res.status(404).json({ message: 'User not found with that email' });
+        }
+        
+        userId = user.id;
+        console.log('Found user by email:', username, 'with ID:', userId);
+      } else if (userIdInput !== undefined) {
+        // Get the user by ID to make sure they exist
+        console.log('Looking up user by ID:', userIdInput);
+        userId = userIdInput as number; // Type assertion since we validated this with zod schema
+        user = await storage.getUser(userId);
+        
+        if (!user) {
+          console.error('User not found with ID:', userId);
+          return res.status(404).json({ message: 'User not found' });
+        }
+      } else {
+        // Neither userId nor username was provided, which shouldn't happen due to the refinement
+        return res.status(400).json({ message: 'Either userId or username must be provided' });
       }
       
       // Add user to group
@@ -1145,6 +1170,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   };
+  
+  // TEST-ONLY route to preview invitation email (will be removed in production)
+  app.get('/api/test/invitation-email', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const currentUser = req.user as User;
+      
+      // Create a mock invitation
+      const mockInvitation: GroupInvitation = {
+        id: 0,
+        groupId: 1,
+        inviterUserId: currentUser.id,
+        inviteeEmail: 'test@example.com',
+        inviteeFirstName: null,
+        token: 'test-token-' + Date.now(),
+        status: 'pending',
+        invitedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        acceptedAt: null
+      };
+      
+      // Create a mock group
+      const mockGroup: Group = {
+        id: 1,
+        name: 'Test Group',
+        description: 'A test group for email preview',
+        createdAt: new Date(),
+        createdById: currentUser.id,
+        isArchived: false
+      };
+      
+      // Import email service
+      const { createInvitationEmailContent } = await import('./email');
+      
+      // Generate email content
+      const emailContent = createInvitationEmailContent(mockInvitation, mockGroup, currentUser);
+      
+      // Return both HTML and text versions
+      res.json({
+        subject: emailContent.subject,
+        html: emailContent.html,
+        text: emailContent.text,
+        previewUrl: '/api/test/invitation-email/preview'
+      });
+    } catch (error) {
+      console.error('Error generating test email:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // HTML preview of the invitation email
+  app.get('/api/test/invitation-email/preview', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const currentUser = req.user as User;
+      
+      // Create a mock invitation
+      const mockInvitation: GroupInvitation = {
+        id: 0,
+        groupId: 1,
+        inviterUserId: currentUser.id,
+        inviteeEmail: 'test@example.com',
+        inviteeFirstName: null,
+        token: 'test-token-' + Date.now(),
+        status: 'pending',
+        invitedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        acceptedAt: null
+      };
+      
+      // Create a mock group
+      const mockGroup: Group = {
+        id: 1,
+        name: 'Test Group',
+        description: 'A test group for email preview',
+        createdAt: new Date(),
+        createdById: currentUser.id,
+        isArchived: false
+      };
+      
+      // Import email service
+      const { createInvitationEmailContent } = await import('./email');
+      
+      // Generate email content
+      const emailContent = createInvitationEmailContent(mockInvitation, mockGroup, currentUser);
+      
+      // Return HTML directly for browser preview
+      res.send(emailContent.html);
+    } catch (error) {
+      console.error('Error generating HTML preview:', error);
+      res.status(500).send('Error generating email preview');
+    }
+  });
   
   return httpServer;
 }

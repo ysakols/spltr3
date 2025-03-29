@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { User } from "@shared/schema";
+import { TestEmailModal } from "@/components/TestEmailModal";
 
 // Form validation schemas
 const profileFormSchema = z.object({
@@ -301,6 +302,9 @@ function Profile() {
               <CardDescription>
                 Update your password to keep your account secure.
               </CardDescription>
+              <div className="mt-2 flex justify-end">
+                <TestEmailModal />
+              </div>
             </CardHeader>
             <CardContent>
               <Form {...passwordForm}>
