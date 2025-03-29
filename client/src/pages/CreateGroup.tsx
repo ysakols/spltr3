@@ -21,6 +21,8 @@ function CreateGroup() {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invitationLinks, setInvitationLinks] = useState<Array<{email: string, link: string}>>([]);
+  const [createdGroupId, setCreatedGroupId] = useState<number | null>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -112,6 +114,9 @@ function CreateGroup() {
       const createdGroup = await response.json();
       const groupId = createdGroup.id;
       
+      // Store the group ID in state
+      setCreatedGroupId(groupId);
+      
       // Now send email invitations to each member (AFTER the group is created)
       const invitationPromises = validMembers.map(async (member) => {
         try {
@@ -126,7 +131,7 @@ function CreateGroup() {
             const existingUsers = await userByEmailResponse.json();
             if (existingUsers && existingUsers.length > 0) {
               // User exists, add them to the group directly
-              return fetch(`/api/groups/${groupId}/members`, {
+              const addMemberResponse = await fetch(`/api/groups/${groupId}/members`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -135,11 +140,20 @@ function CreateGroup() {
                   userId: existingUsers[0].id
                 })
               });
+              
+              if (!addMemberResponse.ok) {
+                const errorData = await addMemberResponse.json();
+                console.error('Adding member error:', errorData);
+                throw new Error(errorData.message || 'Failed to add existing member');
+              }
+              
+              console.log(`Added existing user ${member.email} to group`);
+              return addMemberResponse;
             }
           }
           
           // Send invitation via the API (with the correct group ID)
-          return fetch(`/api/groups/${groupId}/invitations`, {
+          const inviteResponse = await fetch(`/api/groups/${groupId}/invitations`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -149,6 +163,28 @@ function CreateGroup() {
               userId: currentUser.id
             })
           });
+          
+          if (!inviteResponse.ok) {
+            const errorData = await inviteResponse.json();
+            console.error('Invitation error:', errorData);
+            throw new Error(errorData.message || 'Failed to send invitation');
+          }
+          
+          // Get the invitation data for debugging
+          const inviteData = await inviteResponse.json();
+          console.log(`Invitation sent to ${member.email} with token: ${inviteData.token}`);
+          console.log(`Invitation link: ${window.location.origin}/invitation/${inviteData.token}`);
+          
+          // Add to invitation links in state
+          setInvitationLinks(prevLinks => [
+            ...prevLinks,
+            {
+              email: member.email,
+              link: `${window.location.origin}/invitation/${inviteData.token}`
+            }
+          ]);
+          
+          return inviteResponse;
         } catch (error) {
           console.error('Error inviting member:', error);
           return null;
@@ -161,13 +197,28 @@ function CreateGroup() {
       // Invalidate groups query to refresh list
       queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
       
+      // Show success toast with additional info about invitation links
       toast({
         title: 'Success',
-        description: `Group "${groupName}" created successfully. Email invitations have been sent to new members.`,
+        description: `Group "${groupName}" created successfully. Invitations have been created for new members.`,
       });
       
-      // Navigate to the new group
-      navigate(`/groups/${groupId}`);
+      // If we have invitation links, show them
+      if (invitationLinks.length > 0) {
+        setError(null); // Clear any previous errors
+        setLoading(false); // Keep the form visible
+        
+        // Show the invitation links instead of navigating away
+        toast({
+          title: 'Invitation Links',
+          description: 'Please share these links with the people you invited:',
+          variant: 'default',
+          duration: 10000, // Show for 10 seconds
+        });
+      } else {
+        // If no invitations were sent, navigate to the group
+        navigate(`/groups/${groupId}`);
+      }
     } catch (err) {
       console.error('Error creating group:', err);
       setError((err as Error).message || 'Error creating group');
@@ -187,75 +238,124 @@ function CreateGroup() {
             </div>
           )}
           
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="groupName">Group Name</Label>
-                <Input
-                  id="groupName"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="e.g., Trip to Hawaii, Apartment expenses"
-                  className="mt-1"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label>People in this group</Label>
-                <div className="mt-1 space-y-4">
-                  {members.map((member, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-grow space-y-2">
-                          <div className="relative">
-                            <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              value={member.email}
-                              onChange={(e) => handleEmailChange(index, e.target.value)}
-                              placeholder="email@example.com"
-                              type="email"
-                              className="pl-9"
-                              required
-                            />
-                          </div>
-                        </div>
-                        {members.length > 2 && (
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            onClick={() => removePerson(index)}
-                            size="icon"
-                            className="self-start"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+          {invitationLinks.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">Invitation Links</h3>
+              <p className="text-sm text-blue-700 mb-4">
+                Share these links with the people you've invited:
+              </p>
+              <ul className="space-y-2">
+                {invitationLinks.map((link, index) => (
+                  <li key={index} className="text-sm">
+                    <p className="font-medium">{link.email}:</p>
+                    <div className="flex mt-1">
+                      <input
+                        type="text"
+                        readOnly
+                        value={link.link}
+                        className="flex-1 text-xs p-2 border border-gray-300 rounded-l-md bg-gray-50"
+                      />
+                      <button
+                        type="button"
+                        className="px-3 py-2 bg-blue-500 text-white text-xs rounded-r-md hover:bg-blue-600"
+                        onClick={() => {
+                          navigator.clipboard.writeText(link.link);
+                          toast({
+                            title: "Copied!",
+                            description: `Link for ${link.email} copied to clipboard`,
+                            duration: 2000,
+                          });
+                        }}
+                      >
+                        Copy
+                      </button>
                     </div>
-                  ))}
-                </div>
-                
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={addPerson}
-                  className="mt-4"
+                  onClick={() => navigate(`/groups/${createdGroupId}`)}
+                  className="w-full"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Person
+                  Continue to Group
                 </Button>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Creating...' : 'Create Group'}
-              </Button>
             </div>
-          </form>
+          )}
+          
+          {invitationLinks.length === 0 && (
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="groupName">Group Name</Label>
+                  <Input
+                    id="groupName"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="e.g., Trip to Hawaii, Apartment expenses"
+                    className="mt-1"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label>People in this group</Label>
+                  <div className="mt-1 space-y-4">
+                    {members.map((member, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-grow space-y-2">
+                            <div className="relative">
+                              <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                value={member.email}
+                                onChange={(e) => handleEmailChange(index, e.target.value)}
+                                placeholder="email@example.com"
+                                type="email"
+                                className="pl-9"
+                                required
+                              />
+                            </div>
+                          </div>
+                          {members.length > 2 && (
+                            <Button 
+                              type="button" 
+                              variant="outline"
+                              onClick={() => removePerson(index)}
+                              size="icon"
+                              className="self-start"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addPerson}
+                    className="mt-4"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Person
+                  </Button>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating...' : 'Create Group'}
+                </Button>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

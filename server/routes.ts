@@ -171,6 +171,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
+      // Check if group exists
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
       const schema = z.object({
         email: z.string().email(),
         userId: z.number().int().optional()
@@ -200,8 +206,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
       });
       
+      console.log(`Created invitation for ${email} to group ${groupId} with token ${token}`);
       res.status(201).json(invitation);
     } catch (err) {
+      console.error('Error creating group invitation:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
