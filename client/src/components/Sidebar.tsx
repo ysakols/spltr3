@@ -134,6 +134,20 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
       
       <Separator className="my-2" />
       
+      <Link href="/profile">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className={cn(
+            "w-full justify-start text-xs py-1",
+            isCollapsed && "justify-center px-1"
+          )}
+        >
+          <User className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
+          {!isCollapsed && <span>Profile</span>}
+        </Button>
+      </Link>
+      
       <Button 
         variant="ghost" 
         size="sm" 

@@ -12,6 +12,7 @@ import { db } from "./db";
 import passport from "./auth";
 import { isAuthenticated } from "./auth";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -342,6 +343,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(user);
     } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Update a user profile
+  app.put('/api/users/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Ensure the user is updating their own profile
+      const currentUser = req.user as User;
+      if (currentUser.id !== id) {
+        return res.status(403).json({ message: 'You can only update your own profile' });
+      }
+      
+      // Validate the request body
+      const schema = z.object({
+        username: z.string().min(3).optional(),
+        email: z.string().email().optional(),
+        displayName: z.string().optional().nullable(),
+        firstName: z.string().optional().nullable(),
+        lastName: z.string().optional().nullable(),
+        avatarUrl: z.string().optional().nullable()
+      });
+      
+      const validatedData = schema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      // If email is changing, check if new email already exists
+      if (validatedData.data.email && validatedData.data.email !== currentUser.email) {
+        const existingUser = await storage.getUserByEmail(validatedData.data.email);
+        if (existingUser && existingUser.id !== id) {
+          return res.status(400).json({ message: 'Email is already in use by another account' });
+        }
+      }
+      
+      // If username is changing, check if new username already exists
+      if (validatedData.data.username && validatedData.data.username !== currentUser.username) {
+        const existingUser = await storage.getUserByUsername(validatedData.data.username);
+        if (existingUser && existingUser.id !== id) {
+          return res.status(400).json({ message: 'Username is already taken' });
+        }
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(id, validatedData.data);
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Return the updated user (without sensitive information)
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (err) {
+      console.error('Error updating user profile:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Update user password
+  app.put('/api/users/:id/password', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Ensure the user is updating their own password
+      const currentUser = req.user as User;
+      if (currentUser.id !== id) {
+        return res.status(403).json({ message: 'You can only update your own password' });
+      }
+      
+      // Validate the request body
+      const schema = z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(6)
+      });
+      
+      const validatedData = schema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      // Get the user from storage to verify current password
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(validatedData.data.currentPassword, user.password || '');
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(validatedData.data.newPassword, 10);
+      
+      // Update the user's password
+      await storage.updateUser(id, { password: hashedPassword });
+      
+      res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+      console.error('Error updating user password:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
