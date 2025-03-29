@@ -376,11 +376,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate the request body
       const schema = z.object({
-        username: z.string().min(3).optional(),
+        username: z.string().optional(),
         email: z.string().email().optional(),
-        displayName: z.string().optional().nullable(),
-        firstName: z.string().optional().nullable(),
-        lastName: z.string().optional().nullable(),
+        displayName: z.string().optional(),
+        firstName: z.string().min(1, "First name is required"),
+        lastName: z.string().min(1, "Last name is required"),
         avatarUrl: z.string().optional().nullable()
       });
       

@@ -19,10 +19,9 @@ import { User } from "@shared/schema";
 
 // Form validation schemas
 const profileFormSchema = z.object({
-  displayName: z.string().optional().nullable(),
-  firstName: z.string().optional().nullable(),
-  lastName: z.string().optional().nullable(),
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  displayName: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address")
 });
 
@@ -106,17 +105,15 @@ function Profile() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      displayName: user?.displayName || null,
-      firstName: user?.firstName || null,
-      lastName: user?.lastName || null,
-      username: user?.username || "",
+      displayName: user?.displayName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || ""
     },
     values: {
-      displayName: user?.displayName || null,
-      firstName: user?.firstName || null,
-      lastName: user?.lastName || null,
-      username: user?.username || "",
+      displayName: user?.displayName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || ""
     }
   });
