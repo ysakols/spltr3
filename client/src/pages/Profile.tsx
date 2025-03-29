@@ -133,6 +133,10 @@ function Profile() {
 
   // Handle profile form submission
   const onProfileSubmit = (values: ProfileFormValues) => {
+    // Generate displayName from firstName and lastName if both are provided
+    if (values.firstName && values.lastName) {
+      values.displayName = `${values.firstName} ${values.lastName}`;
+    }
     profileMutation.mutate(values);
   };
 
@@ -242,26 +246,17 @@ function Profile() {
                     />
                   </div>
                   
-                  <FormField
-                    control={profileForm.control}
-                    name="displayName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Display Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="How you want to be called" 
-                            {...field} 
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          This is the name that will be displayed to other users.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                  {/* Display name is now automatically generated from first and last name */}
+                  <div className="bg-muted/20 p-4 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      Your display name will be automatically generated from your first and last name.
+                    </p>
+                    {profileForm.watch('firstName') && profileForm.watch('lastName') && (
+                      <p className="mt-2 font-medium">
+                        Your display name will be: <span className="text-primary">{profileForm.watch('firstName')} {profileForm.watch('lastName')}</span>
+                      </p>
                     )}
-                  />
+                  </div>
                   
                   <Separator className="my-4" />
                   
