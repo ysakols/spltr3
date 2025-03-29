@@ -48,6 +48,13 @@ export interface IStorage {
   createFriendship(userId: number, friendId: number, groupId: number): Promise<Friendship>;
   
   // Invitation methods
+  
+  // Contact methods
+  getUserContacts(userId: number): Promise<Contact[]>;
+  getSharedGroups(userId: number, contactId: number): Promise<Group[]>;
+  createContact(contact: InsertContact): Promise<Contact>;
+  updateContact(userId: number, contactId: number, data: Partial<Contact>): Promise<Contact>;
+  incrementContactFrequency(userId: number, contactId: number): Promise<void>;
   createGroupInvitation(invitation: InsertGroupInvitation): Promise<GroupInvitation>;
   getGroupInvitationByToken(token: string): Promise<GroupInvitation | undefined>;
   getGroupInvitationsByEmail(email: string): Promise<GroupInvitation[]>;

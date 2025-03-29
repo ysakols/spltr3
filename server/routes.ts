@@ -221,7 +221,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const contacts = await storage.getUserContacts(userId);
-      res.json(contacts);
+      
+      // Get detailed information for each contact
+      const detailedContacts = await Promise.all(
+        contacts.map(async (contact) => {
+          const balance = await storage.calculateGlobalSummary(contact.contactUserId);
+          return {
+            ...contact,
+            balance: balance.balances[userId.toString()] || 0,
+            sharedGroups: await storage.getSharedGroups(userId, contact.contactUserId)
+          };
+        })
+      );
+      
+      res.json(detailedContacts);
+    } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Add a new contact
+  app.post('/api/users/:userId/contacts', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Check if user is adding contact for themselves
+      const currentUser = req.user as User;
+      if (currentUser.id !== userId) {
+        return res.status(403).json({ message: 'Not authorized to add contacts' });
+      }
+      
+      const schema = z.object({
+        email: z.string().email(),
+        firstName: z.string().min(1).optional(),
+        lastName: z.string().min(1).optional()
+      });
+      
+      const validatedData = schema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      const { email, firstName, lastName } = validatedData.data;
+      
+      // Check if user with email exists
+      let contactUser = await storage.getUserByEmail(email);
+      
+      if (!contactUser) {
+        // Create temporary user if doesn't exist
+        contactUser = await storage.createUser({
+          username: email.split('@')[0],
+          password: '',
+          email,
+          firstName: firstName || null,
+          lastName: lastName || null,
+          displayName: `${firstName || ''} ${lastName || ''}`.trim() || null
+        });
+      }
+      
+      // Create contact relationship
+      const contact = await storage.createContact({
+        userId,
+        contactUserId: contactUser.id,
+        email,
+        frequency: 1
+      });
+      
+      res.status(201).json(contact);
+    } catch (err) {
+      res.status(400).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Update contact relationship
+  app.put('/api/users/:userId/contacts/:contactId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const contactId = parseInt(req.params.contactId);
+      
+      if (isNaN(userId) || isNaN(contactId)) {
+        return res.status(400).json({ message: 'Invalid user ID or contact ID' });
+      }
+      
+      // Check authorization
+      const currentUser = req.user as User;
+      if (currentUser.id !== userId) {
+        return res.status(403).json({ message: 'Not authorized to update contacts' });
+      }
+      
+      const schema = z.object({
+        frequency: z.number().optional()
+      });
+      
+      const validatedData = schema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      const updatedContact = await storage.updateContact(userId, contactId, validatedData.data);
+      res.json(updatedContact);
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
