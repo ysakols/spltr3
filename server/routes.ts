@@ -4,8 +4,9 @@ import { storage } from "./storage";
 import { 
   insertGroupSchema, insertExpenseSchema, insertUserSchema, users, User,
   insertSettlementSchema, Settlement, SettlementStatus, PaymentMethod,
-  Group, GroupInvitation
+  Group, GroupInvitation, groupInvitations, InsertGroupInvitation
 } from "@shared/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -279,6 +280,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(invitation);
     } catch (err) {
       console.error('Error creating group invitation:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Update invitation status (cancel, reject, etc.)
+  app.put('/api/invitations/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid invitation ID' });
+      }
+      
+      // Find the invitation
+      const invitation = await db
+        .select()
+        .from(groupInvitations)
+        .where(eq(groupInvitations.id, id))
+        .limit(1);
+        
+      if (!invitation || !invitation[0]) {
+        return res.status(404).json({ message: 'Invitation not found' });
+      }
+      
+      // Verify the request is allowed - only the inviter or the invitee (if they're logged in) can update
+      const currentUser = req.user as User;
+      const foundInvitation = invitation[0];
+      const isInviter = currentUser.id === foundInvitation.inviterUserId;
+      const isInvitee = currentUser.email === foundInvitation.inviteeEmail;
+      
+      if (!isInviter && !isInvitee) {
+        return res.status(403).json({ message: 'Not authorized to update this invitation' });
+      }
+      
+      // Validate status
+      const schema = z.object({
+        status: z.enum(['pending', 'accepted', 'rejected', 'canceled'])
+      });
+      
+      const validatedData = schema.safeParse(req.body);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      const { status } = validatedData.data;
+      
+      // Update invitation status
+      let updateData: Partial<InsertGroupInvitation> = { status };
+      
+      // If accepting or rejecting, set acceptedAt
+      if (status === 'accepted' || status === 'rejected') {
+        updateData.acceptedAt = new Date();
+      }
+      
+      const updatedInvitation = await storage.updateGroupInvitation(id, updateData);
+      
+      if (!updatedInvitation) {
+        return res.status(404).json({ message: 'Failed to update invitation' });
+      }
+      
+      // If invitation is accepted, add user to group
+      if (status === 'accepted' && isInvitee) {
+        try {
+          await storage.addUserToGroup(foundInvitation.groupId, currentUser.id);
+        } catch (err) {
+          console.error('Error adding user to group after accepting invitation:', err);
+          // Don't fail the response if this fails
+        }
+      }
+      
+      res.json(updatedInvitation);
+    } catch (err) {
+      console.error('Error updating invitation:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
@@ -1239,7 +1313,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: 'A test group for email preview',
         createdAt: new Date(),
         createdById: currentUser.id,
-        isArchived: false
       };
       
       // Import email service
@@ -1287,7 +1360,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: 'A test group for email preview',
         createdAt: new Date(),
         createdById: currentUser.id,
-        isArchived: false
       };
       
       // Import email service

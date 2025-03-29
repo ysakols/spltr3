@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Card,
   CardContent,
@@ -8,8 +8,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Mail, UserCheck, XCircle, CheckCircle } from 'lucide-react';
+import { Clock, Mail, UserCheck, XCircle, CheckCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 type GroupInvitation = {
   id: number;
@@ -30,10 +33,35 @@ interface PendingInvitationsProps {
 }
 
 export function PendingInvitations({ groupId }: PendingInvitationsProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: invitations, isLoading } = useQuery<GroupInvitation[]>({
     queryKey: [`/api/groups/${groupId}/invitations`],
     enabled: !!groupId,
   });
+  
+  const handleCancelInvitation = async (invitationId: number) => {
+    try {
+      await apiRequest('PUT', `/api/invitations/${invitationId}`, {
+        status: 'canceled'
+      });
+      
+      toast({
+        title: "Invitation canceled",
+        description: "The invitation has been successfully canceled.",
+      });
+      
+      // Refresh invitations list
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/invitations`] });
+    } catch (error) {
+      console.error('Error canceling invitation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel the invitation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (isLoading) {
     return (
@@ -81,6 +109,20 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
                   </div>
                 </div>
               </div>
+              
+              {/* Only show cancel button for pending invitations */}
+              {invitation.status === 'pending' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleCancelInvitation(invitation.id)}
+                  title="Cancel invitation"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Cancel invitation</span>
+                </Button>
+              )}
             </div>
           ))}
         </div>
@@ -110,6 +152,13 @@ function StatusBadge({ status }: { status: string }) {
         <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 text-[10px] h-5">
           <XCircle className="h-3 w-3 mr-1" />
           Rejected
+        </Badge>
+      );
+    case 'canceled':
+      return (
+        <Badge variant="outline" className="text-gray-500 border-gray-200 bg-gray-50 text-[10px] h-5">
+          <Trash2 className="h-3 w-3 mr-1" />
+          Canceled
         </Badge>
       );
     default:

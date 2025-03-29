@@ -16,7 +16,6 @@ interface GroupMember {
 function CreateGroup() {
   const [groupName, setGroupName] = useState('');
   const [members, setMembers] = useState<GroupMember[]>([
-    { email: '' },
     { email: '' }
   ]);
   const [loading, setLoading] = useState(false);
@@ -31,8 +30,8 @@ function CreateGroup() {
   };
 
   const removePerson = (index: number) => {
-    if (members.length <= 2) {
-      return; // Don't remove if only 2 people left
+    if (members.length <= 1) {
+      return; // Don't remove if only 1 person left
     }
     const newMembers = [...members];
     newMembers.splice(index, 1);
@@ -56,8 +55,8 @@ function CreateGroup() {
     
     // Validate all members have email addresses
     const validMembers = members.filter(member => member.email.trim() !== '');
-    if (validMembers.length < 2) {
-      setError('At least 2 people with valid email addresses are required');
+    if (validMembers.length < 1) {
+      setError('At least 1 other person with a valid email address is required');
       return;
     }
 
@@ -319,7 +318,7 @@ function CreateGroup() {
                               />
                             </div>
                           </div>
-                          {members.length > 2 && (
+                          {members.length > 1 && (
                             <Button 
                               type="button" 
                               variant="outline"
