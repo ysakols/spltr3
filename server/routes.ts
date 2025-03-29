@@ -489,14 +489,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Search users by username
+  // Search users by username or email
   app.get('/api/users', async (req: Request, res: Response) => {
     try {
       const username = req.query.username as string;
+      const email = req.query.email as string;
       
       if (username) {
         // Search for a specific user by username
         const user = await storage.getUserByUsername(username);
+        if (user) {
+          return res.json([user]); // Return as array for consistent format
+        }
+        return res.json([]); // Return empty array if no user found
+      } else if (email) {
+        // Search for a specific user by email
+        const user = await storage.getUserByEmail(email);
         if (user) {
           return res.json([user]); // Return as array for consistent format
         }
