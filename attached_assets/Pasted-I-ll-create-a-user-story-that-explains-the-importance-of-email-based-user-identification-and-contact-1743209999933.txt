@@ -1,0 +1,69 @@
+I'll create a user story that explains the importance of email-based user identification and contacts management in the expense sharing application.
+
+# User Story: Contact Management for Better Expense Sharing
+
+## Summary
+As a user of the expense splitting application, I need to be able to invite people to my expense groups via email so that we can track and settle debts accurately over time, even if they haven't yet registered. The system should recognize users by their email addresses to maintain a consistent identity across different groups and allow me to easily add people I've previously shared expenses with to new groups.
+
+## Background
+Currently, our application allows adding users to groups by simply entering their names, but this creates challenges:
+
+1. Users are created with arbitrary usernames without verification
+2. Multiple users might have similar names, leading to confusion
+3. There's no way to track a specific person's expenses across different groups
+4. When settling debts, there's uncertainty about who owes what to whom
+
+## Detailed Requirements
+
+### Email-Based User Identification
+- When adding a member to a group, the system should require their email address
+- Email addresses should serve as unique identifiers for users
+- Email addresses allow the system to associate expenses, debts, and settlements to specific individuals
+- Users who haven't registered yet should receive email invitations
+
+### Contact Management
+- The system should maintain a list of contacts for each user
+- Contacts should be automatically created when users share a group
+- For each contact, the system should track:
+  - Email address
+  - Frequency of interactions (number of shared groups)
+  - Last interaction date
+  - Relationship history (groups shared)
+
+### New Contacts Page
+- Users should be able to view and manage their contacts on a dedicated page
+- The contacts page should display:
+  - Contact name and email
+  - Number of shared groups
+  - Total balance across all groups
+  - Option to create a new expense group with selected contacts
+
+### Improved Group Creation Flow
+- When creating a new group, users should be able to:
+  - Select members from their existing contacts
+  - Add new members by email
+  - See which contacts they frequently collaborate with
+  - View their balance history with each contact
+
+## User Benefits
+- **Consistency**: Members maintain the same identity across all groups
+- **Verification**: Email verification ensures the right person is added
+- **Convenience**: Quickly add people from previous groups to new ones
+- **Trust**: Clear record of who owes what to whom
+- **Network building**: Gradually build a network of people you split expenses with
+
+## Technical Implications
+This feature requires:
+- Database updates to track contacts and relationship data
+- Email sending capabilities for invitations
+- User interface updates for the contacts page and group creation flow
+- Modifications to the existing group member management system
+
+## Acceptance Criteria
+- Users can add members to groups by email address
+- Non-registered users receive email invitations to join
+- The system recognizes returning users by their email addresses
+- Users can view and manage their contacts on a dedicated page
+- Users can quickly add contacts to new expense groups
+- The system tracks relationship data between users (frequency, balances)
+- The user interface clearly shows contacts and relationship information
