@@ -31,7 +31,7 @@ function Invitation() {
       if (params?.token) {
         try {
           setLoading(true);
-          const data = await apiRequest<InvitationResponse>(`/api/invitations/${params.token}`);
+          const data = await apiRequest<InvitationResponse>('GET', `/api/invitations/${params.token}`);
           
           if (data && 'groupId' in data) {
             // The invitation was automatically accepted
@@ -83,7 +83,7 @@ function Invitation() {
         <div className="container px-4 md:px-6 flex flex-col items-center">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-2">ExpenseSplit</h1>
+              <h1 className="text-3xl font-bold mb-2">spltr3</h1>
               <p className="text-muted-foreground">Track and split expenses with friends</p>
             </div>
             
@@ -109,7 +109,7 @@ function Invitation() {
       <div className="container px-4 md:px-6 flex flex-col items-center">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">ExpenseSplit</h1>
+            <h1 className="text-3xl font-bold mb-2">spltr3</h1>
             <p className="text-muted-foreground">Track and split expenses with friends</p>
           </div>
           
@@ -117,7 +117,7 @@ function Invitation() {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">You're invited!</CardTitle>
               <CardDescription>
-                You've been invited to join a group on ExpenseSplit
+                You've been invited to join a group on spltr3
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

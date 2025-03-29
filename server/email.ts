@@ -72,7 +72,7 @@ export function createInvitationEmailContent(
     : 'one week from now';
   
   // Subject line
-  const subject = `You've been invited to join "${group.name}" on SplitSmart`;
+  const subject = `You've been invited to join "${group.name}" on spltr3`;
   
   // HTML email content
   const html = `
@@ -125,12 +125,12 @@ export function createInvitationEmailContent(
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">SplitSmart</div>
+      <div class="logo">spltr3</div>
     </div>
     
     <p>Hello,</p>
     
-    <p><strong>${inviterName}</strong> has invited you to join the expense group <strong>"${group.name}"</strong> on SplitSmart.</p>
+    <p><strong>${inviterName}</strong> has invited you to join the expense group <strong>"${group.name}"</strong> on spltr3.</p>
     
     <p>To accept this invitation, click the button below:</p>
     
@@ -140,7 +140,7 @@ export function createInvitationEmailContent(
     
     <p>If you don't have an account yet, you'll be able to create one when you accept the invitation.</p>
     
-    <p>Best regards,<br>The SplitSmart Team</p>
+    <p>Best regards,<br>The spltr3 Team</p>
     
     <div class="footer">
       <p>If you're having trouble with the button above, copy and paste the URL below into your web browser:</p>
@@ -155,7 +155,7 @@ export function createInvitationEmailContent(
   const text = `
 Hello,
 
-${inviterName} has invited you to join the expense group "${group.name}" on SplitSmart.
+${inviterName} has invited you to join the expense group "${group.name}" on spltr3.
 
 To accept this invitation, click the link below:
 ${invitationLink}
@@ -165,7 +165,7 @@ This invitation will expire on ${expirationDate}.
 If you don't have an account yet, you'll be able to create one when you accept the invitation.
 
 Best regards,
-The SplitSmart Team
+The spltr3 Team
   `;
   
   return { html, text, subject };
@@ -191,7 +191,7 @@ export async function sendInvitationEmail(
     
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'SplitSmart <onboarding@resend.dev>', // Default sender for Resend free tier
+      from: 'spltr3 <onboarding@resend.dev>', // Default sender for Resend free tier
       to: invitation.inviteeEmail,
       subject,
       html,

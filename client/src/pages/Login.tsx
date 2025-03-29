@@ -88,7 +88,7 @@ function Login() {
       <div className="container px-4 md:px-6 flex flex-col items-center">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">ExpenseSplit</h1>
+            <h1 className="text-3xl font-bold mb-2">spltr3</h1>
             <p className="text-muted-foreground">Track and split expenses with friends</p>
           </div>
           
