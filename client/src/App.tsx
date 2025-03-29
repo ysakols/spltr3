@@ -8,6 +8,7 @@ import CreateGroup from "@/pages/CreateGroup";
 import GroupDetail from "@/pages/GroupDetail";
 import Login from "@/pages/Login";
 import Invitation from "@/pages/Invitation";
+import Contacts from "@/pages/Contacts";
 import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
 import { BalanceSidebar } from "@/components/BalanceSidebar";
 import { SettlementModal } from "@/components/SettlementModal";
@@ -103,6 +104,7 @@ function App() {
             <Route path="/" component={GroupList} />
             <Route path="/create" component={CreateGroup} />
             <Route path="/groups/:groupId" component={GroupDetail} />
+            <Route path="/contacts" component={Contacts} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
