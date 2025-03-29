@@ -67,11 +67,11 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
 
   const userInitial = currentUser?.firstName 
     ? currentUser.firstName.charAt(0) 
-    : currentUser?.username?.charAt(0) || 'U';
+    : (currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U');
   
   const displayName = currentUser?.firstName && currentUser?.lastName 
     ? `${currentUser.firstName} ${currentUser.lastName}` 
-    : currentUser?.displayName || currentUser?.username || 'User';
+    : currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
 
   return (
     <div className={cn(

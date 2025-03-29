@@ -6,11 +6,10 @@ import { relations } from "drizzle-orm";
 // Enhanced Users table with more profile information and Google auth
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(), // Username for display in the app
   firstName: text("first_name"), // User's first name (nullable)
   lastName: text("last_name"), // User's last name (nullable)
   password: text("password").notNull(), // Can be empty for OAuth users
-  email: text("email").unique(), // Email for notifications and authentication
+  email: text("email").notNull().unique(), // Email for notifications and authentication (required)
   displayName: text("display_name"), // Optional display name (nullable)
   avatarUrl: text("avatar_url"), // Optional profile picture URL (nullable)
   googleId: text("google_id").unique(), // Google OAuth ID (nullable)
@@ -163,7 +162,6 @@ export const expenseSplitsRelations = relations(expenseSplits, ({ one }) => ({
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
   firstName: true,
   lastName: true,
   password: true,

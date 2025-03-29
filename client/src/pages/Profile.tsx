@@ -174,7 +174,7 @@ function Profile() {
 
   const userInitial = user.firstName 
     ? user.firstName.charAt(0) 
-    : user.username?.charAt(0) || "U";
+    : (user.displayName?.charAt(0) || user.email.charAt(0) || "U");
 
   return (
     <div className="max-w-3xl mx-auto pt-4">
@@ -183,7 +183,7 @@ function Profile() {
           <AvatarFallback className="text-xl bg-primary/20">{userInitial}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-bold">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.displayName || user.username)}</h1>
+          <h1 className="text-2xl font-bold">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.displayName || user.email)}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
       </div>

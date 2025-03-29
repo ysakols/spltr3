@@ -386,7 +386,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate the request body
       const schema = z.object({
-        username: z.string().optional(),
         email: z.string().email().optional(),
         displayName: z.string().optional(),
         firstName: z.string().min(1, "First name is required"),
@@ -405,14 +404,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existingUser = await storage.getUserByEmail(validatedData.data.email);
         if (existingUser && existingUser.id !== id) {
           return res.status(400).json({ message: 'Email is already in use by another account' });
-        }
-      }
-      
-      // If username is changing, check if new username already exists
-      if (validatedData.data.username && validatedData.data.username !== currentUser.username) {
-        const existingUser = await storage.getUserByUsername(validatedData.data.username);
-        if (existingUser && existingUser.id !== id) {
-          return res.status(400).json({ message: 'Username is already taken' });
         }
       }
       
@@ -489,20 +480,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Search users by username or email
+  // Search users by email
   app.get('/api/users', async (req: Request, res: Response) => {
     try {
-      const username = req.query.username as string;
       const email = req.query.email as string;
       
-      if (username) {
-        // Search for a specific user by username
-        const user = await storage.getUserByUsername(username);
-        if (user) {
-          return res.json([user]); // Return as array for consistent format
-        }
-        return res.json([]); // Return empty array if no user found
-      } else if (email) {
+      if (email) {
         // Search for a specific user by email
         const user = await storage.getUserByEmail(email);
         if (user) {
@@ -683,12 +666,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
-      // Validate request body - can accept either userId or username
+      // Validate request body - only accepting userId now
       const schema = z.object({
-        userId: z.number().optional(),
-        username: z.string().optional()
-      }).refine(data => data.userId !== undefined || data.username !== undefined, {
-        message: "Either userId or username must be provided"
+        userId: z.number()
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -697,37 +677,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const { userId, username } = validatedData.data;
+      const { userId } = validatedData.data;
       
-      // If we have a username but not a userId, try to find the user or create one
-      let actualUserId = userId;
-      
-      if (!actualUserId && username) {
-        // Check if user exists
-        let user = await storage.getUserByUsername(username);
-        
-        // If user doesn't exist, create them
-        if (!user) {
-          user = await storage.createUser({
-            username,
-            password: '', // Empty password for simplicity
-            email: '',
-            displayName: username, // Default displayName to username for new users
-            firstName: '',
-            lastName: '',
-            avatarUrl: null
-          });
-        }
-        
-        actualUserId = user.id;
-      }
-      
-      if (!actualUserId) {
-        return res.status(400).json({ message: 'Invalid user information' });
+      // Get the user to make sure they exist
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
       }
       
       // Add user to group
-      const userGroup = await storage.addUserToGroup(groupId, actualUserId);
+      const userGroup = await storage.addUserToGroup(groupId, userId);
       
       res.status(201).json(userGroup);
     } catch (err) {
