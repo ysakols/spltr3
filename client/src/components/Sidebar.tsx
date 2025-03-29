@@ -69,7 +69,9 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
     ? currentUser.firstName.charAt(0) 
     : currentUser?.username?.charAt(0) || 'U';
   
-  const displayName = currentUser?.firstName || currentUser?.username || 'User';
+  const displayName = currentUser?.firstName && currentUser?.lastName 
+    ? `${currentUser.firstName} ${currentUser.lastName}` 
+    : currentUser?.displayName || currentUser?.username || 'User';
 
   return (
     <div className={cn(

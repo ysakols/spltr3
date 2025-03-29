@@ -183,7 +183,7 @@ function Profile() {
           <AvatarFallback className="text-xl bg-primary/20">{userInitial}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-bold">{user.displayName || user.username}</h1>
+          <h1 className="text-2xl font-bold">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.displayName || user.username)}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
       </div>

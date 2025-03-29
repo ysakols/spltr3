@@ -336,8 +336,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const savedUser = await storage.createUser(validatedData.data);
-      res.status(201).json(savedUser);
+      // Generate display name from first and last name if provided
+      let userData = { ...validatedData.data };
+      
+      if (userData.firstName && userData.lastName) {
+        userData.displayName = `${userData.firstName} ${userData.lastName}`;
+      }
+      
+      const savedUser = await storage.createUser(userData);
+      
+      // Return user without password
+      const { password, ...userWithoutPassword } = savedUser;
+      res.status(201).json(userWithoutPassword);
     } catch (err) {
       res.status(400).json({ message: (err as Error).message });
     }
@@ -406,8 +416,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Generate display name from first and last name if both are provided
+      let userData = { ...validatedData.data };
+      
+      if (userData.firstName && userData.lastName) {
+        userData.displayName = `${userData.firstName} ${userData.lastName}`;
+      }
+      
       // Update the user
-      const updatedUser = await storage.updateUser(id, validatedData.data);
+      const updatedUser = await storage.updateUser(id, userData);
       if (!updatedUser) {
         return res.status(404).json({ message: 'User not found' });
       }
@@ -686,8 +703,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user = await storage.createUser({
             username,
             password: '', // Empty password for simplicity
-            email: null,
-            displayName: null,
+            email: '',
+            displayName: username, // Default displayName to username for new users
+            firstName: '',
+            lastName: '',
             avatarUrl: null
           });
         }
