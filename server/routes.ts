@@ -205,6 +205,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email, userId } = validatedData.data;
       const currentUser = req.user as User;
       
+      // Check if the user is already a member of the group
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        const members = await storage.getGroupMembers(groupId);
+        const isAlreadyMember = members.some(member => member.id === existingUser.id);
+        
+        if (isAlreadyMember) {
+          return res.status(400).json({ message: 'User is already a member of this group' });
+        }
+      }
+      
       // Generate a unique token
       const token = crypto.randomBytes(32).toString('hex');
       
@@ -219,6 +230,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invitedAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
       });
+      
+      // Import email service
+      const { sendInvitationEmail, checkEmailConfig } = await import('./email');
+      
+      // Check email configuration
+      const emailConfig = checkEmailConfig();
+      
+      // Try to send the invitation email
+      if (emailConfig.configured) {
+        try {
+          await sendInvitationEmail(invitation, group, currentUser);
+          console.log(`Invitation email sent to ${email} for group ${groupId}`);
+        } catch (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // Don't fail the invitation creation if email fails
+        }
+      } else {
+        console.log('Email not configured, invitation would be sent to:', email);
+        console.log('Missing email configuration fields:', emailConfig.missingFields.join(', '));
+      }
+      
+      // If the invitation is for an existing user, create a contact entry
+      if (existingUser && currentUser) {
+        try {
+          // Check if contact already exists
+          const userContacts = await storage.getUserContacts(currentUser.id);
+          const contactExists = userContacts.some(c => c.contactUserId === existingUser.id);
+          
+          if (!contactExists) {
+            await storage.addContact({
+              userId: currentUser.id,
+              contactUserId: existingUser.id,
+              email,
+              lastInteractionAt: new Date(),
+              frequency: 1
+            });
+            console.log(`Contact created between ${currentUser.id} and ${existingUser.id}`);
+          }
+        } catch (contactError) {
+          console.error('Error creating contact:', contactError);
+          // Don't fail the invitation if contact creation fails
+        }
+      }
       
       console.log(`Created invitation for ${email} to group ${groupId} with token ${token}`);
       res.status(201).json(invitation);
@@ -292,7 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           initialMembers: [userId]
         });
         
-        // Create and send invitation
+        // Create invitation
         const invitation = await storage.createGroupInvitation({
           inviterUserId: userId,
           inviteeEmail: email,
@@ -300,7 +354,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           groupId: tempGroup.id,
           token,
           status: 'pending',
-          expiresAt: expirationDate
+          expiresAt: expirationDate,
+          invitedAt: new Date()
         });
         
         // Also create a contact entry
@@ -312,7 +367,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastInteractionAt: new Date()
         });
         
-        // In a real app, you'd send an email with the invitation link here
+        // Import email service
+        const { sendInvitationEmail, checkEmailConfig } = await import('./email');
+        
+        // Check email configuration
+        const emailConfig = checkEmailConfig();
+        
+        // Try to send the invitation email
+        if (emailConfig.configured) {
+          // Get the inviter's user record
+          const inviter = await storage.getUser(userId);
+          
+          try {
+            await sendInvitationEmail(invitation, tempGroup, inviter);
+            console.log(`Invitation email sent to ${email} for contact creation`);
+          } catch (emailError) {
+            console.error('Failed to send contact invitation email:', emailError);
+            // Don't fail the invitation creation if email fails
+          }
+        }
+        
         console.log(`Invitation link: ${req.protocol}://${req.get('host')}/invitation/${token}`);
         
         res.status(201).json({ contact, invitation });
@@ -666,6 +740,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
+      console.log('Adding member to group:', groupId);
+      console.log('Request body:', req.body);
+      
       // Validate request body - only accepting userId now
       const schema = z.object({
         userId: z.number()
@@ -674,22 +751,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = schema.safeParse(req.body);
       if (!validatedData.success) {
         const error = fromZodError(validatedData.error);
+        console.error('Validation error details:', error);
         return res.status(400).json({ message: error.message });
       }
       
       const { userId } = validatedData.data;
+      console.log('Valid userId:', userId);
       
       // Get the user to make sure they exist
       const user = await storage.getUser(userId);
       if (!user) {
+        console.error('User not found with ID:', userId);
         return res.status(404).json({ message: 'User not found' });
       }
       
       // Add user to group
       const userGroup = await storage.addUserToGroup(groupId, userId);
+      console.log('User added to group successfully:', userGroup);
       
       res.status(201).json(userGroup);
     } catch (err) {
+      console.error('Error adding user to group:', err);
       res.status(400).json({ message: (err as Error).message });
     }
   });

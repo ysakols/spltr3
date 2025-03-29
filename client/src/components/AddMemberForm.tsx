@@ -56,6 +56,12 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
   const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<Contact[]>({
     queryKey: [`/api/users/${currentUser?.id}/contacts`],
     enabled: !!currentUser?.id, // Only fetch when we have the user ID
+    onSuccess: (data) => {
+      console.log('Contacts loaded:', data);
+    },
+    onError: (error) => {
+      console.error('Error loading contacts:', error);
+    }
   });
 
   // Initialize the form with react-hook-form and zod validation
@@ -97,9 +103,24 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
   // Add a contact directly as a member
   const handleAddContact = async (contact: Contact) => {
     try {
-      await apiRequest('POST', `/api/groups/${groupId}/members`, { 
-        userId: contact.contactUserId 
-      });
+      console.log('Adding contact to group:', contact);
+      console.log('Contact user ID:', contact.contactUserId);
+      console.log('Group ID:', groupId);
+      
+      // Ensure contactUserId is a number
+      const userId = typeof contact.contactUserId === 'string' 
+        ? parseInt(contact.contactUserId, 10) 
+        : contact.contactUserId;
+        
+      if (isNaN(userId)) {
+        throw new Error('Invalid contact user ID');
+      }
+      
+      const requestData = { userId };
+      console.log('Request data:', requestData);
+      
+      const response = await apiRequest('POST', `/api/groups/${groupId}/members`, requestData);
+      console.log('Add member response:', response);
       
       toast({
         title: "Member added",
