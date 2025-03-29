@@ -25,14 +25,13 @@ import {
   CardDescription 
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, User, Mail, X } from 'lucide-react';
+import { Plus, User as UserIcon, Mail, X } from 'lucide-react';
 
-import type { User, Contact } from '@shared/schema';
+import type { User as UserType, Contact } from '@shared/schema';
 
 // Schema for adding new members
 const inviteSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  firstName: z.string().min(1, { message: "First name is required" }),
 });
 
 // Type for our form values
@@ -49,7 +48,7 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
   const queryClient = useQueryClient();
 
   // Get the current user for contacts
-  const { data: currentUser } = useQuery<User>({
+  const { data: currentUser } = useQuery<UserType>({
     queryKey: ['/api/auth/me']
   });
 
@@ -64,7 +63,6 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
     resolver: zodResolver(inviteSchema),
     defaultValues: {
       email: '',
-      firstName: '',
     },
   });
 
@@ -72,8 +70,7 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
   const handleSendInvitation = async (values: InviteFormValues) => {
     try {
       await apiRequest('POST', `/api/groups/${groupId}/invitations`, { 
-        email: values.email,
-        firstName: values.firstName
+        email: values.email
       });
       
       toast({
@@ -145,27 +142,6 @@ export function AddMemberForm({ groupId, onMemberAdded }: AddMemberFormProps) {
           <TabsContent value="email" className="mt-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSendInvitation)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="John"
-                            className="pl-9"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
                 <FormField
                   control={form.control}
                   name="email"

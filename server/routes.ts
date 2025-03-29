@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schema = z.object({
         email: z.string().email(),
-        firstName: z.string().min(1).optional()
+        userId: z.number().int().optional()
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const { email, firstName } = validatedData.data;
+      const { email, userId } = validatedData.data;
       const currentUser = req.user as User;
       
       // Generate a unique token
@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         inviterUserId: currentUser.id,
         inviteeEmail: email,
-        inviteeFirstName: firstName || null,
+        inviteeFirstName: null, // No names provided by inviters
         token,
         status: 'pending',
         invitedAt: new Date(),

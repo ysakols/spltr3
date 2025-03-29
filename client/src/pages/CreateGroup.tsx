@@ -1,26 +1,23 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Plus, Mail, User } from 'lucide-react';
+import { X, Plus, Mail } from 'lucide-react';
 
 // Define our member type to include emails
 interface GroupMember {
   email: string;
-  name: string;
 }
 
 function CreateGroup() {
   const [groupName, setGroupName] = useState('');
   const [members, setMembers] = useState<GroupMember[]>([
-    { email: '', name: '' },
-    { email: '', name: '' }
+    { email: '' },
+    { email: '' }
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +25,7 @@ function CreateGroup() {
   const { toast } = useToast();
 
   const addPerson = () => {
-    setMembers([...members, { email: '', name: '' }]);
+    setMembers([...members, { email: '' }]);
   };
 
   const removePerson = (index: number) => {
@@ -37,12 +34,6 @@ function CreateGroup() {
     }
     const newMembers = [...members];
     newMembers.splice(index, 1);
-    setMembers(newMembers);
-  };
-
-  const handleNameChange = (index: number, value: string) => {
-    const newMembers = [...members];
-    newMembers[index].name = value;
     setMembers(newMembers);
   };
 
@@ -128,7 +119,6 @@ function CreateGroup() {
             },
             body: JSON.stringify({
               email: member.email,
-              firstName: member.name || 'Friend',
               userId: currentUser.id
             })
           });
@@ -208,15 +198,6 @@ function CreateGroup() {
                       <div className="flex items-center gap-2">
                         <div className="flex-grow space-y-2">
                           <div className="relative">
-                            <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              value={member.name}
-                              onChange={(e) => handleNameChange(index, e.target.value)}
-                              placeholder={`Name ${index + 1}`}
-                              className="pl-9"
-                            />
-                          </div>
-                          <div className="relative">
                             <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                               value={member.email}
@@ -234,7 +215,7 @@ function CreateGroup() {
                             variant="outline"
                             onClick={() => removePerson(index)}
                             size="icon"
-                            className="self-start mt-2"
+                            className="self-start"
                           >
                             <X className="h-4 w-4" />
                           </Button>
