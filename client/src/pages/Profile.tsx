@@ -281,22 +281,7 @@ function Profile() {
                     )}
                   />
                   
-                  <FormField
-                    control={profileForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Username" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Your unique username for this platform.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+{/* Username removed as we're using first+last name instead */}
                   
                   <div className="flex justify-end">
                     <Button 

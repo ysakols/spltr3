@@ -176,7 +176,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 }).extend({
   firstName: z.string().optional().nullable(),
   lastName: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
+  email: z.string().email({ message: "Invalid email address format" }).min(1, { message: "Email address is required" }),
   displayName: z.string().optional().nullable(),
   avatarUrl: z.string().url().optional().nullable(),
   googleId: z.string().optional().nullable(),
@@ -187,7 +187,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 // Schema for Google OAuth users
 export const googleUserSchema = z.object({
   googleId: z.string(),
-  email: z.string().email(),
+  email: z.string().email({ message: "Invalid email address format" }),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   displayName: z.string().optional(),
@@ -338,7 +338,7 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
     acceptedAt: true
   })
   .extend({
-    inviteeEmail: z.string().email(),
+    inviteeEmail: z.string().email({ message: "Invalid email address format" }),
     inviteeFirstName: z.string().optional().nullable(),
     expiresAt: z.date().optional().nullable(),
     invitedAt: z.date().optional(),
@@ -355,7 +355,7 @@ export const insertContactSchema = createInsertSchema(contacts)
     lastInteractionAt: true
   })
   .extend({
-    email: z.string().email(),
+    email: z.string().email({ message: "Invalid email address format" }),
     lastInteractionAt: z.date().optional()
   });
 
