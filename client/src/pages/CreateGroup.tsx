@@ -7,33 +7,49 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X, Plus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { X, Plus, Mail, User } from 'lucide-react';
+
+// Define our member type to include emails
+interface GroupMember {
+  email: string;
+  name: string;
+}
 
 function CreateGroup() {
   const [groupName, setGroupName] = useState('');
-  const [people, setPeople] = useState<string[]>(['', '']);
+  const [members, setMembers] = useState<GroupMember[]>([
+    { email: '', name: '' },
+    { email: '', name: '' }
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const addPerson = () => {
-    setPeople([...people, '']);
+    setMembers([...members, { email: '', name: '' }]);
   };
 
   const removePerson = (index: number) => {
-    if (people.length <= 2) {
+    if (members.length <= 2) {
       return; // Don't remove if only 2 people left
     }
-    const newPeople = [...people];
-    newPeople.splice(index, 1);
-    setPeople(newPeople);
+    const newMembers = [...members];
+    newMembers.splice(index, 1);
+    setMembers(newMembers);
   };
 
-  const handlePersonChange = (index: number, value: string) => {
-    const newPeople = [...people];
-    newPeople[index] = value;
-    setPeople(newPeople);
+  const handleNameChange = (index: number, value: string) => {
+    const newMembers = [...members];
+    newMembers[index].name = value;
+    setMembers(newMembers);
+  };
+
+  const handleEmailChange = (index: number, value: string) => {
+    const newMembers = [...members];
+    newMembers[index].email = value;
+    setMembers(newMembers);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,9 +61,18 @@ function CreateGroup() {
       return;
     }
     
-    const filteredPeople = people.filter(person => person.trim() !== '');
-    if (filteredPeople.length < 2) {
-      setError('At least 2 people are required');
+    // Validate all members have email addresses
+    const validMembers = members.filter(member => member.email.trim() !== '');
+    if (validMembers.length < 2) {
+      setError('At least 2 people with valid email addresses are required');
+      return;
+    }
+
+    // Check if all emails are valid
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = validMembers.filter(member => !emailRegex.test(member.email));
+    if (invalidEmails.length > 0) {
+      setError('Please enter valid email addresses for all members');
       return;
     }
     
@@ -67,67 +92,68 @@ function CreateGroup() {
           variant: 'destructive',
         });
         
-        navigate('/login?redirect=/create-group');
+        navigate('/login?redirect=/create');
         return;
       }
       
       const currentUser = await authResponse.json();
       
-      // First, we need to find or create users based on the names provided
-      const userPromises = filteredPeople.map(async (personName) => {
-        // Try to find existing user by username
-        const userResponse = await fetch(`/api/users?username=${encodeURIComponent(personName)}`);
-        
-        if (userResponse.ok) {
-          const existingUsers = await userResponse.json();
-          if (existingUsers && existingUsers.length > 0) {
-            return existingUsers[0].id; // Return existing user ID
+      // Start with our current user ID
+      const initialMembers = [currentUser.id];
+      
+      // Send email invitations to each member
+      const invitationPromises = validMembers.map(async (member) => {
+        try {
+          // Skip adding the current user by email
+          if (member.email === currentUser.email) {
+            return null;
           }
+          
+          // Check if user already exists with this email
+          const userByEmailResponse = await fetch(`/api/users?email=${encodeURIComponent(member.email)}`);
+          if (userByEmailResponse.ok) {
+            const existingUsers = await userByEmailResponse.json();
+            if (existingUsers && existingUsers.length > 0) {
+              // User exists, add to initial members
+              initialMembers.push(existingUsers[0].id);
+              return null;
+            }
+          }
+          
+          // Send invitation via the API
+          return fetch(`/api/groups/${currentUser.id}/invitations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: member.email,
+              firstName: member.name || 'Friend',
+              userId: currentUser.id
+            })
+          });
+        } catch (error) {
+          console.error('Error inviting member:', error);
+          return null;
         }
-        
-        // If not found, create a new user
-        const createResponse = await fetch('/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: personName,
-            password: 'password123', // Default password
-            displayName: personName
-          }),
-          credentials: 'include'
-        });
-        
-        if (!createResponse.ok) {
-          throw new Error(`Failed to create user ${personName}`);
-        }
-        
-        const newUser = await createResponse.json();
-        return newUser.id;
       });
       
-      // Wait for all user creation/lookup to complete
-      const userIds = await Promise.all(userPromises);
-      
-      // Make sure the current user is included in the list
-      if (!userIds.includes(currentUser.id)) {
-        userIds.push(currentUser.id);
-      }
+      // Wait for all invitations to be sent
+      await Promise.all(invitationPromises);
       
       // Create the group with current user as creator
-      const response = await apiRequest('POST', '/api/groups', {
-        name: groupName,
-        description: null,
-        createdById: currentUser.id,
-        initialMembers: userIds
+      const response = await fetch('/api/groups', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: groupName,
+          description: null,
+          createdById: currentUser.id,
+          initialMembers: initialMembers
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Error creating group:', errorData);
-        throw new Error('Failed to create group');
-      }
       
       const groupData = await response.json();
       
@@ -136,7 +162,7 @@ function CreateGroup() {
       
       toast({
         title: 'Success',
-        description: 'Group created successfully',
+        description: `Group "${groupName}" created successfully. Email invitations have been sent to new members.`,
       });
       
       // Navigate to the new group
@@ -176,25 +202,44 @@ function CreateGroup() {
               
               <div>
                 <Label>People in this group</Label>
-                <div className="mt-1 space-y-2">
-                  {people.map((person, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        value={person}
-                        onChange={(e) => handlePersonChange(index, e.target.value)}
-                        placeholder={`Person ${index + 1}`}
-                        className="flex-grow"
-                      />
-                      {people.length > 2 && (
-                        <Button 
-                          type="button" 
-                          variant="outline"
-                          onClick={() => removePerson(index)}
-                          size="icon"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
+                <div className="mt-1 space-y-4">
+                  {members.map((member, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-grow space-y-2">
+                          <div className="relative">
+                            <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              value={member.name}
+                              onChange={(e) => handleNameChange(index, e.target.value)}
+                              placeholder={`Name ${index + 1}`}
+                              className="pl-9"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              value={member.email}
+                              onChange={(e) => handleEmailChange(index, e.target.value)}
+                              placeholder="email@example.com"
+                              type="email"
+                              className="pl-9"
+                              required
+                            />
+                          </div>
+                        </div>
+                        {members.length > 2 && (
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => removePerson(index)}
+                            size="icon"
+                            className="self-start mt-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -203,7 +248,7 @@ function CreateGroup() {
                   type="button"
                   variant="outline"
                   onClick={addPerson}
-                  className="mt-3"
+                  className="mt-4"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Person
