@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { CircleDollarSign } from 'lucide-react';
-import { SettlementButton } from '@/components/SettlementButton';
-import { SettlementHistory } from '@/components/SettlementHistory';
 
 import type { Group, Balance, User } from '@shared/schema';
 
@@ -113,19 +111,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                     </span>
                   </div>
                   
-                  {currentUserId && Number(settlement.from) === currentUserId && (
-                    <div className="w-full">
-                      <SettlementButton
-                        settlement={settlement}
-                        currentUserId={currentUserId}
-                        userMap={userMap}
-                        groupId={group.id}
-                        size="sm"
-                        variant="outline"
-                        buttonText="Settle"
-                      />
-                    </div>
-                  )}
+                  {/* Settlement button removed */}
                 </li>
               ))}
             </ul>
@@ -133,12 +119,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
         </Card>
       )}
       
-      {/* Settlement History */}
-      {currentUserId && (
-        <div className="mt-8">
-          <SettlementHistory userId={currentUserId} groupId={group.id} />
-        </div>
-      )}
+      {/* Settlement History has been removed */}
     </div>
   );
 }
