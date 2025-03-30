@@ -9,7 +9,14 @@ import {
   type GroupInvitation, type InsertGroupInvitation
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray, notInArray, asc, desc, isNull, sql } from "drizzle-orm";
+import { eq, and, inArray, notInArray, asc, desc, isNull, sql, count } from "drizzle-orm";
+
+// System limits
+export const LIMITS = {
+  MAX_GROUPS_PER_USER: 100,
+  MAX_EXPENSES_PER_USER: 1000,
+  MAX_EXPENSES_PER_GROUP: 100
+};
 
 // Helper function for OR conditions
 function or(...conditions: any[]) {
@@ -420,6 +427,23 @@ export class DatabaseStorage implements IStorage {
       return userGroup;
     }
     
+    // Check if user has reached the maximum number of groups
+    const userActiveGroups = await db
+      .select({ count: count() })
+      .from(userGroups)
+      .where(
+        and(
+          eq(userGroups.userId, userId),
+          eq(userGroups.isActive, true)
+        )
+      );
+    
+    const activeGroupCount = Number(userActiveGroups[0]?.count || 0);
+    
+    if (activeGroupCount >= LIMITS.MAX_GROUPS_PER_USER) {
+      throw new Error(`User has reached the maximum limit of ${LIMITS.MAX_GROUPS_PER_USER} groups`);
+    }
+    
     // If not, add the user to the group
     const [userGroup] = await db
       .insert(userGroups)
@@ -524,6 +548,43 @@ export class DatabaseStorage implements IStorage {
     
     // Start a transaction to create the expense and its splits
     return await db.transaction(async (tx) => {
+      // Check if the group has reached the maximum number of expenses
+      const groupExpenses = await tx
+        .select({ count: count() })
+        .from(expenses)
+        .where(eq(expenses.groupId, insertExpense.groupId));
+      
+      const groupExpenseCount = Number(groupExpenses[0]?.count || 0);
+      
+      if (groupExpenseCount >= LIMITS.MAX_EXPENSES_PER_GROUP) {
+        throw new Error(`Group has reached the maximum limit of ${LIMITS.MAX_EXPENSES_PER_GROUP} expenses`);
+      }
+      
+      // Check if user has reached the maximum number of expense associations
+      // Count number of expenses where user is either the payer or has a split
+      if (splitWithUserIds && splitWithUserIds.length > 0) {
+        for (const userId of splitWithUserIds) {
+          // Count expense splits for this user
+          const userExpenseSplits = await tx
+            .select({ count: count() })
+            .from(expenseSplits)
+            .where(eq(expenseSplits.userId, userId));
+            
+          // Count expenses paid by this user
+          const userPaidExpenses = await tx
+            .select({ count: count() })
+            .from(expenses)
+            .where(eq(expenses.paidByUserId, userId));
+            
+          const totalUserExpenses = Number(userExpenseSplits[0]?.count || 0) + 
+                                   Number(userPaidExpenses[0]?.count || 0);
+                                   
+          if (totalUserExpenses >= LIMITS.MAX_EXPENSES_PER_USER) {
+            throw new Error(`User with ID ${userId} has reached the maximum limit of ${LIMITS.MAX_EXPENSES_PER_USER} expenses`);
+          }
+        }
+      }
+      
       // Create the expense
       const [newExpense] = await tx.insert(expenses)
         .values(completeExpenseData)
@@ -573,11 +634,11 @@ export class DatabaseStorage implements IStorage {
           
           // Insert the split record with proper fields matching the schema
           await tx.insert(expenseSplits).values({
-            expenseId: newExpense.id,
             userId: userId,
-            amount: userAmount,
-            percentage: userPercentage,
-            isSettled: false
+            amount: userAmount.toString(),
+            percentage: userPercentage ? userPercentage.toString() : undefined,
+            isSettled: false,
+            expenseId: newExpense.id
           });
         }
       }
@@ -649,11 +710,11 @@ export class DatabaseStorage implements IStorage {
           
           // Insert the split record with proper fields matching the schema
           await tx.insert(expenseSplits).values({
-            expenseId: updatedExpense.id,
             userId: userId,
-            amount: userAmount,
-            percentage: userPercentage,
-            isSettled: false
+            amount: userAmount.toString(),
+            percentage: userPercentage ? userPercentage.toString() : undefined,
+            isSettled: false,
+            expenseId: updatedExpense.id
           });
         }
       }
