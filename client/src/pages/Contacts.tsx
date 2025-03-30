@@ -8,6 +8,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 
+// Extended Contact interface with additional fields from API
+interface ExtendedContact extends Contact {
+  // User-related fields
+  isUser?: boolean;
+  firstName?: string;
+  lastName?: string;
+  
+  // Group-related fields
+  groupIds?: number[];
+  
+  // Invitation-related fields
+  invitationId?: number;
+  token?: string;
+  status?: string;
+  
+  // Balance calculation
+  balanceValue?: number;
+}
+
 // UI Components
 import { 
   Card, 
@@ -85,7 +104,7 @@ function ContactsPage() {
   
   const userId = currentUser?.id;
 
-  const { data: contacts, isLoading } = useQuery<Contact[]>({
+  const { data: contacts, isLoading } = useQuery<ExtendedContact[]>({
     queryKey: ['/api/users', userId, 'contacts'],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!userId,
@@ -202,10 +221,29 @@ function ContactsPage() {
     }
   };
 
-  // Filter contacts based on search query
-  const filteredContacts = contacts?.filter(contact => 
-    contact.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter contacts based on search query and relevance
+  const filteredContacts = contacts?.filter(contact => {
+    // First apply search query filter
+    const matchesSearch = contact.email.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    // We want to show only:
+    // 1. Contacts the user directly added
+    // 2. Contacts from groups the user is in 
+    // 3. Pending invitations the user sent
+    
+    // Cast to ExtendedContact to access the additional properties
+    const extendedContact = contact as ExtendedContact;
+    
+    // Check if this is a pending invitation sent by this user
+    const isPendingInvitation = !extendedContact.isUser || !!extendedContact.invitationId || !!extendedContact.token;
+    
+    // Check if this is a group member with a valid contactUserId
+    const isGroupMember = !!extendedContact.isUser && !!extendedContact.groupIds && extendedContact.groupIds.length > 0;
+    
+    // Return true if the contact meets our criteria
+    return isPendingInvitation || isGroupMember;
+  });
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string>('email');
@@ -382,18 +420,39 @@ function ContactsPage() {
                                       ? `contact-${contact.contactUserId}` 
                                       : `contact-email-${contact.email}`;
                       
+                      // Cast to ExtendedContact to access the additional properties
+                      const extContact = contact as ExtendedContact;
+                      
+                      // Determine if this is a pending invitation (has token or invitationId)
+                      const isPendingInvitation = !extContact.isUser || !!extContact.invitationId || !!extContact.token;
+                      
+                      // Determine if this contact can be deleted
+                      // We allow deletion of:
+                      // 1. Directly added contacts (with a valid contactUserId)
+                      // 2. Pending invitations that the current user sent (we'll need to implement this on server)
+                      const canDelete = contact.contactUserId > 0;
+                      
                       return (
                         <TableRow key={uniqueKey}>
                           <TableCell className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarFallback className="bg-primary/10">
+                              <AvatarFallback className={isPendingInvitation ? "bg-amber-100" : "bg-primary/10"}>
                                 {getContactInitial(contact.email)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{contact.email}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{contact.email}</p>
+                                {isPendingInvitation && (
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                    Invited
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">
-                                Invited on: {formatDate(contact.lastInteractionAt)}
+                                {isPendingInvitation 
+                                  ? `Invited on: ${formatDate(contact.lastInteractionAt)}`
+                                  : `Last interaction: ${formatDate(contact.lastInteractionAt)}`}
                               </p>
                             </div>
                           </TableCell>
@@ -416,14 +475,25 @@ function ContactsPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                onClick={() => handleDeleteContact(contact.contactUserId)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {canDelete ? (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                  onClick={() => handleDeleteContact(contact.contactUserId)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              ) : isPendingInvitation ? (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-xs text-muted-foreground"
+                                  disabled
+                                >
+                                  Pending
+                                </Button>
+                              ) : null}
                             </div>
                           </TableCell>
                         </TableRow>
