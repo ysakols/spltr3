@@ -243,17 +243,17 @@ function ExpenseTable({
               </TableHeader>
               <TableBody>
                 {sortedExpenses.map(expense => (
-                  <TableRow key={expense.id} className="hover:bg-muted/5">
-                    <TableCell className="whitespace-nowrap py-1 px-2 text-xs">
+                  <TableRow key={expense.id} className="hover:bg-muted/5 h-12">
+                    <TableCell className="whitespace-nowrap py-2 px-2 text-xs">
                       {new Date(expense.date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="font-medium py-1 px-2 text-xs">
+                    <TableCell className="font-medium py-2 px-2 text-xs">
                       {expense.description}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-primary py-1 px-2 text-xs">
+                    <TableCell className="whitespace-nowrap text-primary py-2 px-2 text-xs">
                       {formatCurrency(Number(expense.amount))}
                     </TableCell>
-                    <TableCell className="py-1 px-2 text-xs">
+                    <TableCell className="py-2 px-2 text-xs">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -280,7 +280,7 @@ function ExpenseTable({
                         </Tooltip>
                       </TooltipProvider>
                     </TableCell>
-                    <TableCell className="py-1 px-2 text-xs">
+                    <TableCell className="py-2 px-2 text-xs">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -306,7 +306,7 @@ function ExpenseTable({
                         </Tooltip>
                       </TooltipProvider>
                     </TableCell>
-                    <TableCell className="py-1 px-2 text-xs">
+                    <TableCell className="py-2 px-2 text-xs">
                       {/* Get split details from JSON string */}
                       {(() => {
                         try {
@@ -314,9 +314,9 @@ function ExpenseTable({
                           if (expense.splitType === SplitType.EQUAL) {
                             return (
                               <div className="flex items-center">
-                                <Badge variant="outline" className="gap-1 flex items-center text-xs px-1.5 py-0">
+                                <Badge variant="outline" className="gap-1 flex items-center py-0.5 px-2">
                                   <Users className="h-3 w-3" />
-                                  All equally
+                                  <span className="text-[10px]">All equally</span>
                                 </Badge>
                               </div>
                             );
@@ -329,11 +329,6 @@ function ExpenseTable({
                             
                             if (userIds.length === 0) return "All members";
                             
-                            // Show a few avatars with a count badge for others
-                            const displayLimit = 3;
-                            const shownUserIds = userIds.slice(0, displayLimit);
-                            const remainingCount = userIds.length - displayLimit;
-                            
                             // Get all usernames for the tooltip
                             const allUserNames = userIds.map(id => getUsernameById(id)).join(", ");
                             
@@ -341,23 +336,12 @@ function ExpenseTable({
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-0">
-                                      {/* Show the first few avatars */}
-                                      <div className="flex items-center">
-                                        <Avatar className="h-5 w-5">
-                                          <AvatarFallback className="text-[10px]">
-                                            {getUserAvatar(shownUserIds[0])}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="ml-1 truncate max-w-[80px]">
-                                          {getShortUserName(shownUserIds[0])} 
-                                          {remainingCount > 0 && (
-                                            <Badge variant="secondary" className="ml-1 px-1.5 text-[10px] py-0 h-4">
-                                              +{remainingCount + (shownUserIds.length > 1 ? shownUserIds.length - 1 : 0)}
-                                            </Badge>
-                                          )}
-                                        </span>
-                                      </div>
+                                    <div className="flex items-center">
+                                      {/* Use a badge with avatar style to show count */}
+                                      <Badge variant="outline" className="py-0.5 px-2 flex items-center gap-1">
+                                        <Users className="h-3 w-3" />
+                                        <span className="text-[10px]">{userIds.length} member{userIds.length !== 1 ? 's' : ''}</span>
+                                      </Badge>
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="p-2 text-xs">
@@ -376,7 +360,7 @@ function ExpenseTable({
                         }
                       })()}
                     </TableCell>
-                    <TableCell className="text-right py-1 px-2 text-xs">
+                    <TableCell className="text-right py-2 px-2 text-xs">
                       <div className="flex justify-end gap-0.5">
                         {onEditExpense && (
                           <Button
