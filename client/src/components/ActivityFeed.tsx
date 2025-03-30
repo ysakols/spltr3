@@ -52,7 +52,6 @@ type Activity = {
 };
 
 export function ActivityFeed({ groupId }: { groupId: number }) {
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
 
   // Fetch invitations for this group
@@ -67,7 +66,8 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
     queryFn: () => apiRequest('GET', `/api/groups/${groupId}/settlements`),
   });
 
-  // Combine and sort invitations and settlements by timestamp - using useMemo to prevent re-computation
+  // Directly compute the filtered activities without the intermediate state update
+  // This eliminates the need for the useState and useEffect that was causing the infinite loop
   const sortedActivities = useMemo(() => {
     // Only process if we have valid arrays 
     if (!Array.isArray(invitations) || !Array.isArray(settlements)) {
@@ -91,16 +91,11 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   }, [invitations, settlements]);
-  
-  // Update state once when sorted activities change
-  useEffect(() => {
-    setActivities(sortedActivities);
-  }, [sortedActivities]);
 
-  // Filter activities based on active tab
+  // Filter activities based on active tab (using sortedActivities directly instead of the state)
   const filteredActivities = activeTab === 'all' 
-    ? activities 
-    : activities.filter(activity => activity.type === activeTab);
+    ? sortedActivities 
+    : sortedActivities.filter(activity => activity.type === activeTab);
 
   // Get status badge color
   const getStatusColor = (status: string) => {
