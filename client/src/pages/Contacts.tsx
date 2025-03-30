@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Contact, User } from "@shared/schema";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { ChevronRight } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -461,8 +462,20 @@ function ContactsPage() {
                       // 2. Pending invitations that the current user sent (we'll need to implement this on server)
                       const canDelete = contact.contactUserId > 0;
                       
+                      // Only navigate to contact details for real user contacts, not pending invitations
+                      const [, navigate] = useLocation();
+                      
+                      const handleContactClick = () => {
+                        if (!isPendingInvitation && contact.contactUserId > 0) {
+                          navigate(`/contacts/${contact.contactUserId}`);
+                        }
+                      };
+                      
                       return (
-                        <TableRow key={uniqueKey}>
+                        <TableRow 
+                          key={uniqueKey}
+                          className={!isPendingInvitation && contact.contactUserId > 0 ? "cursor-pointer hover:bg-accent/50" : ""}
+                          onClick={handleContactClick}>
                           <TableCell className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarFallback className={isPendingInvitation ? "bg-amber-100" : "bg-primary/10"}>
@@ -504,12 +517,29 @@ function ContactsPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              {!isPendingInvitation && contact.contactUserId > 0 && (
+                                <Button 
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-primary/80 hover:text-primary hover:bg-primary/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/contacts/${contact.contactUserId}`);
+                                  }}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
                               {canDelete ? (
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
                                   className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                  onClick={() => handleDeleteContact(contact.contactUserId)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteContact(contact.contactUserId);
+                                  }}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>

@@ -606,6 +606,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get contact details with shared groups and balance
+  app.get('/api/users/:userId/contacts/:contactUserId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const contactUserId = parseInt(req.params.contactUserId);
+      
+      if (isNaN(userId) || isNaN(contactUserId)) {
+        return res.status(400).json({ message: 'Invalid user ID or contact user ID' });
+      }
+      
+      // Check auth - only users can view their own contacts
+      const currentUser = req.user as User;
+      if (currentUser.id !== userId) {
+        return res.status(403).json({ message: 'Not authorized to view this contact' });
+      }
+      
+      // Get the contact user
+      const contactUser = await storage.getUser(contactUserId);
+      if (!contactUser) {
+        return res.status(404).json({ message: 'Contact not found' });
+      }
+      
+      // Get all groups where both users are members
+      const userGroups = await storage.getUserGroups(userId);
+      const contactGroups = await storage.getUserGroups(contactUserId);
+      
+      // Find shared groups by comparing IDs
+      const sharedGroupIds = userGroups
+        .filter(group => contactGroups.some(cGroup => cGroup.id === group.id))
+        .map(group => group.id);
+      
+      // Get detailed information for each shared group
+      const sharedGroups = [];
+      for (const groupId of sharedGroupIds) {
+        const group = await storage.getGroup(groupId);
+        if (group) {
+          // Get group-specific balance for these two users
+          const groupSummary = await storage.calculateSummary(groupId);
+          const balanceInGroup = (groupSummary.balances[contactUserId] || 0) * -1; // Invert for current user's perspective
+          
+          // Add expenses for context
+          const groupExpenses = await storage.getExpenses(groupId);
+          
+          sharedGroups.push({
+            ...group,
+            balance: balanceInGroup,
+            expenses: groupExpenses,
+            totalExpenses: groupSummary.totalExpenses
+          });
+        }
+      }
+      
+      // Get global balance between these two users
+      const globalSummary = await storage.calculateGlobalSummary(userId);
+      const globalBalance = (globalSummary.balances[contactUserId] || 0) * -1; // Invert for current user's perspective
+      
+      // Check if a contact record exists
+      const userContacts = await storage.getUserContacts(userId);
+      const contactRecord = userContacts.find(c => c.contactUserId === contactUserId);
+      
+      res.json({
+        contact: {
+          id: contactUserId,
+          email: contactUser.email,
+          firstName: contactUser.firstName,
+          lastName: contactUser.lastName,
+          displayName: contactUser.displayName || `${contactUser.firstName} ${contactUser.lastName}`,
+          lastInteractionAt: contactRecord?.lastInteractionAt || null,
+          frequency: contactRecord?.frequency || 0
+        },
+        sharedGroups,
+        globalBalance
+      });
+      
+    } catch (error) {
+      console.error('Error getting contact details:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
   // Add a new contact
   app.post('/api/contacts', isAuthenticated, async (req: Request, res: Response) => {
     try {

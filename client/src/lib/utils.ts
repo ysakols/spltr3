@@ -12,3 +12,12 @@ export function formatCurrency(amount: number) {
     minimumFractionDigits: 2
   }).format(amount);
 }
+
+export function formatDate(date: Date): string {
+  // Format: "Jan 15, 2023"
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(date);
+}
