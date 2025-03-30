@@ -23,11 +23,10 @@ import {
 import { numericToDisplayId, displayToNumericId } from '@/lib/id-utils';
 
 import ExpenseForm from '@/components/ExpenseForm';
-import ExpenseTable from '@/components/ExpenseTable';
+import TransactionsTable from '@/components/TransactionsTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
-import { FinancialHistory } from '@/components/FinancialHistory';
-import { InvitationsList } from '@/components/InvitationsList';
+import { ActivityFeed } from '@/components/ActivityFeed';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
@@ -274,7 +273,7 @@ function GroupDetail() {
           {!isEditing && (
             <div className="pt-2">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-sm font-medium">Expenses</h3>
+                <h3 className="text-sm font-medium">Financial Activity</h3>
                 <ExpenseForm 
                   ref={expenseFormRef}
                   group={group} 
@@ -287,22 +286,17 @@ function GroupDetail() {
                 />
               </div>
               
-              <ExpenseTable 
-                expenses={expenses} 
-                totalExpenses={summary.totalExpenses}
-                onExpenseDeleted={refreshData}
+              <TransactionsTable 
+                groupId={groupId}
+                totalAmount={summary.totalExpenses}
+                onTransactionDeleted={refreshData}
                 onEditExpense={handleEditExpense}
-                members={members} // Pass members to ExpenseTable
+                members={members} // Pass members to TransactionsTable
               />
               
-              {/* Show financial history (expenses + settlements) */}
+              {/* Show activity feed with invitations and group events */}
               <div className="mt-6">
-                <FinancialHistory groupId={groupId} />
-              </div>
-              
-              {/* Show invitations separately */}
-              <div>
-                <InvitationsList groupId={groupId} />
+                <ActivityFeed groupId={groupId} />
               </div>
             </div>
           )}

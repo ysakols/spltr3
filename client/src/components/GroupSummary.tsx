@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { CircleDollarSign } from 'lucide-react';
-import { SettlementHistory } from '@/components/SettlementHistory';
 import { SettlementButton } from '@/components/SettlementButton';
 
 import type { Group, Balance, User } from '@shared/schema';
@@ -133,12 +132,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
         </Card>
       )}
       
-      {/* Settlement History */}
-      {currentUserId && (
-        <div className="mt-8">
-          <SettlementHistory userId={currentUserId} groupId={group.id} />
-        </div>
-      )}
+      {/* Settlement history has been moved to the unified financial history */}
     </div>
   );
 }
