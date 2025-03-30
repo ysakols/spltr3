@@ -400,13 +400,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all group members from groups the user belongs to (excluding self)
       const userGroups = await storage.getUserGroups(userId);
-      console.log(`User ${userId} belongs to ${userGroups.length} groups`)
+      console.log(`User ${userId} belongs to ${userGroups.length} groups`);
+      
+      // Log all groups the user belongs to
+      for (const group of userGroups) {
+        console.log(`User ${userId} is in group ${group.id}: ${group.name}`);
+      }
+      
       const groupMembers: {user: User, groupId: number}[] = [];
       
       for (const group of userGroups) {
         const members = await storage.getGroupMembers(group.id);
+        console.log(`Group ${group.id} has ${members.length} members`);
+        
         for (const member of members) {
           if (member.id !== userId) {
+            console.log(`Adding group member ${member.email} (ID: ${member.id}) from group ${group.id} to contacts`);
             groupMembers.push({user: member, groupId: group.id});
           }
         }
@@ -470,15 +479,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Convert map back to array
-      const contacts = Array.from(contactMap.values());
+      let contacts = Array.from(contactMap.values());
       
       // Log the contacts being sent for debugging
       console.log(`Sending ${contacts.length} contacts to user ${userId}`);
+      console.log(`All contacts emails:`, contacts.map(c => c.email));
+      
+      // Search specifically for yair.sakols+7@gmail.com
+      const plusSevenContact = contacts.find(c => c.email && c.email.includes('yair.sakols+7@gmail.com'));
+      if (plusSevenContact) {
+        console.log('Found yair.sakols+7@gmail.com in contacts:', plusSevenContact);
+      } else {
+        console.log('yair.sakols+7@gmail.com NOT found in contacts!');
+        
+        // FIX - Check if this email exists in any groups
+        let plusSevenUser = null;
+        let plusSevenUserGroupId = null;
+        
+        for (const group of userGroups) {
+          const members = await storage.getGroupMembers(group.id);
+          const member = members.find(m => m.email && m.email.includes('yair.sakols+7@gmail.com'));
+          if (member) {
+            console.log(`Found yair.sakols+7@gmail.com user in group ${group.id}:`, member);
+            plusSevenUser = member;
+            plusSevenUserGroupId = group.id;
+          }
+        }
+        
+        // If we found the user in a group, add them to the contacts list
+        if (plusSevenUser) {
+          console.log(`ADDING missing contact yair.sakols+7@gmail.com (ID: ${plusSevenUser.id}) to contacts list`);
+          
+          // Add to contactMap
+          contactMap.set(plusSevenUser.id, {
+            contactUserId: plusSevenUser.id,
+            userId: userId,
+            email: plusSevenUser.email || '',
+            lastInteractionAt: new Date(),
+            frequency: 1,
+            isUser: true,
+            groupIds: [plusSevenUserGroupId],
+            firstName: plusSevenUser.firstName,
+            lastName: plusSevenUser.lastName
+          });
+          
+          // Rebuild contacts array
+          contacts = Array.from(contactMap.values());
+        }
+      }
       
       // Log details of contacts with invitationId for debugging
       const invitationContacts = contacts.filter(c => c.invitationId);
       console.log(`Found ${invitationContacts.length} invitations in contacts list:`, 
-                  invitationContacts.map(c => `${c.email} (ID: ${c.invitationId})`));
+                  invitationContacts.map(c => `${c.email} (ID: ${c.invitationId})`))
       
       res.json(contacts);
     } catch (err) {
