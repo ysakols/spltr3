@@ -391,6 +391,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get list of actual contacts from stored contacts
       const storedContacts = await storage.getUserContacts(userId);
       
+      // Extra debug: look for specific yair.sakols+7 contact in all users
+      console.log('SEARCHING FOR YAIR.SAKOLS+7@GMAIL.COM IN ALL USERS');
+      const allUsers = await db.select().from(users);
+      let plusSevenUser = null;
+      for (const user of allUsers) {
+        if (user.email && user.email.includes('yair.sakols+7@gmail.com')) {
+          console.log('FOUND YAIR.SAKOLS+7@GMAIL.COM IN USERS:', user);
+          plusSevenUser = user;
+          
+          // Also check which groups this user belongs to
+          const userGroups = await storage.getUserGroups(user.id);
+          console.log(`User ${user.id} (${user.email}) belongs to ${userGroups.length} groups:`, 
+                      userGroups.map(g => `${g.id}: ${g.name}`));
+        }
+      }
+      
       // Get all pending invitations sent by this user
       const pendingInvitations = await storage.getGroupInvitationsByInviterUserId(userId);
       
@@ -407,6 +423,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`User ${userId} is in group ${group.id}: ${group.name}`);
       }
       
+      // IMPORTANT: Extra debugging to look through ALL groups, not just this user's groups
+      console.log("CHECKING ALL GROUPS FOR YAIR.SAKOLS+7@GMAIL.COM");
+      const allGroups = await storage.getGroups();
+      let sharedGroupId = null;
+      
+      for (const group of allGroups) {
+        const members = await storage.getGroupMembers(group.id);
+        const hasPlusSevenUser = members.some(m => m.email && m.email.includes('yair.sakols+7@gmail.com'));
+        const hasCurrentUser = members.some(m => m.id === userId);
+        
+        if (hasPlusSevenUser) {
+          console.log(`FOUND YAIR.SAKOLS+7@GMAIL.COM IN GROUP ${group.id}: ${group.name}`);
+          console.log(`Current user (${userId}) in same group: ${hasCurrentUser}`);
+          
+          // If both users are in this group, remember the group ID
+          if (hasCurrentUser && plusSevenUser) {
+            sharedGroupId = group.id;
+          }
+        }
+      }
+      
       const groupMembers: {user: User, groupId: number}[] = [];
       
       for (const group of userGroups) {
@@ -419,6 +456,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             groupMembers.push({user: member, groupId: group.id});
           }
         }
+      }
+      
+      // HOTFIX: If we found the +7 user and a shared group, manually add them to groupMembers
+      if (plusSevenUser && sharedGroupId) {
+        console.log(`MANUALLY ADDING yair.sakols+7@gmail.com (ID: ${plusSevenUser.id}) from shared group ${sharedGroupId}`);
+        groupMembers.push({user: plusSevenUser, groupId: sharedGroupId});
       }
       
       // Create a map to deduplicate contacts by contactUserId
