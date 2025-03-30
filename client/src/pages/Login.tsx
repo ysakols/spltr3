@@ -24,11 +24,30 @@ function Login() {
   };
   
   // Function to redirect to Google OAuth
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = (e: React.MouseEvent) => {
+    e.preventDefault();
     // Add redirect parameter to Google OAuth URL if needed
     const redirectPath = getRedirectPath();
     const redirectParam = redirectPath !== "/" ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
-    window.location.href = `/auth/google${redirectParam}`;
+    // Use fetch first to ensure the server route is accessible
+    fetch(`/auth/google${redirectParam}`, { method: 'GET' })
+      .then(response => {
+        if (response.redirected) {
+          // If the server responded with a redirect, follow it
+          window.location.href = response.url;
+        } else {
+          // Otherwise manually redirect
+          window.location.href = `/auth/google${redirectParam}`;
+        }
+      })
+      .catch(error => {
+        console.error("Google login error:", error);
+        toast({
+          title: "Error",
+          description: "Unable to connect to Google authentication. Please try again later or use email login.",
+          variant: "destructive"
+        });
+      });
   };
 
   // Function to handle local login
