@@ -90,6 +90,7 @@ export interface IStorage {
   getUserSettlements(userId: number): Promise<Settlement[]>;
   getGroupSettlements(groupId: number): Promise<Settlement[]>;
   updateSettlement(id: number, data: Partial<InsertSettlement>): Promise<Settlement | undefined>;
+  deleteSettlement(id: number): Promise<boolean>;
   markExpenseSplitsAsSettled(settlementId: number): Promise<void>;
 }
 
@@ -454,6 +455,15 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedSettlement;
+  }
+  
+  async deleteSettlement(id: number): Promise<boolean> {
+    // Delete the settlement
+    const result = await db
+      .delete(settlements)
+      .where(eq(settlements.id, id));
+    
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   async markExpenseSplitsAsSettled(settlementId: number): Promise<void> {

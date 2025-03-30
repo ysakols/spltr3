@@ -14,6 +14,7 @@ import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, getQueryFn } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import {
   Tooltip,
   TooltipContent,
@@ -68,6 +69,7 @@ function TransactionsTable({
 }: TransactionsTableProps) {
   const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   // Get current user
   const { data: currentUser } = useQuery<User | null>({
@@ -277,19 +279,25 @@ function TransactionsTable({
       });
     } else if (transaction.type === 'settlement') {
       try {
-        // Delete settlement via the transactions endpoint
-        await apiRequest('DELETE', `/api/transactions/${transaction.id}`);
+        // Delete settlement via the settlements endpoint (not transactions)
+        await apiRequest('DELETE', `/api/settlements/${transaction.id}`);
         
         // Refresh all the relevant data after deletion
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
         queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'global-summary'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'settlements'] });
         
         onTransactionDeleted();
       } catch (error) {
         console.error('Error deleting settlement:', error);
-        // You could add toast notifications here in the future
+        toast({
+          title: "Error",
+          description: "Failed to delete settlement. Please try again.",
+          variant: "destructive"
+        });
       }
     }
   };

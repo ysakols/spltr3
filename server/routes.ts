@@ -1981,6 +1981,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete a settlement
+  app.delete('/api/settlements/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid settlement ID' });
+      }
+      
+      // Get the settlement
+      const settlement = await storage.getSettlement(id);
+      if (!settlement) {
+        return res.status(404).json({ message: 'Settlement not found' });
+      }
+      
+      // Check if the requesting user is authorized to delete this settlement
+      // Allow deletion by either the creator (fromUserId) or the payer (paidByUserId)
+      const user = req.user as User;
+      if (settlement.fromUserId !== user.id && settlement.toUserId !== user.id) {
+        return res.status(403).json({ message: 'Not authorized to delete this settlement' });
+      }
+      
+      // Don't allow deletion of completed settlements
+      // if (settlement.status === SettlementStatus.COMPLETED) {
+      //   return res.status(400).json({ message: 'Cannot delete a completed settlement' });
+      // }
+      
+      const deleted = await storage.deleteSettlement(id);
+      if (deleted) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ message: 'Failed to delete settlement' });
+      }
+    } catch (error) {
+      console.error('Error deleting settlement:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebSocket server for real-time updates
