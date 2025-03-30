@@ -92,9 +92,13 @@ function ExpenseTable({
     } else if (user.displayName) {
       return user.displayName.substring(0, 1).toUpperCase();
     } else if (user.username) {
-      return user.username.substring(0, 1).toUpperCase();
+      // Extract the first letter before the @ sign or first letter only if no @ sign
+      const usernameStart = user.username.split('@')[0];
+      return usernameStart.substring(0, 1).toUpperCase();
     } else if (user.email) {
-      return user.email.substring(0, 1).toUpperCase();
+      // Extract the first letter before the @ sign
+      const emailStart = user.email.split('@')[0];
+      return emailStart.substring(0, 1).toUpperCase();
     }
     
     return 'U';
@@ -111,8 +115,13 @@ function ExpenseTable({
       return `${user.firstName.substring(0, 1)}. ${user.lastName}`;
     } else if (user.displayName) {
       return user.displayName;
+    } else if (user.username) {
+      // Get the part before plus sign or @ sign
+      const usernameBase = user.username.split(/[+@]/)[0];
+      return usernameBase.charAt(0).toUpperCase() + usernameBase.slice(1);
     } else if (user.email) {
-      return user.email;
+      const emailBase = user.email.split('@')[0];
+      return emailBase;
     }
     
     return `User ${userId}`;
@@ -341,7 +350,7 @@ function ExpenseTable({
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="ml-1 truncate max-w-[80px]">
-                                          {getShortUserName(shownUserIds[0]).split(' ')[0]} 
+                                          {getShortUserName(shownUserIds[0])} 
                                           {remainingCount > 0 && (
                                             <Badge variant="secondary" className="ml-1 px-1.5 text-[10px] py-0 h-4">
                                               +{remainingCount + (shownUserIds.length > 1 ? shownUserIds.length - 1 : 0)}
