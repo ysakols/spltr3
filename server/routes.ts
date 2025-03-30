@@ -1608,7 +1608,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'You can only create settlements for yourself' });
       }
       
-      const settlement = await storage.createSettlement(validatedData.data);
+      // If status is COMPLETED, set the completedAt timestamp
+      const dataToCreate: any = {...validatedData.data};
+      if (dataToCreate.status === SettlementStatus.COMPLETED) {
+        dataToCreate.completedAt = new Date();
+      }
+      
+      const settlement = await storage.createSettlement(dataToCreate);
       res.status(201).json(settlement);
     } catch (error) {
       console.error('Error creating settlement:', error);
@@ -1699,8 +1705,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updateSettlementSchema = z.object({
         status: z.string().optional(),
-        transactionReference: z.string().optional(),
-        notes: z.string().optional()
+        transactionReference: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+        completedAt: z.date().optional().nullable()
       });
       
       const validatedData = updateSettlementSchema.safeParse(req.body);
@@ -1725,7 +1732,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // The recipient (toUserId) might only be allowed to confirm receipt in some cases
       // For simplicity, allowing both to update status
       
-      const updatedSettlement = await storage.updateSettlement(id, validatedData.data);
+      // If status is being changed to COMPLETED, set the completedAt timestamp
+      const dataToUpdate: any = {...validatedData.data};
+      if (dataToUpdate.status === SettlementStatus.COMPLETED) {
+        dataToUpdate.completedAt = new Date();
+      }
+      
+      const updatedSettlement = await storage.updateSettlement(id, dataToUpdate);
       res.json(updatedSettlement);
     } catch (error) {
       console.error('Error updating settlement:', error);

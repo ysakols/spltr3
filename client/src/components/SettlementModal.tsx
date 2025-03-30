@@ -166,11 +166,10 @@ export function SettlementModal() {
     setIsSubmitting(true);
     try {
       // Update the settlement status to completed
-      // Use ISO string format for date to avoid validation errors
+      // Don't send completedAt from the client - server will handle this
       await apiRequest('PUT', `/api/settlements/${pendingSettlementId}`, {
         status: SettlementStatus.COMPLETED,
         transactionReference: form.getValues().transactionReference,
-        completedAt: new Date().toISOString(),
       });
       
       toast({
@@ -219,7 +218,6 @@ export function SettlementModal() {
           status: SettlementStatus.COMPLETED,
           notes: values.notes,
           transactionReference: values.transactionReference,
-          completedAt: new Date().toISOString(),
       });
 
       toast({
