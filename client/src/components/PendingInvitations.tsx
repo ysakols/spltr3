@@ -132,12 +132,8 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
                       </div>
                     )}
                     
-                    {/* Add note for accepted invitations where user hasn't created an account yet */}
-                    {invitation.status === 'accepted' && (
-                      <div className="mt-1 italic">
-                        Waiting for user to create an account
-                      </div>
-                    )}
+                    {/* Note: Not displaying "waiting for account" message anymore since the system
+                        automatically adds users to the group when they accept an invitation and create an account */}
                   </div>
                 </div>
               </div>
