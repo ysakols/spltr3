@@ -11,8 +11,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { db } from "./db";
-import passport from "./auth";
-import { isAuthenticated } from "./auth";
+import passport, { isAuthenticated } from "./auth";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
@@ -29,6 +28,44 @@ export function sanitizeUsers(users: User[]) {
   return users.map(sanitizeUser);
 }
 
+// Helper function to process pending invitations for a newly registered user
+async function processPendingInvitations(userId: number, email: string): Promise<void> {
+  try {
+    // Find all pending invitations for this email
+    const pendingInvitations = await storage.getGroupInvitationsByEmail(email);
+    
+    if (pendingInvitations.length === 0) {
+      return;
+    }
+    
+    console.log(`Found ${pendingInvitations.length} pending invitations for ${email}`);
+    
+    // Process each invitation
+    for (const invitation of pendingInvitations) {
+      if (invitation.status === 'pending') {
+        try {
+          // Add user to the group
+          await storage.addUserToGroup(invitation.groupId, userId);
+          
+          // Mark invitation as accepted
+          await storage.updateGroupInvitation(invitation.id, {
+            status: 'accepted',
+            acceptedAt: new Date()
+          });
+          
+          console.log(`Auto-accepted invitation ${invitation.id} for user ${userId} to group ${invitation.groupId}`);
+        } catch (err) {
+          console.error(`Failed to process invitation ${invitation.id}:`, err);
+          // Continue with other invitations even if one fails
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error processing pending invitations:', err);
+    // Don't throw, let the registration complete even if this fails
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   // ==========================================================
@@ -39,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(sanitizeUser(req.user as User));
   });
   
-  // Local login route
+  // Local login route - also handles registration if user doesn't exist
   app.post('/api/auth/login', async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
@@ -52,32 +89,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Find user by email
-      const user = await storage.getUserByEmail(email);
+      let user = await storage.getUserByEmail(email);
       
+      // If user doesn't exist, create a new account (auto-registration)
       if (!user) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Invalid email or password' 
-        });
-      }
-      
-      // Check if using the bcrypt hashed password or still using plaintext
-      let isPasswordValid = false;
-      
-      if (user.password && user.password.startsWith('$2')) {
-        // This is a bcrypt hash, use proper comparison
-        isPasswordValid = await bcrypt.compare(password, user.password);
+        try {
+          // Generate a username from the email
+          const username = email.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
+          
+          // Hash the password
+          const hashedPassword = await bcrypt.hash(password, 10);
+          
+          // Create the user
+          const displayName = email.split('@')[0];
+          user = await storage.createUser({
+            email,
+            password: hashedPassword,
+            username,
+            displayName,
+            firstName: null,
+            lastName: null
+          });
+          
+          console.log(`Created new user account for ${email}`);
+          
+          // Process any pending invitations for this email
+          await processPendingInvitations(user.id, email);
+        } catch (registrationError) {
+          console.error('Error creating user account:', registrationError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to create user account'
+          });
+        }
       } else {
-        // Fall back to direct comparison for backward compatibility
-        // This is for existing accounts in the dev environment
-        isPasswordValid = user.password === password;
-      }
-      
-      if (!isPasswordValid) {
-        return res.status(401).json({ 
-          success: false, 
-          message: 'Invalid email or password' 
-        });
+        // User exists, verify password
+        let isPasswordValid = false;
+        
+        if (user.password && user.password.startsWith('$2')) {
+          // This is a bcrypt hash, use proper comparison
+          isPasswordValid = await bcrypt.compare(password, user.password);
+        } else {
+          // Fall back to direct comparison for backward compatibility
+          // This is for existing accounts in the dev environment
+          isPasswordValid = user.password === password;
+          
+          // Upgrade to bcrypt if plain password was used
+          if (isPasswordValid) {
+            try {
+              const hashedPassword = await bcrypt.hash(password, 10);
+              await storage.updateUser(user.id, { password: hashedPassword });
+              console.log(`Upgraded password hash for user ${user.id}`);
+            } catch (err) {
+              console.error('Failed to upgrade password hash:', err);
+              // Don't fail the login if this fails
+            }
+          }
+        }
+        
+        if (!isPasswordValid) {
+          return res.status(401).json({ 
+            success: false, 
+            message: 'Invalid email or password' 
+          });
+        }
       }
       
       // Log the user in

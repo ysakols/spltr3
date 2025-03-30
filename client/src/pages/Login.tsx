@@ -24,10 +24,27 @@ function Login() {
   
   // Function to redirect to Google OAuth
   const handleGoogleLogin = () => {
+    // Log current environment for debugging
+    console.log("Current environment:", {
+      hostname: window.location.hostname,
+      protocol: window.location.protocol,
+      host: window.location.host
+    });
+    
     // Add redirect parameter to Google OAuth URL if needed
     const redirectPath = getRedirectPath();
     const redirectParam = redirectPath !== "/" ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
-    window.location.href = `/auth/google${redirectParam}`;
+    
+    try {
+      window.location.href = `/auth/google${redirectParam}`;
+    } catch (error) {
+      console.error("Google login error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initiate Google login. Please try the email/password option.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Function to handle local login
@@ -127,6 +144,28 @@ function Login() {
                 </Button>
               </form>
               
+              <div className="flex items-center justify-center mt-2">
+                <span className="text-sm text-muted-foreground">
+                  Don't have an account yet? Register with email and password:
+                </span>
+              </div>
+              
+              <div className="mt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    toast({
+                      title: "Registration",
+                      description: "To register: Just enter your email and password above, then click Sign In. If the account doesn't exist, it will be created automatically."
+                    });
+                  }}
+                >
+                  Create Account
+                </Button>
+              </div>
+              
               <div className="relative my-4">
                 <Separator />
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -134,14 +173,20 @@ function Login() {
                 </div>
               </div>
               
-              <Button 
-                variant="outline" 
-                className="flex items-center justify-center gap-2"
-                onClick={handleGoogleLogin}
-              >
-                <FaGoogle className="h-4 w-4" />
-                Sign in with Google
-              </Button>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center justify-center gap-2 w-full"
+                  onClick={handleGoogleLogin}
+                >
+                  <FaGoogle className="h-4 w-4" />
+                  Sign in with Google
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Note: Google Sign-In requires proper configuration. 
+                  If you experience issues, please use email/password instead.
+                </p>
+              </div>
             </CardContent>
             <CardFooter className="flex flex-col">
               <div className="text-sm text-muted-foreground mt-4">
