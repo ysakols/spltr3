@@ -26,17 +26,34 @@ function Login() {
   // Function to redirect to Google OAuth
   const handleGoogleLogin = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Add redirect parameter to Google OAuth URL if needed
+    
+    // Show a toast to inform the user about potential connection issues
+    toast({
+      title: "Google Sign-in Temporarily Unavailable",
+      description: "Google sign-in is experiencing connectivity issues. Please use email login for now.",
+      variant: "destructive",
+      duration: 5000
+    });
+    
+    // For debugging, let's log some information about the environment
+    console.log("Current environment:", {
+      hostname: window.location.hostname,
+      protocol: window.location.protocol,
+      host: window.location.host
+    });
+    
+    // Disable Google login for now since it's not working
+    return;
+    
+    // The code below is temporarily disabled
+    /* 
     const redirectPath = getRedirectPath();
     const redirectParam = redirectPath !== "/" ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
-    // Use fetch first to ensure the server route is accessible
     fetch(`/auth/google${redirectParam}`, { method: 'GET' })
       .then(response => {
         if (response.redirected) {
-          // If the server responded with a redirect, follow it
           window.location.href = response.url;
         } else {
-          // Otherwise manually redirect
           window.location.href = `/auth/google${redirectParam}`;
         }
       })
@@ -48,6 +65,7 @@ function Login() {
           variant: "destructive"
         });
       });
+    */
   };
 
   // Function to handle local login
