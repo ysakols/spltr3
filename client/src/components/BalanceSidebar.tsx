@@ -130,14 +130,14 @@ export function BalanceSidebar() {
   };
 
   return (
-    <div className="h-full p-2 overflow-y-auto text-xs">
-      <h2 className="font-semibold mb-2.5 text-sm flex items-center">
+    <div className="h-full p-2 flex flex-col text-xs">
+      <h2 className="font-semibold mb-2.5 text-sm flex items-center flex-shrink-0">
         <span className="inline-block w-2 h-6 bg-primary mr-2 rounded"></span>
         Balance Summary
       </h2>
       
-      {/* Global Balance Section */}
-      <div className="space-y-2.5 mb-4">
+      {/* Global Balance Section - Fixed portion */}
+      <div className="space-y-2.5 mb-4 flex-shrink-0">
         {/* Overview Card */}
         <Card className="shadow-sm border-muted/60">
           <CardContent className="p-2.5">
@@ -208,11 +208,11 @@ export function BalanceSidebar() {
         )}
       </div>
       
-      {/* Current Group Details Section - Only show when on a group page */}
+      {/* Current Group Details Section - Scrollable portion */}
       {currentGroupId && currentGroup && currentSummary && currentMembers && (
-        <div className="mt-6">
+        <div className="mt-2 flex-grow flex flex-col min-h-0">
           {/* Prominent divider between sections */}
-          <div className="relative py-3">
+          <div className="relative py-2 flex-shrink-0">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-primary/30"></div>
             </div>
@@ -221,11 +221,13 @@ export function BalanceSidebar() {
             </div>
           </div>
           
-          <h2 className="font-semibold mb-2 text-sm flex items-center">
+          <h2 className="font-semibold mb-2 text-sm flex items-center flex-shrink-0">
             <span className="inline-block w-2 h-6 bg-primary mr-2 rounded"></span>
             Group Summary
           </h2>
-          <div className="max-h-[50vh] overflow-y-auto pr-1">
+          
+          {/* Ensure this div takes remaining space and scrolls internally */}
+          <div className="overflow-y-auto pr-1 flex-grow">
             <GroupSummary 
               group={currentGroup} 
               summary={currentSummary}

@@ -46,7 +46,7 @@ export function SettlementButton({
       onClick={handleSettleUp}
       variant={variant}
       size={size}
-      className="flex items-center"
+      className="flex items-center w-full sm:w-auto justify-center"
     >
       <ArrowUpRight className="h-4 w-4 mr-1" />
       {buttonText}

@@ -102,8 +102,8 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
           <CardContent className="p-2">
             <ul className="space-y-2">
               {summary.settlements.map((settlement, index) => (
-                <li key={index} className="text-[10px] flex items-center">
-                  <div className="flex items-center space-x-1 flex-grow">
+                <li key={index} className="text-[10px] flex flex-col sm:flex-row gap-y-1 mb-2">
+                  <div className="flex items-center space-x-1 w-full">
                     <CircleDollarSign className="h-3 w-3 text-primary flex-shrink-0" />
                     <span className="font-medium">{getUserName(settlement.from)}</span>
                     <span className="text-muted-foreground">pays</span>
@@ -113,8 +113,8 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                     </span>
                   </div>
                   
-                  {currentUserId && (
-                    <div className="ml-2">
+                  {currentUserId && Number(settlement.from) === currentUserId && (
+                    <div className="ml-0 sm:ml-2 mt-1 sm:mt-0 w-full sm:w-auto">
                       <SettlementButton
                         settlement={settlement}
                         currentUserId={currentUserId}
