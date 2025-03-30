@@ -887,6 +887,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userData.displayName = `${userData.firstName} ${userData.lastName}`;
       }
       
+      // Hash the password
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
+      
       const savedUser = await storage.createUser(userData);
       
       // Return user without password
@@ -908,7 +913,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(id);
       if (!user) return res.status(404).json({ message: 'User not found' });
       
-      res.json(user);
+      // Return sanitized user without password
+      res.json(sanitizeUser(user));
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
@@ -1033,13 +1039,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Search for a specific user by email
         const user = await storage.getUserByEmail(email);
         if (user) {
-          return res.json([user]); // Return as array for consistent format
+          return res.json([sanitizeUser(user)]); // Return as array for consistent format with sanitized data
         }
         return res.json([]); // Return empty array if no user found
       } else {
         // Get all users (this could be limited in production)
         const allUsers = await db.select().from(users);
-        return res.json(allUsers);
+        return res.json(sanitizeUsers(allUsers)); // Sanitize all users before returning
       }
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
@@ -1055,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const friends = await storage.getUserFriends(id);
-      res.json(friends);
+      res.json(sanitizeUsers(friends));
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
@@ -1082,13 +1088,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get groups for the authenticated user only
       groups = await storage.getUserGroups(userId);
       
-      // Fetch creator information for each group
+      // Fetch creator information for each group and sanitize
       const groupsWithCreatorInfo = await Promise.all(groups.map(async (group) => {
         if (group.createdById) {
           const creator = await storage.getUser(group.createdById);
           return {
             ...group,
-            creatorInfo: creator || undefined
+            creatorInfo: creator ? sanitizeUser(creator) : undefined
           };
         }
         return group;
@@ -1139,13 +1145,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the creator information
       let creatorInfo = undefined;
       if (group.createdById) {
-        creatorInfo = await storage.getUser(group.createdById);
+        const creator = await storage.getUser(group.createdById);
+        if (creator) {
+          creatorInfo = sanitizeUser(creator);
+        }
       }
       
-      // Return group with members and creator info
+      // Return group with sanitized members and creator info
       res.json({
         ...group,
-        members: members,
+        members: sanitizeUsers(members),
         creatorInfo: creatorInfo
       });
     } catch (err) {
@@ -1191,12 +1200,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get creator information
       let creatorInfo = undefined;
       if (updatedGroup.createdById) {
-        creatorInfo = await storage.getUser(updatedGroup.createdById);
+        const creator = await storage.getUser(updatedGroup.createdById);
+        if (creator) {
+          creatorInfo = sanitizeUser(creator);
+        }
       }
       
       res.json({
         ...updatedGroup,
-        members: members,
+        members: sanitizeUsers(members),
         creatorInfo: creatorInfo
       });
     } catch (err) {
@@ -1258,15 +1270,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get invitations for this group
       const invitations = await storage.getGroupInvitationsByGroupId(groupId);
       
-      // For each invitation, include the inviter's name if available
+      // For each invitation, include the inviter's info if available (sanitized)
       const invitationsWithDetails = await Promise.all(invitations.map(async (invitation) => {
         let inviter = null;
         if (invitation.inviterUserId) {
-          inviter = await storage.getUser(invitation.inviterUserId);
+          const inviterUser = await storage.getUser(invitation.inviterUserId);
+          if (inviterUser) {
+            inviter = sanitizeUser(inviterUser);
+          }
         }
         
         return {
           ...invitation,
+          inviter: inviter,
           inviterName: inviter ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) : null
         };
       }));
@@ -1385,12 +1401,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const members = await storage.getGroupMembers(groupId);
-      // Remove sensitive password data before sending to client
-      const sanitizedMembers = members.map(member => {
-        const { password, ...userWithoutPassword } = member;
-        return userWithoutPassword;
-      });
-      res.json(sanitizedMembers);
+      // Use the sanitizeUsers helper function to remove sensitive data
+      res.json(sanitizeUsers(members));
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
@@ -1411,19 +1423,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Enhance expenses with user information
       const enhancedExpenses = await Promise.all(expenses.map(async (expense) => {
-        // Get the user who paid for the expense
+        // Get the user who paid for the expense and sanitize
         const paidByUser = expense.paidByUserId ? await storage.getUser(expense.paidByUserId) : null;
-        
-        // Remove sensitive password data from user object
-        let sanitizedUser = null;
-        if (paidByUser) {
-          const { password, ...userWithoutPassword } = paidByUser;
-          sanitizedUser = userWithoutPassword;
-        }
         
         return {
           ...expense,
-          paidByUser: sanitizedUser
+          paidByUser: paidByUser ? sanitizeUser(paidByUser) : null
         };
       }));
       

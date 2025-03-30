@@ -575,10 +575,10 @@ export class DatabaseStorage implements IStorage {
             }
           }
           
-          // Insert the split record
+          // Insert the split record with proper fields matching the schema
           await tx.insert(expenseSplits).values({
             expenseId: newExpense.id,
-            userId,
+            userId: userId,
             amount: userAmount,
             percentage: userPercentage,
             isSettled: false
@@ -651,10 +651,10 @@ export class DatabaseStorage implements IStorage {
             }
           }
           
-          // Insert the split record
+          // Insert the split record with proper fields matching the schema
           await tx.insert(expenseSplits).values({
             expenseId: updatedExpense.id,
-            userId,
+            userId: userId,
             amount: userAmount,
             percentage: userPercentage,
             isSettled: false
