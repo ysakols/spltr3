@@ -85,9 +85,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Local login route - also handles registration if user doesn't exist
   app.post('/api/auth/login', async (req: Request, res: Response) => {
     try {
+      console.log('===== Login attempt =====');
+      console.log('Login attempt with email:', req.body.email);
+      
       const { email, password } = req.body;
       
       if (!email || !password) {
+        console.log('Login failed: Email or password missing');
         return res.status(400).json({ 
           success: false, 
           message: 'Email and password are required' 
@@ -96,6 +100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Find user by email
       let user = await storage.getUserByEmail(email);
+      
+      console.log('User lookup result:', user ? { id: user.id, email: user.email } : 'Not found');
       
       // If user doesn't exist, create a new account (auto-registration)
       if (!user) {
@@ -218,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
     // Use custom authentication handler for better error reporting
     (req: Request, res: Response, next: NextFunction) => {
-      passport.authenticate('google', (err, user, info) => {
+      passport.authenticate('google', (err: Error | null, user: any, info: { message: string }) => {
         if (err) {
           console.error('Google authentication error:', err);
           return res.redirect(`/login?error=${encodeURIComponent(err.message)}`);

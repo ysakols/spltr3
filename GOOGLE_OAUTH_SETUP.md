@@ -1,93 +1,104 @@
 # Google OAuth Setup Guide
 
-This guide will help you set up Google OAuth for your spltr3 application.
+This guide will help you set up Google OAuth for your expense-sharing application on Replit.
 
-## Prerequisites
+## Current Configuration
 
-1. A Google account
-2. Access to [Google Cloud Console](https://console.cloud.google.com/)
+Your application is configured to use the ID-based Replit domain:
+```
+https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co
+```
 
-## Step 1: Create a Google Cloud Project
+## Setup Steps
+
+### 1. Create a Google Cloud Project
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Click on the project dropdown at the top of the page
-3. Click "New Project"
-4. Enter a project name (e.g., "Spltr3") and click "Create"
-5. Wait for the project to be created, then select it from the dropdown
+2. Create a new project (or select an existing one)
+3. Navigate to "APIs & Services" > "OAuth consent screen"
+4. Configure the consent screen:
+   - Select "External" user type
+   - Add application name, user support email, and developer contact information
+   - Add scopes for "email" and "profile"
+   - Add test users (including your own email)
 
-## Step 2: Configure OAuth Consent Screen
+### 2. Create OAuth Credentials
 
-1. In the left sidebar, go to "APIs & Services" > "OAuth consent screen"
-2. Select "External" as the user type (unless you have a Google Workspace organization)
-3. Click "Create"
-4. Fill in the required fields:
-   - App name: "Spltr3"
-   - User support email: Your email address
-   - Developer contact information: Your email address
-5. Click "Save and Continue"
-6. Skip adding scopes for now (click "Save and Continue")
-7. Add test users if needed (this is only required for apps in testing mode)
-8. Click "Save and Continue"
-9. Review your settings and click "Back to Dashboard"
+1. Navigate to "APIs & Services" > "Credentials"
+2. Click "Create Credentials" > "OAuth client ID"
+3. Set application type to "Web application"
+4. Add the following for **ID-based domain** (recommended):
+   - **Name**: ExpenseShare App (or any name you prefer)
+   - **Authorized JavaScript origins**: `https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co`
+   - **Authorized redirect URIs**: `https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co/auth/google/callback`
 
-## Step 3: Create OAuth Credentials
+5. Click "Create" and note your Client ID and Client Secret
 
-1. In the left sidebar, go to "APIs & Services" > "Credentials"
-2. Click "Create Credentials" at the top and select "OAuth client ID"
-3. For Application type, select "Web application"
-4. Enter a name for your client (e.g., "Spltr3 Web Client")
-5. Under "Authorized JavaScript origins", add:
-   - https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co (your Replit URL)
-6. Under "Authorized redirect URIs", add:
-   - https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co/auth/google/callback
-7. Click "Create"
+### 3. Configure Environment Variables in Replit
 
-## Step 4: Configure Environment Variables
+Set the following secrets in your Replit environment:
 
-You need to set three environment variables in your Replit project:
+- **GOOGLE_CLIENT_ID**: Your OAuth client ID
+- **GOOGLE_CLIENT_SECRET**: Your client secret
+- **GOOGLE_CALLBACK_URL**: `https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co/auth/google/callback`
 
-1. `GOOGLE_CLIENT_ID`: The client ID from the credentials you just created
-2. `GOOGLE_CLIENT_SECRET`: The client secret from the credentials
-3. `GOOGLE_CALLBACK_URL`: The redirect URL (e.g., https://13719520-88f9-42b5-a3fe-ef0b8d50d762.id.repl.co/auth/google/callback)
+## Alternative Configuration (Standard Domain)
 
-## Step 5: Verify Setup
+If you prefer to use the standard Replit domain format, use these values instead:
 
-1. Restart your Replit server
-2. Go to your application's login page
-3. Click "Sign in with Google"
-4. If everything is configured correctly, you should be redirected to Google's authentication page
-5. After authenticating, you should be redirected back to your application and logged in
+- **Authorized JavaScript origins**: `https://workspace.ysakols.repl.co`
+- **Authorized redirect URIs**: `https://workspace.ysakols.repl.co/auth/google/callback`
+- **GOOGLE_CALLBACK_URL**: `https://workspace.ysakols.repl.co/auth/google/callback`
 
 ## Troubleshooting
 
-### "Error: redirect_uri_mismatch"
+### Common Issues
 
-This error occurs when the redirect URI in your request doesn't match any of the authorized redirect URIs you've configured in the Google Cloud Console. To fix this:
+1. **"Error: redirect_uri_mismatch"**
+   - Ensure the callback URL in your Google Cloud Console credentials matches exactly with the GOOGLE_CALLBACK_URL environment variable
+   - Check for trailing slashes, http vs https, etc.
 
-1. Check the exact URL in the error message
-2. Go to the Google Cloud Console > APIs & Services > Credentials
-3. Edit your OAuth client
-4. Make sure the exact URL from the error is listed under "Authorized redirect URIs"
-5. Remember URLs are case-sensitive and must include the correct protocol (http:// or https://)
+2. **"Error: invalid_client"**
+   - Verify your client ID and client secret are correct
+   - Ensure they're properly set as environment variables
 
-### "Error: invalid_client"
+3. **"This browser or app may not be secure"**
+   - Your project may need to go through Google verification
+   - During development, add your email as a test user in the OAuth consent screen configuration
 
-This error suggests there's an issue with your client credentials. To fix:
+4. **Application not redirecting properly after authentication**
+   - Check server logs for authentication errors
+   - Verify session configuration is correct
+   - Ensure your app's frontend correctly handles the authentication flow
 
-1. Double-check that your GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are correct
-2. Make sure you're using the right credentials for the right project
+### Debugging Tools
 
-### "Error: access_denied"
+1. Run the debug script to check your configuration:
+   ```
+   node debug-oauth.js
+   ```
 
-This typically means the user denied the permission request or there's an issue with the OAuth consent screen configuration. To fix:
+2. Check which Replit domain format is being used:
+   ```
+   node detect-replit-url.js
+   ```
 
-1. Make sure your OAuth consent screen is properly configured
-2. Verify that the app is in the appropriate status (testing or production)
-3. If in testing mode, ensure the user's email is added as a test user
+3. Review the server logs for detailed authentication flow information.
 
-### "The redirect URI in the request did not match a registered redirect URI"
+### Important Notes
 
-Similar to "redirect_uri_mismatch", ensure that:
+- Google OAuth requires HTTPS, which Replit provides by default
+- Replit projects have two possible domain formats:
+  - Standard: `{project-name}.{username}.repl.co`
+  - ID-based: `{project-id}.id.repl.co`
+- The ID-based domain is more stable and recommended for OAuth configuration
+- You must use the same domain format consistently across all OAuth configuration settings
 
-1. The GOOGLE_CALLBACK_URL environment variable matches exactly what you've configured in the Google Cloud Console
-2. Your application is running on the expected domain
+## Testing Your Setup
+
+1. Navigate to your application's login page
+2. Click the "Sign in with Google" button
+3. You should be redirected to Google's authentication page
+4. After authenticating, you should be redirected back to your application and logged in
+
+If you encounter any issues, check the server logs and run the debugging tools to identify the problem.

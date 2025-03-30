@@ -30,17 +30,31 @@ export async function processPendingInvitations(userId: number, email: string): 
   }
 }
 
+// Enhanced logging for authentication events
+const logAuth = (message: string, ...args: any[]) => {
+  console.log(`[AUTH] ${message}`, ...args);
+};
+
 // Serialize user to the session
 passport.serializeUser((user: any, done) => {
+  logAuth('Serializing user:', { id: user.id, email: user.email });
   done(null, user.id);
 });
 
 // Deserialize user from the session
 passport.deserializeUser(async (id: number, done) => {
   try {
+    logAuth('Deserializing user ID:', id);
     const user = await storage.getUser(id);
-    done(null, user);
+    if (user) {
+      logAuth('User deserialized successfully:', { id: user.id, email: user.email });
+      done(null, user);
+    } else {
+      logAuth('Failed to deserialize user - not found:', id);
+      done(new Error('User not found'));
+    }
   } catch (error) {
+    logAuth('Error deserializing user:', error);
     done(error);
   }
 });
@@ -90,7 +104,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     state: true
   }, async (accessToken, refreshToken, profile, done) => {
     try {
-      console.log('Received Google profile:', {
+      logAuth('Google auth callback received profile:', {
         id: profile.id,
         displayName: profile.displayName,
         emails: profile.emails?.map(e => e.value) || [],
@@ -101,28 +115,38 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       let user = await storage.getUserByGoogleId(profile.id);
       
       if (!user) {
-        console.log('No existing user with Google ID:', profile.id);
+        logAuth('No existing user with Google ID:', profile.id);
         // Check if we have a user with the same email
         const email = profile.emails?.[0]?.value;
         if (email) {
-          console.log('Checking for existing user with email:', email);
+          logAuth('Checking for existing user with email:', email);
           user = await storage.getUserByEmail(email);
           
           if (user) {
+            logAuth('Found existing user with matching email:', { id: user.id, email });
             // Update existing user with Google info
-            user = await storage.updateUser(user.id, {
+            const updatedUser = await storage.updateUser(user.id, {
               googleId: profile.id,
               googleAccessToken: accessToken,
               googleRefreshToken: refreshToken,
               // Update avatar if available
               avatarUrl: profile.photos?.[0]?.value || user.avatarUrl
             });
+            
+            if (updatedUser) {
+              user = updatedUser;
+              logAuth('Updated existing user with Google credentials:', { id: user.id, googleId: profile.id });
+            } else {
+              logAuth('Failed to update user with Google credentials');
+            }
           } else {
             // Create a new user
             const firstName = profile.name?.givenName || '';
             const lastName = profile.name?.familyName || '';
             const displayName = profile.displayName || firstName;
             const username = email.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
+            
+            logAuth('Creating new user from Google profile:', { email, displayName });
             
             // Create a random password for Google users (they'll never use it)
             const randomPassword = Math.random().toString(36).slice(-10);
@@ -141,25 +165,45 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               avatarUrl: profile.photos?.[0]?.value
             });
             
-            // Process any pending invitations for this user
             if (user) {
+              logAuth('Successfully created new user from Google auth:', { id: user.id, email });
+              
+              // Process any pending invitations for this user
               await processPendingInvitations(user.id, email);
+            } else {
+              logAuth('Failed to create user from Google profile');
             }
           }
         } else {
           return done(new Error('No email provided from Google'));
         }
-      } else {
+      } else if (user) {
+        logAuth('Found existing user with Google ID:', { id: user.id, googleId: profile.id });
         // Update the user's Google-related fields
-        user = await storage.updateUser(user.id, {
+        const updatedUser = await storage.updateUser(user.id, {
           googleAccessToken: accessToken,
           googleRefreshToken: refreshToken,
           avatarUrl: profile.photos?.[0]?.value || user.avatarUrl
         });
+        
+        if (updatedUser) {
+          user = updatedUser;
+          logAuth('Updated existing user from Google auth');
+        } else {
+          logAuth('Failed to update existing user');
+        }
+      } else {
+        return done(new Error('Failed to find or create user'));
       }
       
+      if (!user) {
+        return done(new Error('User is undefined after Google authentication'));
+      }
+      
+      logAuth('Google authentication successful:', { id: user.id, email: user.email });
       return done(null, user);
     } catch (error) {
+      logAuth('Error during Google authentication:', error);
       return done(error);
     }
   }));
