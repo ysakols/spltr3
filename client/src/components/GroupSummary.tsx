@@ -55,7 +55,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
     <div className="space-y-2">
       {/* Total Group Expenses */}
       <Card className="shadow-sm border-muted/60">
-        <CardContent className="p-2">
+        <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-medium text-gray-900">Total Group Expenses</h3>
             <span className="text-sm font-bold text-primary">{formatCurrency(summary.totalExpenses)}</span>
@@ -64,12 +64,12 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
       </Card>
       
       {/* Individual Summaries - Now in a more compact layout */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <h3 className="text-xs font-medium text-gray-900">Member Balances</h3>
         
         {memberIds.map(personId => (
           <Card key={personId} className="overflow-hidden shadow-sm border-muted/60">
-            <CardHeader className="py-1 px-2 bg-primary/5 border-b">
+            <CardHeader className="py-1.5 px-3 bg-primary/5 border-b">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xs">{getUserName(personId)}</CardTitle>
                 <span className={`text-xs font-semibold ${(summary.balances[personId] || 0) > 0 ? 'text-green-600' : (summary.balances[personId] || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
@@ -77,15 +77,15 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                 </span>
               </div>
             </CardHeader>
-            <CardContent className="p-2 space-y-1 text-xs">
-              <div className="flex flex-col sm:flex-row sm:justify-between">
-                <div className="flex justify-between sm:flex-col">
-                  <span className="text-gray-500 text-[10px]">Paid:</span>
-                  <span className="font-medium text-[10px]">{formatCurrency(summary.paid[personId] || 0)}</span>
+            <CardContent className="p-3 text-xs">
+              <div className="flex justify-between">
+                <div>
+                  <span className="text-gray-500">Paid:</span>
+                  <span className="font-medium ml-2">{formatCurrency(summary.paid[personId] || 0)}</span>
                 </div>
-                <div className="flex justify-between sm:flex-col sm:items-end">
-                  <span className="text-gray-500 text-[10px]">Owes:</span>
-                  <span className="font-medium text-[10px]">{formatCurrency(summary.owes[personId] || 0)}</span>
+                <div>
+                  <span className="text-gray-500">Owes:</span>
+                  <span className="font-medium ml-2">{formatCurrency(summary.owes[personId] || 0)}</span>
                 </div>
               </div>
             </CardContent>
@@ -96,15 +96,15 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
       {/* Settlement Plan - More Compact */}
       {summary.settlements && summary.settlements.length > 0 && (
         <Card className="shadow-sm border-muted/60">
-          <CardHeader className="py-1 px-2">
+          <CardHeader className="py-1.5 px-3 bg-primary/5 border-b">
             <CardTitle className="text-xs">Settlement Plan</CardTitle>
           </CardHeader>
-          <CardContent className="p-2">
-            <ul className="space-y-2">
+          <CardContent className="p-3">
+            <ul className="space-y-3">
               {summary.settlements.map((settlement, index) => (
-                <li key={index} className="text-[10px] flex flex-col sm:flex-row gap-y-1 mb-2">
-                  <div className="flex items-center space-x-1 w-full">
-                    <CircleDollarSign className="h-3 w-3 text-primary flex-shrink-0" />
+                <li key={index} className="text-xs flex flex-col gap-y-2 pb-2 border-b border-gray-100 last:border-b-0 last:pb-0">
+                  <div className="flex items-center gap-x-1.5 w-full">
+                    <CircleDollarSign className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                     <span className="font-medium">{getUserName(settlement.from)}</span>
                     <span className="text-muted-foreground">pays</span>
                     <span className="font-medium">{getUserName(settlement.to)}</span>
@@ -114,7 +114,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                   </div>
                   
                   {currentUserId && Number(settlement.from) === currentUserId && (
-                    <div className="ml-0 sm:ml-2 mt-1 sm:mt-0 w-full sm:w-auto">
+                    <div className="w-full">
                       <SettlementButton
                         settlement={settlement}
                         currentUserId={currentUserId}
