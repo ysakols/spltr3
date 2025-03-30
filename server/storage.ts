@@ -1,12 +1,13 @@
 import { 
   groups, expenses, users, userGroups, expenseSplits, friendships,
-  groupInvitations, settlements,
+  groupInvitations, settlements, transactions, transactionSplits,
   type Group, type InsertGroup, type Expense, type InsertExpense, 
   type Balance, type SettlementCalculation, type Settlement, type InsertSettlement,
-  SplitType, SettlementStatus, PaymentMethod,
+  SplitType, SettlementStatus, PaymentMethod, TransactionStatus, TransactionType,
   type User, type InsertUser, type UserGroup, type InsertUserGroup, 
   type ExpenseSplit, type InsertExpenseSplit, type Friendship, type InsertFriendship,
-  type GroupInvitation, type InsertGroupInvitation
+  type GroupInvitation, type InsertGroupInvitation,
+  type Transaction, type InsertTransaction, type TransactionSplit, type InsertTransactionSplit
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, notInArray, asc, desc, isNull, sql, count, not } from "drizzle-orm";
@@ -73,7 +74,17 @@ export interface IStorage {
   // Global summary
   calculateGlobalSummary(userId: number): Promise<Balance>;
   
-  // Settlement methods
+  // Transaction methods (new unified approach)
+  getTransactions(groupId?: number): Promise<Transaction[]>;
+  getTransaction(id: number): Promise<Transaction | undefined>;
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  updateTransaction(id: number, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
+  deleteTransaction(id: number): Promise<boolean>;
+  getUserTransactions(userId: number): Promise<Transaction[]>;
+  getGroupTransactions(groupId: number): Promise<Transaction[]>;
+  markTransactionSplitsAsSettled(transactionId: number): Promise<void>;
+  
+  // Settlement methods (legacy - to be migrated)
   createSettlement(settlement: InsertSettlement): Promise<Settlement>;
   getSettlement(id: number): Promise<Settlement | undefined>;
   getUserSettlements(userId: number): Promise<Settlement[]>;
@@ -83,7 +94,293 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // Settlement methods
+  // Transaction methods - new unified approach
+  async getTransaction(id: number): Promise<Transaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, id));
+    
+    return transaction;
+  }
+
+  async getTransactions(groupId?: number): Promise<Transaction[]> {
+    // If groupId is provided, filter by group
+    const query = groupId 
+      ? db.select().from(transactions).where(eq(transactions.groupId, groupId))
+      : db.select().from(transactions);
+    
+    return await query.orderBy(desc(transactions.createdAt));
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    return await db.transaction(async (tx) => {
+      // Extract splitWithUserIds if present before inserting
+      const { splitWithUserIds, ...transactionData } = transaction;
+      
+      // For expense transactions, ensure we have splitType and splitDetails
+      if (transaction.type === TransactionType.EXPENSE) {
+        if (!transaction.splitType) {
+          transactionData.splitType = SplitType.EQUAL;
+        }
+        if (!transaction.splitDetails) {
+          transactionData.splitDetails = '{}';
+        }
+      }
+      
+      // For settlement transactions, ensure we have required fields
+      if (transaction.type === TransactionType.SETTLEMENT) {
+        if (!transaction.status) {
+          transactionData.status = TransactionStatus.PENDING;
+        }
+      }
+      
+      // Create the transaction
+      const [newTransaction] = await tx
+        .insert(transactions)
+        .values({
+          ...transactionData,
+          createdAt: new Date(),
+          date: transaction.date || new Date()
+        })
+        .returning();
+      
+      // If this is an expense transaction and we have splitWithUserIds, create the splits
+      if (transaction.type === TransactionType.EXPENSE && splitWithUserIds && splitWithUserIds.length > 0) {
+        // Parse the split details to determine how to create the splits
+        const splitDetails = transaction.splitDetails 
+          ? JSON.parse(transaction.splitDetails)
+          : {};
+        
+        const amount = typeof transaction.amount === 'string' 
+          ? parseFloat(transaction.amount) 
+          : transaction.amount;
+        
+        // Create the splits based on the splitType
+        const splits = [];
+        
+        switch (transaction.splitType) {
+          case SplitType.EQUAL:
+            // Equal split among all users
+            const splitAmount = amount / splitWithUserIds.length;
+            for (const userId of splitWithUserIds) {
+              splits.push({
+                transactionId: newTransaction.id,
+                userId,
+                amount: splitAmount.toString(), // Convert to string to match schema
+                isSettled: userId === transaction.paidByUserId // Payer's split is always settled
+              });
+            }
+            break;
+            
+          case SplitType.PERCENTAGE:
+            // Percentage-based split
+            for (const userId of splitWithUserIds) {
+              const percentage = splitDetails[userId] || 0;
+              const splitAmount = (amount * percentage) / 100;
+              splits.push({
+                transactionId: newTransaction.id,
+                userId,
+                amount: splitAmount.toString(),
+                percentage: percentage.toString(),
+                isSettled: userId === transaction.paidByUserId
+              });
+            }
+            break;
+            
+          case SplitType.EXACT:
+            // Exact amount split
+            for (const userId of splitWithUserIds) {
+              const splitAmount = splitDetails[userId] || 0;
+              splits.push({
+                transactionId: newTransaction.id,
+                userId,
+                amount: splitAmount.toString(),
+                isSettled: userId === transaction.paidByUserId
+              });
+            }
+            break;
+        }
+        
+        // Insert the splits
+        if (splits.length > 0) {
+          await tx.insert(transactionSplits).values(splits);
+        }
+      }
+      
+      return newTransaction;
+    });
+  }
+
+  async updateTransaction(id: number, updateData: Partial<InsertTransaction>): Promise<Transaction | undefined> {
+    const [updatedTransaction] = await db
+      .update(transactions)
+      .set(updateData)
+      .where(eq(transactions.id, id))
+      .returning();
+    
+    return updatedTransaction;
+  }
+
+  async deleteTransaction(id: number): Promise<boolean> {
+    return await db.transaction(async (tx) => {
+      // First delete all splits for this transaction
+      await tx
+        .delete(transactionSplits)
+        .where(eq(transactionSplits.transactionId, id));
+      
+      // Then delete the transaction
+      const result = await tx
+        .delete(transactions)
+        .where(eq(transactions.id, id));
+      
+      return result.rowCount !== null && result.rowCount > 0;
+    });
+  }
+
+  async getUserTransactions(userId: number): Promise<Transaction[]> {
+    // Find all transactions where the user is involved
+    // Either as payer, recipient, or has a split
+    const splits = await db
+      .select()
+      .from(transactionSplits)
+      .where(eq(transactionSplits.userId, userId));
+    
+    const transactionIds = splits.map(split => split.transactionId);
+    
+    const userTransactions = await db
+      .select()
+      .from(transactions)
+      .where(
+        or(
+          eq(transactions.paidByUserId, userId),
+          eq(transactions.toUserId, userId),
+          inArray(transactions.id, transactionIds)
+        )
+      )
+      .orderBy(desc(transactions.createdAt));
+    
+    return userTransactions;
+  }
+
+  async getGroupTransactions(groupId: number): Promise<Transaction[]> {
+    // Get all transactions for the group with user details
+    const groupTransactions = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.groupId, groupId))
+      .orderBy(desc(transactions.createdAt));
+    
+    // Get user details for these transactions
+    const userIds = new Set<number>();
+    groupTransactions.forEach(t => {
+      userIds.add(t.paidByUserId);
+      if (t.toUserId) userIds.add(t.toUserId);
+      if (t.createdByUserId) userIds.add(t.createdByUserId);
+    });
+    
+    // Fetch all needed users
+    const usersList = await db
+      .select()
+      .from(users)
+      .where(inArray(users.id, Array.from(userIds)));
+    
+    const userMap = usersList.reduce((map, user) => {
+      map[user.id] = user;
+      return map;
+    }, {} as Record<number, User>);
+    
+    // Attach user details to transactions
+    return groupTransactions.map(transaction => ({
+      ...transaction,
+      paidByUser: userMap[transaction.paidByUserId],
+      toUser: transaction.toUserId ? userMap[transaction.toUserId] : undefined,
+      createdByUser: transaction.createdByUserId ? userMap[transaction.createdByUserId] : undefined
+    }));
+  }
+
+  async markTransactionSplitsAsSettled(transactionId: number): Promise<void> {
+    // Get the transaction details
+    const transaction = await this.getTransaction(transactionId);
+    if (!transaction) {
+      throw new Error(`Transaction with ID ${transactionId} not found`);
+    }
+    
+    // Only proceed for settlement transactions that are completed
+    if (transaction.type !== TransactionType.SETTLEMENT || transaction.status !== TransactionStatus.COMPLETED) {
+      return;
+    }
+    
+    // Get the user IDs involved
+    const fromUserId = transaction.paidByUserId; // In settlements, the payer is the "from" user
+    const toUserId = transaction.toUserId!; // The recipient is the "to" user
+    const groupId = transaction.groupId;
+    
+    // If this is a group-specific settlement, only mark transaction splits in that group
+    if (groupId) {
+      // Get all expense transactions in this group
+      const groupTransactions = await db
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.groupId, groupId),
+            eq(transactions.type, TransactionType.EXPENSE)
+          )
+        );
+      
+      for (const expense of groupTransactions) {
+        // Get all unsettled splits where the payer is the creditor and the debtor has a split
+        if (expense.paidByUserId === toUserId) {
+          // Update the transaction splits
+          await db
+            .update(transactionSplits)
+            .set({ 
+              isSettled: true,
+              settledAt: new Date()
+            })
+            .where(
+              and(
+                eq(transactionSplits.transactionId, expense.id),
+                eq(transactionSplits.userId, fromUserId),
+                eq(transactionSplits.isSettled, false)
+              )
+            );
+        }
+      }
+    } else {
+      // For global settlements, update across all groups
+      // Get all expense transactions paid by the creditor
+      const paidTransactions = await db
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.paidByUserId, toUserId),
+            eq(transactions.type, TransactionType.EXPENSE)
+          )
+        );
+      
+      for (const expense of paidTransactions) {
+        // Update the transaction splits
+        await db
+          .update(transactionSplits)
+          .set({ 
+            isSettled: true,
+            settledAt: new Date()
+          })
+          .where(
+            and(
+              eq(transactionSplits.transactionId, expense.id),
+              eq(transactionSplits.userId, fromUserId),
+              eq(transactionSplits.isSettled, false)
+            )
+          );
+      }
+    }
+  }
+  
+  // Legacy Settlement methods
   async createSettlement(settlement: InsertSettlement): Promise<Settlement> {
     const [newSettlement] = await db
       .insert(settlements)

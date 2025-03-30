@@ -109,7 +109,100 @@ export enum SplitType {
   EXACT = 'exact'
 }
 
-// Enhanced Expenses table
+// Transaction types enum
+export enum TransactionType {
+  EXPENSE = 'expense',
+  SETTLEMENT = 'settlement'
+}
+
+// Payment method enum
+export enum PaymentMethod {
+  CASH = 'cash',
+  VENMO = 'venmo',
+  OTHER = 'other'
+}
+
+// Transaction status enum
+export enum TransactionStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  CANCELED = 'canceled'
+}
+
+// Unified Transactions table for all financial events
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // 'expense' or 'settlement'
+  description: text("description").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  paidByUserId: integer("paid_by_user_id").notNull().references(() => users.id),
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
+  date: timestamp("date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  groupId: integer("group_id").references(() => groups.id), // Optional for global settlements
+  // Fields specific to expenses
+  splitType: text("split_type"), // Only for expense type
+  splitDetails: text("split_details"), // JSON string with split allocations, only for expense type
+  // Fields specific to settlements
+  toUserId: integer("to_user_id").references(() => users.id), // Only for settlement type
+  paymentMethod: text("payment_method"), // cash, venmo, other - only for settlement type
+  status: text("status"), // pending, completed, canceled - only for settlement type
+  notes: text("notes"), // Optional notes - mainly for settlements
+  completedAt: timestamp("completed_at"), // When settlement is completed
+  transactionReference: text("transaction_reference") // For external payment references
+});
+
+// Define transaction relations
+export const transactionsRelations = relations(transactions, ({ one, many }) => ({
+  paidBy: one(users, {
+    fields: [transactions.paidByUserId],
+    references: [users.id]
+  }),
+  createdBy: one(users, {
+    fields: [transactions.createdByUserId],
+    references: [users.id]
+  }),
+  group: one(groups, {
+    fields: [transactions.groupId],
+    references: [groups.id]
+  }),
+  toUser: one(users, {
+    fields: [transactions.toUserId],
+    references: [users.id]
+  }),
+  splits: many(transactionSplits)
+}));
+
+// Transaction splits table to track who is involved in each expense transaction
+export const transactionSplits = pgTable("transaction_splits", {
+  transactionId: integer("transaction_id").notNull().references(() => transactions.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  percentage: numeric("percentage", { precision: 5, scale: 2 }),
+  isSettled: boolean("is_settled").default(false).notNull(),
+  settledAt: timestamp("settled_at"),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.transactionId, table.userId] })
+  };
+});
+
+// Define transaction-split relations
+export const transactionSplitsRelations = relations(transactionSplits, ({ one }) => ({
+  transaction: one(transactions, {
+    fields: [transactionSplits.transactionId],
+    references: [transactions.id]
+  }),
+  user: one(users, {
+    fields: [transactionSplits.userId],
+    references: [users.id]
+  })
+}));
+
+// Keep the old tables for migration purposes
+// These will be removed after data migration is complete
+
+// Enhanced Expenses table - Legacy, to be migrated
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
   description: text("description").notNull(),
@@ -123,7 +216,7 @@ export const expenses = pgTable("expenses", {
   groupId: integer("group_id").notNull().references(() => groups.id)
 });
 
-// Define expense relations
+// Define expense relations - Legacy
 export const expensesRelations = relations(expenses, ({ one, many }) => ({
   paidBy: one(users, {
     fields: [expenses.paidByUserId],
@@ -140,7 +233,7 @@ export const expensesRelations = relations(expenses, ({ one, many }) => ({
   splits: many(expenseSplits)
 }));
 
-// Expense splits table to track who is involved in each expense
+// Expense splits table - Legacy, to be migrated
 export const expenseSplits = pgTable("expense_splits", {
   expenseId: integer("expense_id").notNull().references(() => expenses.id),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -154,7 +247,7 @@ export const expenseSplits = pgTable("expense_splits", {
   };
 });
 
-// Define expense-split relations
+// Define expense-split relations - Legacy
 export const expenseSplitsRelations = relations(expenseSplits, ({ one }) => ({
   expense: one(expenses, {
     fields: [expenseSplits.expenseId],
@@ -167,6 +260,68 @@ export const expenseSplitsRelations = relations(expenseSplits, ({ one }) => ({
 }));
 
 // Insert schemas
+// Insert schema for transactions
+export const insertTransactionSchema = createInsertSchema(transactions)
+  .pick({
+    type: true,
+    description: true,
+    amount: true,
+    paidByUserId: true,
+    createdByUserId: true,
+    groupId: true,
+    date: true,
+    splitType: true,
+    splitDetails: true,
+    toUserId: true,
+    paymentMethod: true,
+    status: true,
+    notes: true,
+    transactionReference: true
+  })
+  .extend({
+    // All transactions
+    type: z.nativeEnum(TransactionType),
+    amount: z.coerce.string(),
+    // Optional groupId for global settlements
+    groupId: z.number().optional().nullable(),
+    // Optional createdByUserId for tracking who created the transaction
+    createdByUserId: z.number().optional(),
+    
+    // For expense transactions
+    splitType: z.nativeEnum(SplitType).optional(),
+    splitDetails: z.string().optional(),
+    splitWithUserIds: z.array(z.number()).optional(),
+    
+    // For settlement transactions
+    toUserId: z.number().optional(),
+    paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+    status: z.nativeEnum(TransactionStatus).optional().default(TransactionStatus.PENDING),
+    notes: z.string().optional().nullable(),
+    transactionReference: z.string().optional().nullable(),
+    completedAt: z.date().optional().nullable(),
+    
+    // Optional specific date for the transaction - accept both string and Date types
+    date: z.preprocess(
+      // Convert string to Date if it's a string
+      (arg) => {
+        if (typeof arg === 'string') {
+          return new Date(arg);
+        }
+        return arg;
+      },
+      z.date().optional()
+    )
+  });
+
+// Insert schema for transaction splits
+export const insertTransactionSplitSchema = createInsertSchema(transactionSplits)
+  .pick({
+    transactionId: true,
+    userId: true,
+    amount: true,
+    percentage: true
+  });
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   firstName: true,
@@ -264,6 +419,14 @@ export const insertFriendshipSchema = createInsertSchema(friendships)
   });
 
 // Types
+// Transaction related types
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+
+export type InsertTransactionSplit = z.infer<typeof insertTransactionSplitSchema>;
+export type TransactionSplit = typeof transactionSplits.$inferSelect;
+
+// User related types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -359,21 +522,14 @@ export type Balance = {
   totalExpenses: number;
 };
 
-// Payment method enum
-export enum PaymentMethod {
-  CASH = 'cash',
-  VENMO = 'venmo',
-  OTHER = 'other'
-}
-
-// Settlement status enum
+// Settlement status enum - keeping for backward compatibility
 export enum SettlementStatus {
   PENDING = 'pending',
   COMPLETED = 'completed',
   CANCELED = 'canceled'
 }
 
-// Settlements table to track debt settlements
+// Settlements table to track debt settlements (legacy - to be migrated)
 export const settlements = pgTable("settlements", {
   id: serial("id").primaryKey(),
   fromUserId: integer("from_user_id").notNull().references(() => users.id),

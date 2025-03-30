@@ -2,8 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
-  insertGroupSchema, insertExpenseSchema, insertUserSchema, insertSettlementSchema, users, User,
-  Group, GroupInvitation, groupInvitations, InsertGroupInvitation, Settlement,
+  insertGroupSchema, insertExpenseSchema, insertUserSchema, insertSettlementSchema, 
+  insertTransactionSchema, users, User, Group, GroupInvitation, groupInvitations, 
+  InsertGroupInvitation, Settlement, Transaction, TransactionType, TransactionStatus,
   PaymentMethod, SettlementStatus
 } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -1585,6 +1586,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const summary = await storage.calculateGlobalSummary(userId);
       res.json(summary);
     } catch (err) {
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Transaction routes (new unified system)
+  // ==========================================================
+  
+  // Get all transactions for a group
+  app.get('/api/groups/:groupId/transactions', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      if (isNaN(groupId)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+      
+      // Verify group exists and user is a member
+      const userGroups = await storage.getUserGroups((req.user as User).id);
+      const isMember = userGroups.some(g => g.id === groupId);
+      
+      if (!isMember) {
+        return res.status(403).json({ message: 'You are not a member of this group' });
+      }
+      
+      const transactions = await storage.getGroupTransactions(groupId);
+      // Return transactions without modifying them - the user details are already present
+      // from the getGroupTransactions method
+      res.json(transactions);
+    } catch (err) {
+      console.error('Error fetching group transactions:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Get a specific transaction
+  app.get('/api/transactions/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid transaction ID' });
+      }
+      
+      const transaction = await storage.getTransaction(id);
+      if (!transaction) {
+        return res.status(404).json({ message: 'Transaction not found' });
+      }
+      
+      // Check if user is a member of the group
+      const currentUserId = (req.user as User).id;
+      const userGroups = await storage.getUserGroups(currentUserId);
+      const isMember = userGroups.some(g => g.id === transaction.groupId);
+      
+      // Allow access if: 
+      // 1. User is a member of the group, or
+      // 2. User is involved in the transaction (as payer, recipient, or has a split)
+      if (!isMember && 
+          transaction.paidByUserId !== currentUserId && 
+          transaction.toUserId !== currentUserId) {
+        // Check if user has a split in this transaction
+        const userTransactions = await storage.getUserTransactions(currentUserId);
+        const isInvolved = userTransactions.some(t => t.id === id);
+        
+        if (!isInvolved) {
+          return res.status(403).json({ message: 'Not authorized to view this transaction' });
+        }
+      }
+      
+      res.json(transaction);
+    } catch (err) {
+      console.error('Error fetching transaction:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Create a new transaction
+  app.post('/api/transactions', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const currentUser = req.user as User;
+      const transactionData = req.body;
+      
+      // Validate the transaction data
+      const validatedData = insertTransactionSchema.safeParse(transactionData);
+      if (!validatedData.success) {
+        const error = fromZodError(validatedData.error);
+        return res.status(400).json({ message: error.message });
+      }
+      
+      // Set the current user as the creator if not specified
+      if (!validatedData.data.createdByUserId) {
+        validatedData.data.createdByUserId = currentUser.id;
+      }
+      
+      // If this is a group transaction, verify group exists and user is a member
+      if (validatedData.data.groupId) {
+        const userGroups = await storage.getUserGroups(currentUser.id);
+        const isMember = userGroups.some(g => g.id === validatedData.data.groupId);
+        
+        if (!isMember) {
+          return res.status(403).json({ message: 'You are not a member of this group' });
+        }
+      }
+      
+      // Create the transaction
+      const transaction = await storage.createTransaction(validatedData.data);
+      
+      res.status(201).json(transaction);
+    } catch (err) {
+      console.error('Error creating transaction:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Update a transaction
+  app.patch('/api/transactions/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid transaction ID' });
+      }
+      
+      const transaction = await storage.getTransaction(id);
+      if (!transaction) {
+        return res.status(404).json({ message: 'Transaction not found' });
+      }
+      
+      // Check if user is authorized to update this transaction
+      const currentUserId = (req.user as User).id;
+      if (transaction.createdByUserId !== currentUserId && transaction.paidByUserId !== currentUserId) {
+        return res.status(403).json({ message: 'Not authorized to update this transaction' });
+      }
+      
+      // Validate the update data
+      const updateData = req.body;
+      
+      // For settlement transactions, if status is being changed to COMPLETED
+      // we need to mark the transaction splits as settled
+      if (
+        transaction.type === TransactionType.SETTLEMENT &&
+        transaction.status !== TransactionStatus.COMPLETED &&
+        updateData.status === TransactionStatus.COMPLETED
+      ) {
+        // Add completedAt timestamp if not provided
+        if (!updateData.completedAt) {
+          updateData.completedAt = new Date();
+        }
+        
+        // Update the transaction
+        const updatedTransaction = await storage.updateTransaction(id, updateData);
+        
+        // Mark relevant expense splits as settled
+        await storage.markTransactionSplitsAsSettled(id);
+        
+        return res.json(updatedTransaction);
+      }
+      
+      // For other updates
+      const updatedTransaction = await storage.updateTransaction(id, updateData);
+      res.json(updatedTransaction);
+    } catch (err) {
+      console.error('Error updating transaction:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Delete a transaction
+  app.delete('/api/transactions/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid transaction ID' });
+      }
+      
+      const transaction = await storage.getTransaction(id);
+      if (!transaction) {
+        return res.status(404).json({ message: 'Transaction not found' });
+      }
+      
+      // Check if user is authorized to delete this transaction
+      const currentUserId = (req.user as User).id;
+      if (transaction.createdByUserId !== currentUserId) {
+        return res.status(403).json({ message: 'Not authorized to delete this transaction' });
+      }
+      
+      // Don't allow deletion of completed settlements
+      if (
+        transaction.type === TransactionType.SETTLEMENT &&
+        transaction.status === TransactionStatus.COMPLETED
+      ) {
+        return res.status(400).json({ message: 'Cannot delete a completed settlement' });
+      }
+      
+      const deleted = await storage.deleteTransaction(id);
+      if (deleted) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ message: 'Failed to delete transaction' });
+      }
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
+  // Get user's transactions
+  app.get('/api/users/:userId/transactions', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Only allow users to access their own transactions
+      const currentUserId = (req.user as User).id;
+      if (userId !== currentUserId) {
+        return res.status(403).json({ message: 'Not authorized to view these transactions' });
+      }
+      
+      const transactions = await storage.getUserTransactions(userId);
+      res.json(transactions);
+    } catch (err) {
+      console.error('Error fetching user transactions:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
