@@ -86,7 +86,13 @@ function TransactionsTable({
   // Fetch transactions for this group (combines both expenses and settlements)
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/groups', groupId, 'transactions'],
-    queryFn: () => apiRequest('GET', `/api/groups/${groupId}/transactions`),
+    queryFn: () => {
+      console.log("Fetching transactions for group:", groupId);
+      return apiRequest('GET', `/api/groups/${groupId}/transactions`).then(data => {
+        console.log("Transactions data:", data);
+        return data;
+      });
+    },
   });
   
   // Only fetch members if we have transactions and they weren't passed as props
@@ -527,7 +533,8 @@ function TransactionsTable({
                         {/* For settlements, currently we only support delete (no edit) */}
                         {/* Omitted as we'll use the delete button below */}
                         
-                        {/* Delete button */}
+                        {/* Delete button with debug logging */}
+                        {console.log(`Transaction ${transaction.id}: type=${transaction.type}, createdByUserId=${transaction.createdByUserId}, currentUser=${currentUser?.id}`)}
                         {(transaction.type === 'expense' || 
                           (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id)) && (
                           <Button 
