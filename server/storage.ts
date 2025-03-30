@@ -449,14 +449,40 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Legacy Settlement methods
+  // Settlement methods with transaction integration
   async createSettlement(settlement: InsertSettlement): Promise<Settlement> {
-    const [newSettlement] = await db
-      .insert(settlements)
-      .values(settlement)
-      .returning();
+    // Start a transaction to ensure both records are created
+    return await db.transaction(async (tx) => {
+      // Create the settlement record
+      const [newSettlement] = await tx
+        .insert(settlements)
+        .values(settlement)
+        .returning();
     
-    return newSettlement;
+      // Also create a transaction record to represent this settlement
+      // This ensures it shows up in the transaction history
+      const transactionData = {
+        type: TransactionType.SETTLEMENT,
+        description: settlement.notes || 'Settlement',
+        amount: settlement.amount,
+        date: new Date(),
+        paidByUserId: settlement.fromUserId,
+        toUserId: settlement.toUserId,
+        groupId: settlement.groupId,
+        createdByUserId: settlement.fromUserId,
+        status: settlement.status,
+        paymentMethod: settlement.paymentMethod,
+        completedAt: settlement.completedAt || (settlement.status === SettlementStatus.COMPLETED ? new Date() : undefined),
+        transactionReference: `settlement-${newSettlement.id}`
+      };
+      
+      const [transactionRecord] = await tx
+        .insert(transactions)
+        .values(transactionData)
+        .returning();
+        
+      return newSettlement;
+    });
   }
   
   async getSettlement(id: number): Promise<Settlement | undefined> {
@@ -515,23 +541,89 @@ export class DatabaseStorage implements IStorage {
     }));
   }
   
-  async updateSettlement(id: number, data: Partial<InsertSettlement>): Promise<Settlement | undefined> {
-    const [updatedSettlement] = await db
-      .update(settlements)
-      .set(data)
-      .where(eq(settlements.id, id))
-      .returning();
-    
-    return updatedSettlement;
+  async updateSettlement(id: number, data: Partial<InsertSettlement>, userId?: number): Promise<Settlement | undefined> {
+    return await db.transaction(async (tx) => {
+      // First update the settlement record
+      const [updatedSettlement] = await tx
+        .update(settlements)
+        .set(data)
+        .where(eq(settlements.id, id))
+        .returning();
+      
+      if (!updatedSettlement) {
+        return undefined;
+      }
+      
+      // Then look for the corresponding transaction record and update it
+      const transactionRecord = await tx
+        .select()
+        .from(transactions)
+        .where(eq(transactions.transactionReference, `settlement-${id}`));
+      
+      if (transactionRecord.length > 0) {
+        // Update the transaction record with the new settlement data
+        const transactionId = transactionRecord[0].id;
+        await tx
+          .update(transactions)
+          .set({
+            description: data.notes || transactionRecord[0].description,
+            amount: data.amount || transactionRecord[0].amount,
+            status: data.status || transactionRecord[0].status,
+            paymentMethod: data.paymentMethod || transactionRecord[0].paymentMethod,
+            completedAt: data.status === SettlementStatus.COMPLETED ? new Date() : transactionRecord[0].completedAt,
+            updatedAt: new Date(),
+            isEdited: true,
+            updatedByUserId: userId
+          })
+          .where(eq(transactions.id, transactionId));
+      }
+      
+      return updatedSettlement;
+    });
   }
   
-  async deleteSettlement(id: number): Promise<boolean> {
-    // Delete the settlement
-    const result = await db
-      .delete(settlements)
-      .where(eq(settlements.id, id));
-    
-    return result.rowCount !== null && result.rowCount > 0;
+  async deleteSettlement(id: number, userId?: number): Promise<boolean> {
+    return await db.transaction(async (tx) => {
+      // Find and soft-delete the corresponding transaction first
+      const transactionRecord = await tx
+        .select()
+        .from(transactions)
+        .where(eq(transactions.transactionReference, `settlement-${id}`));
+      
+      if (transactionRecord.length > 0) {
+        // Soft delete the transaction
+        const transactionId = transactionRecord[0].id;
+        await tx
+          .update(transactions)
+          .set({
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedByUserId: userId
+          })
+          .where(eq(transactions.id, transactionId));
+      }
+      
+      // Then delete or soft-delete the settlement record
+      if (userId) {
+        // If we have a userId, do a soft delete
+        const [updatedSettlement] = await tx
+          .update(settlements)
+          .set({
+            status: SettlementStatus.CANCELED
+          })
+          .where(eq(settlements.id, id))
+          .returning();
+        
+        return !!updatedSettlement;
+      } else {
+        // For backward compatibility, do a hard delete if no userId
+        const result = await tx
+          .delete(settlements)
+          .where(eq(settlements.id, id));
+        
+        return result.rowCount !== null && result.rowCount > 0;
+      }
+    });
   }
   
   async markExpenseSplitsAsSettled(settlementId: number): Promise<void> {
