@@ -66,7 +66,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         description: '',
         amount: '',
         paidByUserId: members.length > 0 ? members[0].id : 0,
-        splitType: SplitType.EQUAL as string,
+        splitType: SplitType.PERCENTAGE as string,
       };
     });
     
@@ -91,10 +91,10 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         description: '',
         amount: '',
         paidByUserId: members.length > 0 ? members[0].id : 0,
-        splitType: SplitType.EQUAL as string,
+        splitType: SplitType.PERCENTAGE as string,
       });
       
-      // For equal splits, initialize with placeholder values for all members
+      // Initialize with placeholder values for all members
       const initialSplitDetails: Record<string, number> = {};
       // Ensure we add entries for all members to make it easier to display in the table
       if (members && members.length > 0) {
@@ -475,10 +475,6 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                   className="flex flex-wrap gap-4"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={SplitType.EQUAL} id="equal" />
-                    <Label htmlFor="equal">Equal Split</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
                     <RadioGroupItem value={SplitType.PERCENTAGE} id="percentage" />
                     <Label htmlFor="percentage">Percentage Split</Label>
                   </div>
@@ -490,79 +486,77 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
               </div>
               
               {/* Split Details */}
-              {expenseData.splitType !== SplitType.EQUAL && (
-                <div className="mt-4">
-                  <Label className="block mb-3">
-                    {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Dollar Allocation'}
-                  </Label>
-                  
-                  <div className="border rounded-md overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-secondary text-secondary-foreground">
-                        <tr>
-                          <th className="px-4 py-2 text-left font-medium">Person</th>
-                          <th className="px-4 py-2 text-right font-medium">
-                            {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage (%)' : 'Amount ($)'}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {members.map((member, index) => (
-                          <tr key={member.id} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
-                            <td className="px-4 py-2 text-left">
-                              {member.firstName && member.lastName 
-                                ? `${member.firstName} ${member.lastName}`
-                                : member.email || `User ${member.id}`}
-                            </td>
-                            <td className="px-4 py-2 text-right">
-                              <div className="relative inline-block">
-                                {expenseData.splitType === SplitType.PERCENTAGE && (
-                                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    <span className="text-gray-500 sm:text-sm">%</span>
-                                  </div>
-                                )}
-                                {expenseData.splitType === SplitType.EXACT && (
-                                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span className="text-gray-500 sm:text-sm">$</span>
-                                  </div>
-                                )}
-                                <Input
-                                  type="number"
-                                  value={splitDetails[member.id] || ''}
-                                  onChange={(e) => handleSplitDetailChange(member.id, e.target.value)}
-                                  step="0.01"
-                                  className={`w-24 text-right ${expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}`}
-                                  placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "50" : "12.50"}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="bg-primary/5 font-medium">
-                          <td className="px-4 py-2 text-left">Total</td>
+              <div className="mt-4">
+                <Label className="block mb-3">
+                  {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Dollar Allocation'}
+                </Label>
+                
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-secondary text-secondary-foreground">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium">Person</th>
+                        <th className="px-4 py-2 text-right font-medium">
+                          {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage (%)' : 'Amount ($)'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {members.map((member, index) => (
+                        <tr key={member.id} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
+                          <td className="px-4 py-2 text-left">
+                            {member.firstName && member.lastName 
+                              ? `${member.firstName} ${member.lastName}`
+                              : member.email || `User ${member.id}`}
+                          </td>
                           <td className="px-4 py-2 text-right">
-                            {expenseData.splitType === SplitType.PERCENTAGE && (
-                              <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
-                                {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
-                                {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? ' (should be 100%)' : ''}
-                              </span>
-                            )}
-                            
-                            {expenseData.splitType === SplitType.EXACT && expenseData.amount && (
-                              <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
-                                {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
-                                {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 
-                                  ? ` (should be ${formatCurrency(parseFloat(expenseData.amount))})` 
-                                  : ''}
-                              </span>
-                            )}
+                            <div className="relative inline-block">
+                              {expenseData.splitType === SplitType.PERCENTAGE && (
+                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                  <span className="text-gray-500 sm:text-sm">%</span>
+                                </div>
+                              )}
+                              {expenseData.splitType === SplitType.EXACT && (
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <span className="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                              )}
+                              <Input
+                                type="number"
+                                value={splitDetails[member.id] || ''}
+                                onChange={(e) => handleSplitDetailChange(member.id, e.target.value)}
+                                step="0.01"
+                                className={`w-24 text-right ${expenseData.splitType === SplitType.EXACT ? "pl-7" : "pr-7"}`}
+                                placeholder={expenseData.splitType === SplitType.PERCENTAGE ? "50" : "12.50"}
+                              />
+                            </div>
                           </td>
                         </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      <tr className="bg-primary/5 font-medium">
+                        <td className="px-4 py-2 text-left">Total</td>
+                        <td className="px-4 py-2 text-right">
+                          {expenseData.splitType === SplitType.PERCENTAGE && (
+                            <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                              {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
+                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? ' (should be 100%)' : ''}
+                            </span>
+                          )}
+                          
+                          {expenseData.splitType === SplitType.EXACT && expenseData.amount && (
+                            <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                              {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
+                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 
+                                ? ` (should be ${formatCurrency(parseFloat(expenseData.amount))})` 
+                                : ''}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              )}
+              </div>
               
               <DialogFooter className="mt-6">
                 <DialogClose asChild>
