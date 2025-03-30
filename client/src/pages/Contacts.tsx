@@ -73,9 +73,16 @@ type AddContactFormValues = z.infer<typeof addContactSchema>;
 function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddContactDialog, setShowAddContactDialog] = useState(false);
-  const userId = (JSON.parse(localStorage.getItem("user") || "{}") as User)?.id;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Get current user from auth endpoint instead of localStorage
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+  
+  const userId = currentUser?.id;
 
   const { data: contacts, isLoading } = useQuery<Contact[]>({
     queryKey: ['/api/users', userId, 'contacts'],
@@ -100,8 +107,17 @@ function ContactsPage() {
 
   // Handle adding a new contact
   const handleAddContact = async (values: AddContactFormValues) => {
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add contacts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
-      // Create a group invitation (this will establish a contact)
+      // Create a contact through the contacts API
       await apiRequest('POST', `/api/contacts`, { 
         email: values.email,
         firstName: values.firstName,
@@ -120,11 +136,18 @@ function ContactsPage() {
       // Refresh the contact list
       queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'contacts'] });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding contact:', error);
+      
+      // Try to extract the error message from the response
+      let errorMessage = "Failed to add contact. Please try again.";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to add contact. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
