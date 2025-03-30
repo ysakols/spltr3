@@ -90,6 +90,17 @@ function App() {
     );
   }
 
+  // Redirect to login if not authenticated and not on an auth route
+  if (!user && !isAuthRoute) {
+    window.location.href = `/login?redirect=${encodeURIComponent(location)}`;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <span className="ml-2">Redirecting to login...</span>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       {isAuthRoute ? (
@@ -100,7 +111,7 @@ function App() {
           <Route component={NotFound} />
         </Switch>
       ) : (
-        // Main app with layout
+        // Main app with layout - only accessible when authenticated
         <Layout>
           <Switch>
             <Route path="/" component={GroupList} />

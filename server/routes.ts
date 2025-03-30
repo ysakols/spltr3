@@ -886,7 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get a user
-  app.get('/api/users/:id', async (req: Request, res: Response) => {
+  app.get('/api/users/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1013,7 +1013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Search users by email
-  app.get('/api/users', async (req: Request, res: Response) => {
+  app.get('/api/users', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const email = req.query.email as string;
       
@@ -1035,7 +1035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get user's friends
-  app.get('/api/users/:id/friends', async (req: Request, res: Response) => {
+  app.get('/api/users/:id/friends', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1053,19 +1053,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==========================================================
   
   // Get all groups
-  app.get('/api/groups', async (req: Request, res: Response) => {
+  app.get('/api/groups', isAuthenticated, async (req: Request, res: Response) => {
     try {
+      // Get the authenticated user
+      const currentUser = req.user as User;
+      
       // Check if a user ID was provided to filter groups
-      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : currentUser.id;
+      
+      // Security check: Users can only see their own groups
+      if (userId !== currentUser.id) {
+        return res.status(403).json({ message: 'Not authorized to view these groups' });
+      }
       
       let groups = [];
-      if (userId) {
-        // Get groups for a specific user
-        groups = await storage.getUserGroups(userId);
-      } else {
-        // Get all groups
-        groups = await storage.getGroups();
-      }
+      // Get groups for the authenticated user only
+      groups = await storage.getUserGroups(userId);
       
       // Fetch creator information for each group
       const groupsWithCreatorInfo = await Promise.all(groups.map(async (group) => {
@@ -1108,7 +1111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific group
-  app.get('/api/groups/:id', async (req: Request, res: Response) => {
+  app.get('/api/groups/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1139,7 +1142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update a group
-  app.put('/api/groups/:id', async (req: Request, res: Response) => {
+  app.put('/api/groups/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1264,7 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add a user to a group
-  app.post('/api/groups/:groupId/members', async (req: Request, res: Response) => {
+  app.post('/api/groups/:groupId/members', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
       if (isNaN(groupId)) {
@@ -1362,7 +1365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all members of a group
-  app.get('/api/groups/:groupId/members', async (req: Request, res: Response) => {
+  app.get('/api/groups/:groupId/members', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
       if (isNaN(groupId)) {
@@ -1380,7 +1383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==========================================================
   
   // Get all expenses for a group
-  app.get('/api/groups/:groupId/expenses', async (req: Request, res: Response) => {
+  app.get('/api/groups/:groupId/expenses', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
       if (isNaN(groupId)) {
@@ -1407,7 +1410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add a new expense
-  app.post('/api/groups/:groupId/expenses', async (req: Request, res: Response) => {
+  app.post('/api/groups/:groupId/expenses', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
       if (isNaN(groupId)) {
@@ -1755,7 +1758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   // TEST-ONLY route to preview invitation email (will be removed in production)
-  app.get('/api/test/invitation-email', async (req: Request, res: Response) => {
+  app.get('/api/test/invitation-email', isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Use authenticated user if available, or create a mock user
       const currentUser = req.user as User || {
@@ -1811,7 +1814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Test route to actually send an email using Resend
-  app.get('/api/test/invitation-email/send', async (req: Request, res: Response) => {
+  app.get('/api/test/invitation-email/send', isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Use authenticated user if available, or create a mock user
       const currentUser = req.user as User || {
@@ -1879,7 +1882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // HTML preview of the invitation email
-  app.get('/api/test/invitation-email/preview', async (req: Request, res: Response) => {
+  app.get('/api/test/invitation-email/preview', isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Use authenticated user if available, or create a mock user
       const currentUser = req.user as User || {
