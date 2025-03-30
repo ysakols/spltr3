@@ -26,7 +26,8 @@ import ExpenseForm from '@/components/ExpenseForm';
 import ExpenseTable from '@/components/ExpenseTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
-import { ActivityFeed } from '@/components/ActivityFeed';
+import { FinancialHistory } from '@/components/FinancialHistory';
+import { InvitationsList } from '@/components/InvitationsList';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
@@ -291,9 +292,14 @@ function GroupDetail() {
                 members={members} // Pass members to ExpenseTable
               />
               
-              {/* Show activity feed with invitations and settlements */}
+              {/* Show financial history (expenses + settlements) */}
               <div className="mt-6">
-                <ActivityFeed groupId={groupId} />
+                <FinancialHistory groupId={groupId} />
+              </div>
+              
+              {/* Show invitations separately */}
+              <div>
+                <InvitationsList groupId={groupId} />
               </div>
             </div>
           )}
