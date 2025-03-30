@@ -291,6 +291,9 @@ function ContactsPage() {
     }
   };
   
+  // Navigation hook - must be at component level, not inside map/loops
+  const [, navigate] = useLocation();
+  
   // Get the initial letter for the avatar
   const getContactInitial = (email: string) => {
     return email.charAt(0).toUpperCase();
@@ -462,9 +465,7 @@ function ContactsPage() {
                       // 2. Pending invitations that the current user sent (we'll need to implement this on server)
                       const canDelete = contact.contactUserId > 0;
                       
-                      // Only navigate to contact details for real user contacts, not pending invitations
-                      const [, navigate] = useLocation();
-                      
+                      // Handle click on a contact row
                       const handleContactClick = () => {
                         if (!isPendingInvitation && contact.contactUserId > 0) {
                           navigate(`/contacts/${contact.contactUserId}`);
