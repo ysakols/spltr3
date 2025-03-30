@@ -1236,49 +1236,78 @@ export class DatabaseStorage implements IStorage {
       };
     }
     
-    // Get all expenses for the group
-    const expenses = await this.getExpenses(groupId);
+    // Get all transactions for the group
+    const transactions = await this.getGroupTransactions(groupId);
     
     // Initialize objects
     const paid: Record<string, number> = {};
     const owes: Record<string, number> = {};
+    const net: Record<string, number> = {};
     
     // Initialize every member with zero
     memberIds.forEach(id => {
       paid[id] = 0;
       owes[id] = 0;
+      net[id] = 0;
     });
     
-    // Get all expense splits
+    // Get all expense transactions
+    const expenseTransactions = transactions.filter(t => t.type === TransactionType.EXPENSE);
+    
+    // Get all transaction splits for the expense transactions
+    const expenseIds = expenseTransactions.map(t => t.id);
     const allSplits = await db
       .select()
-      .from(expenseSplits)
+      .from(transactionSplits)
       .where(inArray(
-        expenseSplits.expenseId,
-        expenses.map(e => e.id)
+        transactionSplits.transactionId,
+        expenseIds
       ));
     
-    // Group splits by expense ID for quick access
-    const splitsByExpense: Record<number, ExpenseSplit[]> = {};
+    // Group splits by transaction ID for quick access
+    const splitsByTransaction: Record<number, TransactionSplit[]> = {};
     allSplits.forEach(split => {
-      if (!splitsByExpense[split.expenseId]) {
-        splitsByExpense[split.expenseId] = [];
+      if (!splitsByTransaction[split.transactionId]) {
+        splitsByTransaction[split.transactionId] = [];
       }
-      splitsByExpense[split.expenseId].push(split);
+      splitsByTransaction[split.transactionId].push(split);
     });
     
-    // Calculate what each person paid and owes
-    for (const expense of expenses) {
-      // Add the expense amount to the paid total for the payer
-      if (expense.paidByUserId && memberIds.includes(expense.paidByUserId)) {
-        paid[expense.paidByUserId] = (paid[expense.paidByUserId] || 0) + Number(expense.amount);
+    // Process expense transactions
+    for (const transaction of expenseTransactions) {
+      // Add the transaction amount to the paid total for the payer
+      if (transaction.paidByUserId && memberIds.includes(transaction.paidByUserId)) {
+        paid[transaction.paidByUserId] = (paid[transaction.paidByUserId] || 0) + Number(transaction.amount);
       }
       
       // Add the owed amounts based on the splits
-      const splits = splitsByExpense[expense.id] || [];
+      const splits = splitsByTransaction[transaction.id] || [];
       for (const split of splits) {
         if (memberIds.includes(split.userId)) {
-          owes[split.userId] = (owes[split.userId] || 0) + Number(split.amount);
+          // Only count if not settled or if the user is not the payer
+          if (!split.isSettled || split.userId !== transaction.paidByUserId) {
+            owes[split.userId] = (owes[split.userId] || 0) + Number(split.amount);
+          }
+        }
+      }
+    }
+    
+    // Process settlement transactions
+    const settlementTransactions = transactions.filter(
+      t => t.type === TransactionType.SETTLEMENT && t.status === TransactionStatus.COMPLETED
+    );
+    
+    for (const settlement of settlementTransactions) {
+      if (settlement.paidByUserId && settlement.toUserId) {
+        // The person who paid the settlement (paidByUserId) paid the other person (toUserId)
+        const fromUserId = settlement.paidByUserId;
+        const toUserId = settlement.toUserId;
+        
+        if (memberIds.includes(fromUserId) && memberIds.includes(toUserId)) {
+          // This transfers money from the payer to the recipient, reducing what the payer owes
+          // and reducing what the recipient is owed
+          net[fromUserId] = (net[fromUserId] || 0) + Number(settlement.amount);
+          net[toUserId] = (net[toUserId] || 0) - Number(settlement.amount);
         }
       }
     }
@@ -1286,14 +1315,15 @@ export class DatabaseStorage implements IStorage {
     // Calculate net balances (positive means you're owed money, negative means you owe money)
     const balances: Record<string, number> = {};
     memberIds.forEach(id => {
-      balances[id] = paid[id] - owes[id];
+      // Balance = (what you paid - what you owe) + net settlement adjustments
+      balances[id] = (paid[id] - owes[id]) + (net[id] || 0);
     });
     
     // Generate the settlement plan
     const settlements = this.generateSettlements(balances);
     
     // Calculate total expenses
-    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const totalExpenses = expenseTransactions.reduce((sum, expense) => sum + Number(expense.amount), 0);
     
     return {
       paid,
@@ -1362,9 +1392,47 @@ export class DatabaseStorage implements IStorage {
       totalExpenses += summary.totalExpenses;
     });
     
-    // Calculate net balances
+    // Add global settlement transactions (not tied to a specific group)
+    // Get all completed settlement transactions not associated with any group
+    const globalSettlements = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.type, TransactionType.SETTLEMENT),
+          eq(transactions.status, TransactionStatus.COMPLETED),
+          isNull(transactions.groupId)
+        )
+      );
+    
+    // Process these settlements to adjust the balances
+    for (const settlement of globalSettlements) {
+      if (settlement.paidByUserId && settlement.toUserId) {
+        const fromUserId = settlement.paidByUserId;
+        const toUserId = settlement.toUserId;
+        
+        // Only consider if either is the current user or both are in our list of users
+        if (
+          (fromUserId.toString() === userId.toString() || toUserId.toString() === userId.toString()) ||
+          (allUserIds.has(fromUserId.toString()) && allUserIds.has(toUserId.toString()))
+        ) {
+          // These affect the balances directly, not the paid/owes amounts
+          // If you pay someone, your balance decreases and their balance increases
+          allBalances[fromUserId] = (allBalances[fromUserId] || 0) - Number(settlement.amount);
+          allBalances[toUserId] = (allBalances[toUserId] || 0) + Number(settlement.amount);
+        }
+      }
+    }
+    
+    // Calculate net balances (combine the expenses and group-specific settlements from above)
     Array.from(allUserIds).forEach(id => {
-      allBalances[id] = allPaid[id] - allOwes[id];
+      // If we don't already have a balance adjustment from global settlements, calculate from paid/owes
+      if (!allBalances[id]) {
+        allBalances[id] = allPaid[id] - allOwes[id];
+      } else if (allPaid[id] || allOwes[id]) {
+        // If we do have balance adjustments and paid/owes, combine them
+        allBalances[id] += (allPaid[id] || 0) - (allOwes[id] || 0);
+      }
     });
     
     // Generate the settlement plan

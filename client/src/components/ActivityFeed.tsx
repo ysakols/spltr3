@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { User } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,11 +67,11 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
     queryFn: () => apiRequest('GET', `/api/groups/${groupId}/settlements`),
   });
 
-  // Combine and sort invitations and settlements by timestamp
-  useEffect(() => {
+  // Combine and sort invitations and settlements by timestamp - using useMemo to prevent re-computation
+  const sortedActivities = useMemo(() => {
     // Only process if we have valid arrays 
     if (!Array.isArray(invitations) || !Array.isArray(settlements)) {
-      return;
+      return [];
     }
     
     const invitationActivities: Activity[] = invitations.map((invitation: GroupInvitation) => ({
@@ -87,12 +87,15 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
     }));
 
     // Combine all activities and sort by timestamp (most recent first)
-    const allActivities = [...invitationActivities, ...settlementActivities].sort((a, b) => 
+    return [...invitationActivities, ...settlementActivities].sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-
-    setActivities(allActivities);
   }, [invitations, settlements]);
+  
+  // Update state once when sorted activities change
+  useEffect(() => {
+    setActivities(sortedActivities);
+  }, [sortedActivities]);
 
   // Filter activities based on active tab
   const filteredActivities = activeTab === 'all' 
