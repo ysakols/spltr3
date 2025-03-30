@@ -10,11 +10,18 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
+import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Users } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import type { User, Expense } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
@@ -71,6 +78,24 @@ function ExpenseTable({
         ? `${user.firstName} ${user.lastName}` 
         : user.displayName || user.email
     ) : `User ${userId}`;
+  };
+  
+  // Function to get user initials for avatar
+  const getUserInitials = (userId: number) => {
+    if (!members) return '??';
+    
+    const user = members.find(member => member.id === userId);
+    if (!user) return '??';
+    
+    if (user.firstName && user.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    } else if (user.displayName) {
+      return user.displayName.substring(0, 2).toUpperCase();
+    } else if (user.email) {
+      return user.email[0].toUpperCase();
+    }
+    
+    return 'U';
   };
 
   const deleteExpense = async (id: number) => {
@@ -203,38 +228,138 @@ function ExpenseTable({
                       {formatCurrency(Number(expense.amount))}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {expense.paidByUser ? (
-                        expense.paidByUser.firstName && expense.paidByUser.lastName
-                          ? `${expense.paidByUser.firstName} ${expense.paidByUser.lastName}`
-                          : expense.paidByUser.displayName || expense.paidByUser.email
-                      ) : getUsernameById(expense.paidByUserId)}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 cursor-default">
+                              <Avatar className="h-5 w-5">
+                                <AvatarFallback className="text-[10px]">
+                                  {expense.paidByUser ? 
+                                    (expense.paidByUser.firstName && expense.paidByUser.lastName ? 
+                                      `${expense.paidByUser.firstName[0]}${expense.paidByUser.lastName[0]}`.toUpperCase() :
+                                      (expense.paidByUser.displayName ? 
+                                        expense.paidByUser.displayName.substring(0, 2).toUpperCase() : 
+                                        expense.paidByUser.email[0].toUpperCase()))
+                                    : getUserInitials(expense.paidByUserId)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="truncate max-w-[80px]">
+                                {expense.paidByUser ? (
+                                  expense.paidByUser.firstName && expense.paidByUser.lastName
+                                    ? `${expense.paidByUser.firstName.substring(0, 1)}. ${expense.paidByUser.lastName}`
+                                    : expense.paidByUser.displayName || expense.paidByUser.email
+                                ) : getUsernameById(expense.paidByUserId)}
+                              </span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="p-2 text-xs">
+                            <p>Paid by: {expense.paidByUser ? (
+                              expense.paidByUser.firstName && expense.paidByUser.lastName
+                                ? `${expense.paidByUser.firstName} ${expense.paidByUser.lastName}`
+                                : expense.paidByUser.displayName || expense.paidByUser.email
+                            ) : getUsernameById(expense.paidByUserId)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {expense.createdByUser ? (
-                        expense.createdByUser.firstName && expense.createdByUser.lastName
-                          ? `${expense.createdByUser.firstName} ${expense.createdByUser.lastName}`
-                          : expense.createdByUser.displayName || expense.createdByUser.email
-                      ) : expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 cursor-default">
+                              <Avatar className="h-5 w-5">
+                                <AvatarFallback className="text-[10px]">
+                                  {expense.createdByUser ? 
+                                    (expense.createdByUser.firstName && expense.createdByUser.lastName ? 
+                                      `${expense.createdByUser.firstName[0]}${expense.createdByUser.lastName[0]}`.toUpperCase() :
+                                      (expense.createdByUser.displayName ? 
+                                        expense.createdByUser.displayName.substring(0, 2).toUpperCase() : 
+                                        expense.createdByUser.email[0].toUpperCase()))
+                                    : (expense.createdByUserId ? getUserInitials(expense.createdByUserId) : 'UN')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="truncate max-w-[80px]">
+                                {expense.createdByUser ? (
+                                  expense.createdByUser.firstName && expense.createdByUser.lastName
+                                    ? `${expense.createdByUser.firstName.substring(0, 1)}. ${expense.createdByUser.lastName}`
+                                    : expense.createdByUser.displayName || expense.createdByUser.email
+                                ) : expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}
+                              </span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="p-2 text-xs">
+                            <p>Created by: {expense.createdByUser ? (
+                              expense.createdByUser.firstName && expense.createdByUser.lastName
+                                ? `${expense.createdByUser.firstName} ${expense.createdByUser.lastName}`
+                                : expense.createdByUser.displayName || expense.createdByUser.email
+                            ) : expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
                       {/* Get split details from JSON string */}
                       {(() => {
                         try {
-                          // If it's an equal split, we'll show all members regardless of splitDetails
+                          // If it's an equal split, we'll show all members equally badge
                           if (expense.splitType === SplitType.EQUAL) {
-                            return "All members equally";
+                            return (
+                              <div className="flex items-center">
+                                <Badge variant="outline" className="gap-1 flex items-center text-xs px-1.5 py-0">
+                                  <Users className="h-3 w-3" />
+                                  All equally
+                                </Badge>
+                              </div>
+                            );
                           }
                           
-                          // For other split types, parse the details
+                          // For other split types, parse the details and show avatars
                           if (expense.splitDetails && expense.splitDetails !== '{}') {
                             const details = JSON.parse(expense.splitDetails);
-                            // Make sure we have details
-                            if (Object.keys(details).length > 0) {
-                              return Object.keys(details).map(userId => 
-                                getUsernameById(parseInt(userId))
-                              ).join(", ");
-                            }
+                            const userIds = Object.keys(details).map(id => parseInt(id));
+                            
+                            if (userIds.length === 0) return "All members";
+                            
+                            // Show a few avatars with a count badge for others
+                            const displayLimit = 3;
+                            const shownUserIds = userIds.slice(0, displayLimit);
+                            const remainingCount = userIds.length - displayLimit;
+                            
+                            // Get all usernames for the tooltip
+                            const allUserNames = userIds.map(id => getUsernameById(id)).join(", ");
+                            
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-0">
+                                      {/* Show the first few avatars */}
+                                      <div className="flex -space-x-1.5">
+                                        {shownUserIds.map(userId => (
+                                          <Avatar key={userId} className="h-6 w-6 border-2 border-background">
+                                            <AvatarFallback className="text-[10px]">
+                                              {getUserInitials(userId)}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* Show a count badge if there are more users */}
+                                      {remainingCount > 0 && (
+                                        <Badge variant="secondary" className="ml-1 px-1.5 text-[10px] py-0 h-4">
+                                          +{remainingCount}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="p-2 text-xs">
+                                    <p>Split with: {allUserNames}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
                           }
+                          
                           // Fallback for empty split details
                           return "All members";
                         } catch (e) {
