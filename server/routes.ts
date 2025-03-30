@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get user's contacts for quick selection
+  // Get users that share groups with the requesting user
   app.get('/api/users/:userId/contacts', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -547,96 +547,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Not authorized to view these contacts' });
       }
       
-      // Get list of actual contacts from stored contacts
-      const storedContacts = await storage.getUserContacts(userId);
-      
-      // Extra debug: look for specific yair.sakols+7 contact in all users
-      console.log('SEARCHING FOR YAIR.SAKOLS+7@GMAIL.COM IN ALL USERS');
-      const allUsers = await db.select().from(users);
-      let plusSevenUser = null;
-      for (const user of allUsers) {
-        if (user.email && user.email.includes('yair.sakols+7@gmail.com')) {
-          console.log('FOUND YAIR.SAKOLS+7@GMAIL.COM IN USERS:', user);
-          plusSevenUser = user;
-          
-          // Also check which groups this user belongs to
-          const userGroups = await storage.getUserGroups(user.id);
-          console.log(`User ${user.id} (${user.email}) belongs to ${userGroups.length} groups:`, 
-                      userGroups.map(g => `${g.id}: ${g.name}`));
-        }
-      }
-      
       // Get all pending invitations sent by this user
       const pendingInvitations = await storage.getGroupInvitationsByInviterUserId(userId);
-      
-      // Log invitations for debugging
-      console.log(`Found ${pendingInvitations.length} pending invitations sent by user ${userId}:`, 
-                  pendingInvitations.map(inv => `${inv.inviteeEmail} (ID: ${inv.id}, Status: ${inv.status})`));
       
       // Get all group members from groups the user belongs to (excluding self)
       const userGroups = await storage.getUserGroups(userId);
       console.log(`User ${userId} belongs to ${userGroups.length} groups`);
       
-      // Log all groups the user belongs to
-      for (const group of userGroups) {
-        console.log(`User ${userId} is in group ${group.id}: ${group.name}`);
-      }
-      
-      // IMPORTANT: Extra debugging to look through ALL groups, not just this user's groups
-      console.log("CHECKING ALL GROUPS FOR YAIR.SAKOLS+7@GMAIL.COM");
-      const allGroups = await storage.getGroups();
-      let sharedGroupId = null;
-      
-      for (const group of allGroups) {
-        const members = await storage.getGroupMembers(group.id);
-        const hasPlusSevenUser = members.some(m => m.email && m.email.includes('yair.sakols+7@gmail.com'));
-        const hasCurrentUser = members.some(m => m.id === userId);
-        
-        if (hasPlusSevenUser) {
-          console.log(`FOUND YAIR.SAKOLS+7@GMAIL.COM IN GROUP ${group.id}: ${group.name}`);
-          console.log(`Current user (${userId}) in same group: ${hasCurrentUser}`);
-          
-          // If both users are in this group, remember the group ID
-          if (hasCurrentUser && plusSevenUser) {
-            sharedGroupId = group.id;
-          }
-        }
-      }
-      
+      // Create a collection of group members (excluding self, with no duplicates)
       const groupMembers: {user: User, groupId: number}[] = [];
+      const seenMemberIds = new Set<number>();
       
       for (const group of userGroups) {
         const members = await storage.getGroupMembers(group.id);
-        console.log(`Group ${group.id} has ${members.length} members`);
         
         for (const member of members) {
-          if (member.id !== userId) {
-            console.log(`Adding group member ${member.email} (ID: ${member.id}) from group ${group.id} to contacts`);
+          // Skip self and already added members
+          if (member.id !== userId && !seenMemberIds.has(member.id)) {
+            seenMemberIds.add(member.id);
             groupMembers.push({user: member, groupId: group.id});
           }
         }
       }
       
-      // HOTFIX: If we found the +7 user and a shared group, manually add them to groupMembers
-      if (plusSevenUser && sharedGroupId) {
-        console.log(`MANUALLY ADDING yair.sakols+7@gmail.com (ID: ${plusSevenUser.id}) from shared group ${sharedGroupId}`);
-        groupMembers.push({user: plusSevenUser, groupId: sharedGroupId});
-      }
-      
-      // Create a map to deduplicate contacts by contactUserId
+      // Create a map for members and invitations
       const contactMap = new Map();
-      
-      // Add stored contacts to the map
-      for (const contact of storedContacts) {
-        contactMap.set(contact.contactUserId, {
-          ...contact,
-          isUser: true,
-          groupIds: []
-        });
-      }
       
       // Add group members to the map
       for (const {user, groupId} of groupMembers) {
+        // Create or update the member's groupIds
         if (contactMap.has(user.id)) {
           const existing = contactMap.get(user.id);
           if (!existing.groupIds.includes(groupId)) {
@@ -644,128 +583,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } else {
           contactMap.set(user.id, {
-            contactUserId: user.id,
-            userId: userId,
+            id: user.id,
             email: user.email || '',
-            lastInteractionAt: new Date(),
-            frequency: 1,
             isUser: true,
             groupIds: [groupId],
             firstName: user.firstName,
-            lastName: user.lastName
+            lastName: user.lastName,
+            displayName: user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email
           });
         }
       }
 
-      // Add pending invitations to the map (these won't have contactUserId yet)
+      // Add pending invitations to the map
       for (const invitation of pendingInvitations) {
         // Using invitation ID as key for invitations
         const key = `inv_${invitation.id}`;
-        const email = invitation.inviteeEmail;
-        
-        // Add all invitations regardless of whether we have a contact with this email already
-        // This ensures invitations are always displayed
-        console.log(`Adding invitation ${invitation.id} for ${email} to contacts list`);
         
         contactMap.set(key, {
+          id: key,
           invitationId: invitation.id,
-          userId: userId,
-          email: email,
-          lastInteractionAt: invitation.invitedAt,
-          frequency: 1,
+          email: invitation.inviteeEmail,
           isUser: false,
           groupIds: [invitation.groupId],
+          firstName: invitation.inviteeFirstName,
           status: invitation.status,
-          token: invitation.token
+          token: invitation.token,
+          displayName: invitation.inviteeFirstName || invitation.inviteeEmail
         });
       }
 
       // Convert map back to array
-      let contacts = Array.from(contactMap.values());
+      const contacts = Array.from(contactMap.values());
       
-      // Log the contacts being sent for debugging
-      console.log(`Sending ${contacts.length} contacts to user ${userId}`);
-      console.log(`All contacts emails:`, contacts.map(c => c.email));
-      
-      // Search specifically for yair.sakols+7@gmail.com
-      const plusSevenContact = contacts.find(c => c.email && c.email.includes('yair.sakols+7@gmail.com'));
-      if (plusSevenContact) {
-        console.log('Found yair.sakols+7@gmail.com in contacts:', plusSevenContact);
-      } else {
-        console.log('yair.sakols+7@gmail.com NOT found in contacts!');
-        
-        // FIX - Check if this email exists in any groups
-        let plusSevenUser = null;
-        let plusSevenUserGroupId = null;
-        
-        for (const group of userGroups) {
-          const members = await storage.getGroupMembers(group.id);
-          const member = members.find(m => m.email && m.email.includes('yair.sakols+7@gmail.com'));
-          if (member) {
-            console.log(`Found yair.sakols+7@gmail.com user in group ${group.id}:`, member);
-            plusSevenUser = member;
-            plusSevenUserGroupId = group.id;
-          }
-        }
-        
-        // If we found the user in a group, add them to the contacts list
-        if (plusSevenUser) {
-          console.log(`ADDING missing contact yair.sakols+7@gmail.com (ID: ${plusSevenUser.id}) to contacts list`);
+      // Process each contact to add a balanceValue, showing how much is owed
+      const globalSummary = await storage.calculateGlobalSummary(userId);
+      const withBalances = contacts.map(contact => {
+        const balance = 
+          (contact.isUser && contact.id && typeof contact.id === 'number') ? 
+          globalSummary.balances[contact.id] || 0 : 
+          0;
           
-          // Add to contactMap
-          contactMap.set(plusSevenUser.id, {
-            contactUserId: plusSevenUser.id,
-            userId: userId,
-            email: plusSevenUser.email || '',
-            lastInteractionAt: new Date(),
-            frequency: 1,
-            isUser: true,
-            groupIds: [plusSevenUserGroupId],
-            firstName: plusSevenUser.firstName,
-            lastName: plusSevenUser.lastName
-          });
-          
-          // Rebuild contacts array
-          contacts = Array.from(contactMap.values());
-        }
-      }
+        return {
+          ...contact,
+          balanceValue: balance
+        };
+      });
       
-      // Log details of contacts with invitationId for debugging
-      const invitationContacts = contacts.filter(c => c.invitationId);
-      console.log(`Found ${invitationContacts.length} invitations in contacts list:`, 
-                  invitationContacts.map(c => `${c.email} (ID: ${c.invitationId})`))
-      
-      res.json(contacts);
+      res.json(withBalances);
     } catch (err) {
       console.error('Error fetching contacts:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
   
-  // Delete a contact
-  app.delete('/api/contacts/:contactUserId', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const contactUserId = parseInt(req.params.contactUserId);
-      const userId = (req.user as User).id;
-      
-      if (isNaN(contactUserId)) {
-        return res.status(400).json({ message: 'Invalid contact ID' });
-      }
-      
-      const deleted = await storage.deleteContact(userId, contactUserId);
-      
-      if (!deleted) {
-        return res.status(404).json({ message: 'Contact not found' });
-      }
-      
-      res.json({ message: 'Contact deleted successfully' });
-    } catch (err) {
-      console.error('Error deleting contact:', err);
-      res.status(500).json({ message: (err as Error).message });
-    }
-  });
+  // We no longer support direct contact deletion
+  // The relationship between users is now determined by shared group membership
   
-  // Get contact details with shared groups and balance
+  // Get connection details with shared groups and balance
   app.get('/api/users/:userId/contacts/:contactUserId', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -796,6 +670,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(group => contactGroups.some(cGroup => cGroup.id === group.id))
         .map(group => group.id);
       
+      // Ensure users share at least one group (for security)
+      if (sharedGroupIds.length === 0) {
+        return res.status(403).json({ message: 'You do not share any groups with this user' });
+      }
+      
       // Get detailed information for each shared group
       const sharedGroups = [];
       for (const groupId of sharedGroupIds) {
@@ -821,19 +700,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const globalSummary = await storage.calculateGlobalSummary(userId);
       const globalBalance = (globalSummary.balances[contactUserId] || 0) * -1; // Invert for current user's perspective
       
-      // Check if a contact record exists
-      const userContacts = await storage.getUserContacts(userId);
-      const contactRecord = userContacts.find(c => c.contactUserId === contactUserId);
-      
       res.json({
         contact: {
           id: contactUserId,
           email: contactUser.email,
           firstName: contactUser.firstName,
           lastName: contactUser.lastName,
-          displayName: contactUser.displayName || `${contactUser.firstName} ${contactUser.lastName}`,
-          lastInteractionAt: contactRecord?.lastInteractionAt || null,
-          frequency: contactRecord?.frequency || 0
+          displayName: contactUser.displayName || `${contactUser.firstName || ''} ${contactUser.lastName || ''}`.trim() || contactUser.email,
+          groupIds: sharedGroupIds
         },
         sharedGroups,
         globalBalance
@@ -845,10 +719,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Add a new contact
+  // Invite a new user to a group
   app.post('/api/contacts', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { email, userId } = req.body;
+      const { email, userId, groupId, firstName } = req.body;
       
       if (!email || !userId) {
         return res.status(400).json({ message: 'Email and userId are required' });
@@ -857,94 +731,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user adding the contact is the authenticated user
       const currentUser = req.user as User;
       if (currentUser.id !== userId) {
-        return res.status(403).json({ message: 'Not authorized to add contacts for this user' });
+        return res.status(403).json({ message: 'Not authorized to send invitations for this user' });
       }
       
-      // Check if user with this email already exists
-      const existingUser = await storage.getUserByEmail(email);
+      // Generate token for the invitation
+      const token = crypto.randomBytes(32).toString('hex');
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 7); // 7-day expiration
       
-      if (existingUser) {
-        // User exists, add as a contact
-        const contact = await storage.addContact({
-          userId,
-          contactUserId: existingUser.id,
-          email,
-          frequency: 0,
-          lastInteractionAt: new Date()
-        });
+      // Use specified group or create a new one
+      let group;
+      if (groupId) {
+        // Verify user is a member of the specified group
+        group = await storage.getGroup(groupId);
+        if (!group) {
+          return res.status(404).json({ message: 'Group not found' });
+        }
         
-        return res.status(201).json(contact);
+        // Verify user is a member of this group
+        const members = await storage.getGroupMembers(groupId);
+        const isMember = members.some(member => member.id === userId);
+        if (!isMember) {
+          return res.status(403).json({ message: 'You are not a member of this group' });
+        }
       } else {
-        // No user found, create an invitation for a new user
-        const token = crypto.randomBytes(32).toString('hex');
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + 7); // 7-day expiration
-        
         // Create a temporary group for invitation purposes
-        const tempGroup = await storage.createGroup({
-          name: `New Contact's Invitation Group`,
-          description: `Temporary group for inviting ${email}`,
+        group = await storage.createGroup({
+          name: `Invitation Group`,
+          description: `Group for inviting ${email}`,
           createdById: userId,
           initialMembers: [userId]
         });
-        
-        // Create invitation
-        const invitation = await storage.createGroupInvitation({
-          inviterUserId: userId,
-          inviteeEmail: email,
-          inviteeFirstName: null,
-          groupId: tempGroup.id,
-          token,
-          status: 'pending',
-          expiresAt: expirationDate,
-          invitedAt: new Date()
-        });
-        
-        // We can't create a contact entry yet since the user doesn't exist
-        // We'll record this as a pending invitation only for now
-        
-        // Import email service
-        const { sendInvitationEmail, checkEmailConfig } = await import('./email');
-        
-        // Check email configuration
-        const emailConfig = checkEmailConfig();
-        
-        // Log invitation details for debugging
-        console.log(`Contact invitation sent to ${email} with token: ${token}`);
-        
-        // Extract the base URL for the invitation link
-        let baseUrl = process.env.APP_URL;
-        if (!baseUrl && process.env.REPL_ID) {
-          baseUrl = `https://${process.env.REPL_ID}.replit.app`;
-        }
-        if (!baseUrl) {
-          baseUrl = `${req.protocol}://${req.get('host')}`;
-        }
-        const invitationLink = `${baseUrl}/invitation/${token}`;
-        console.log(`Contact invitation link: ${invitationLink}`);
-        
-        // Try to send the invitation email
-        if (emailConfig.configured) {
-          // Get the inviter's user record
-          const inviter = await storage.getUser(userId);
-          
-          try {
-            const emailSent = await sendInvitationEmail(invitation, tempGroup, inviter);
-            if (emailSent) {
-              console.log(`Contact invitation email sent to ${email} successfully`);
-            } else {
-              console.log(`Failed to send contact invitation email to ${email} but invitation was created`);
-            }
-          } catch (emailError) {
-            console.error('Failed to send contact invitation email:', emailError);
-            // Don't fail the invitation creation if email fails
-          }
-        }
-        
-        res.status(201).json({ success: true, invitation });
       }
+      
+      // Create invitation
+      const invitation = await storage.createGroupInvitation({
+        inviterUserId: userId,
+        inviteeEmail: email,
+        inviteeFirstName: firstName || null,
+        groupId: group.id,
+        token,
+        status: 'pending',
+        expiresAt: expirationDate,
+        invitedAt: new Date()
+      });
+      
+      // Import email service
+      const { sendInvitationEmail, checkEmailConfig } = await import('./email');
+      
+      // Check email configuration
+      const emailConfig = checkEmailConfig();
+      
+      // Log invitation details for debugging
+      console.log(`Invitation sent to ${email} with token: ${token}`);
+      
+      // Extract the base URL for the invitation link
+      let baseUrl = process.env.APP_URL;
+      if (!baseUrl && process.env.REPL_ID) {
+        baseUrl = `https://${process.env.REPL_ID}.replit.app`;
+      }
+      if (!baseUrl) {
+        baseUrl = `${req.protocol}://${req.get('host')}`;
+      }
+      const invitationLink = `${baseUrl}/invitation/${token}`;
+      console.log(`Invitation link: ${invitationLink}`);
+      
+      // Try to send the invitation email
+      if (emailConfig.configured) {
+        // Get the inviter's user record
+        const inviter = await storage.getUser(userId);
+        
+        try {
+          const emailSent = await sendInvitationEmail(invitation, group, inviter);
+          if (emailSent) {
+            console.log(`Invitation email sent to ${email} successfully`);
+          } else {
+            console.log(`Failed to send invitation email to ${email} but invitation was created`);
+          }
+        } catch (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // Don't fail the invitation creation if email fails
+        }
+      }
+      
+      res.status(201).json({ 
+        success: true, 
+        invitation,
+        invitationLink
+      });
     } catch (err) {
-      console.error('Error adding contact:', err);
+      console.error('Error creating invitation:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });

@@ -1,12 +1,12 @@
 import { 
   groups, expenses, users, userGroups, expenseSplits, friendships,
-  contacts, groupInvitations, settlements,
+  groupInvitations, settlements,
   type Group, type InsertGroup, type Expense, type InsertExpense, 
   type Balance, type SettlementCalculation, type Settlement, type InsertSettlement,
   SplitType, SettlementStatus, PaymentMethod,
   type User, type InsertUser, type UserGroup, type InsertUserGroup, 
   type ExpenseSplit, type InsertExpenseSplit, type Friendship, type InsertFriendship,
-  type Contact, type InsertContact, type GroupInvitation, type InsertGroupInvitation
+  type GroupInvitation, type InsertGroupInvitation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, notInArray, asc, desc, isNull, sql } from "drizzle-orm";
@@ -54,11 +54,7 @@ export interface IStorage {
   getGroupInvitationsByInviterUserId(userId: number): Promise<GroupInvitation[]>;
   updateGroupInvitation(id: number, data: Partial<InsertGroupInvitation>): Promise<GroupInvitation | undefined>;
   
-  // Contact methods
-  addContact(contact: InsertContact): Promise<Contact>;
-  getUserContacts(userId: number): Promise<Contact[]>;
-  updateContactInteraction(userId: number, contactUserId: number): Promise<Contact | undefined>;
-  deleteContact(userId: number, contactUserId: number): Promise<boolean>;
+  // Contact methods have been removed
   
   // Summary method
   calculateSummary(groupId: number): Promise<Balance>;
@@ -746,70 +742,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Contact methods
-  async addContact(contact: InsertContact): Promise<Contact> {
-    const [newContact] = await db
-      .insert(contacts)
-      .values(contact)
-      .returning();
-    
-    return newContact;
-  }
-  
-  async getUserContacts(userId: number): Promise<Contact[]> {
-    return await db
-      .select()
-      .from(contacts)
-      .where(eq(contacts.userId, userId))
-      .orderBy(desc(contacts.lastInteractionAt));
-  }
-  
-  async updateContactInteraction(userId: number, contactUserId: number): Promise<Contact | undefined> {
-    // First check if contact exists
-    const [existingContact] = await db
-      .select()
-      .from(contacts)
-      .where(
-        and(
-          eq(contacts.userId, userId),
-          eq(contacts.contactUserId, contactUserId)
-        )
-      );
-    
-    if (existingContact) {
-      // Update frequency and last interaction time
-      const [updatedContact] = await db
-        .update(contacts)
-        .set({
-          frequency: existingContact.frequency + 1,
-          lastInteractionAt: new Date()
-        })
-        .where(
-          and(
-            eq(contacts.userId, userId),
-            eq(contacts.contactUserId, contactUserId)
-          )
-        )
-        .returning();
-      
-      return updatedContact;
-    }
-    
-    return undefined;
-  }
-  
-  async deleteContact(userId: number, contactUserId: number): Promise<boolean> {
-    // Delete the contact relationship
-    const result = await db
-      .delete(contacts)
-      .where(
-        and(
-          eq(contacts.userId, userId),
-          eq(contacts.contactUserId, contactUserId)
-        )
-      );
-    
-    return result.rowCount !== null && result.rowCount > 0;
-  }
+  // Contact methods have been removed
 
   // Calculate summary for a group
   async calculateSummary(groupId: number): Promise<Balance> {

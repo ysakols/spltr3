@@ -300,30 +300,7 @@ export const groupInvitationsRelations = relations(groupInvitations, ({ one }) =
   })
 }));
 
-// Contacts table to track users who have interacted
-export const contacts = pgTable("contacts", {
-  userId: integer("user_id").notNull().references(() => users.id),
-  contactUserId: integer("contact_user_id").notNull().references(() => users.id),
-  email: text("email").notNull(), // Email of the contact (for quick lookup)
-  lastInteractionAt: timestamp("last_interaction_at").defaultNow().notNull(),
-  frequency: integer("frequency").default(1).notNull(), // How many times they've interacted
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.userId, table.contactUserId] })
-  };
-});
-
-// Define contacts relations
-export const contactsRelations = relations(contacts, ({ one }) => ({
-  user: one(users, {
-    fields: [contacts.userId],
-    references: [users.id]
-  }),
-  contact: one(users, {
-    fields: [contacts.contactUserId],
-    references: [users.id]
-  })
-}));
+// Contacts feature has been removed
 
 // Insert schema for invitations
 export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
@@ -346,26 +323,9 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
     acceptedAt: z.date().optional().nullable()
   });
 
-// Insert schema for contacts
-export const insertContactSchema = createInsertSchema(contacts)
-  .pick({
-    userId: true,
-    contactUserId: true,
-    email: true,
-    frequency: true,
-    lastInteractionAt: true
-  })
-  .extend({
-    email: z.string().email({ message: "Invalid email address format" }),
-    lastInteractionAt: z.date().optional()
-  });
-
 // Types for new schemas
 export type InsertGroupInvitation = z.infer<typeof insertGroupInvitationSchema>;
 export type GroupInvitation = typeof groupInvitations.$inferSelect;
-
-export type InsertContact = z.infer<typeof insertContactSchema>;
-export type Contact = typeof contacts.$inferSelect;
 
 // Settlement calculation type (not stored in database, calculated on demand)
 export type SettlementCalculation = {
