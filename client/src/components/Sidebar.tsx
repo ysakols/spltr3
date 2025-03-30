@@ -134,15 +134,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
           {!isCollapsed && <span>Groups</span>}
         </Button>
       </Link>
-      <Link href="/contacts">
-        <Button variant="ghost" size="sm" className={cn(
-          "w-full justify-start text-xs py-1",
-          isCollapsed && "justify-center px-1"
-        )}>
-          <Users className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-          {!isCollapsed && <span>Contacts</span>}
-        </Button>
-      </Link>
+      {/* Contacts link removed - users can only connect through group invitations now */}
       {/* Create Group link removed as requested */}
       
       <Separator className="my-2" />

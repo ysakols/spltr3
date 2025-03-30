@@ -300,7 +300,9 @@ export const groupInvitationsRelations = relations(groupInvitations, ({ one }) =
   })
 }));
 
-// Contacts feature has been removed
+// Contacts feature has been completely removed
+// Users can now only connect through group invitations
+// We maintain the friendships table only for tracking user relationships that form through groups
 
 // Insert schema for invitations
 export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)

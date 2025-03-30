@@ -8,8 +8,7 @@ import CreateGroup from "@/pages/CreateGroup";
 import GroupDetail from "@/pages/GroupDetail";
 import Login from "@/pages/Login";
 import Invitation from "@/pages/Invitation";
-import Contacts from "@/pages/Contacts";
-import ContactDetail from "@/pages/ContactDetail";
+// Contacts and ContactDetail pages have been removed as the contacts concept is no longer used
 import Profile from "@/pages/Profile";
 import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
 import { BalanceSidebar } from "@/components/BalanceSidebar";
@@ -117,8 +116,6 @@ function App() {
             <Route path="/" component={GroupList} />
             <Route path="/create" component={CreateGroup} />
             <Route path="/groups/:groupId" component={GroupDetail} />
-            <Route path="/contacts" component={Contacts} />
-            <Route path="/contacts/:contactId" component={ContactDetail} />
             <Route path="/profile" component={Profile} />
             <Route component={NotFound} />
           </Switch>
