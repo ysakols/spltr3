@@ -394,8 +394,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all pending invitations sent by this user
       const pendingInvitations = await storage.getGroupInvitationsByInviterUserId(userId);
       
+      // Log invitations for debugging
+      console.log(`Found ${pendingInvitations.length} pending invitations sent by user ${userId}:`, 
+                  pendingInvitations.map(inv => `${inv.inviteeEmail} (ID: ${inv.id}, Status: ${inv.status})`));
+      
       // Get all group members from groups the user belongs to (excluding self)
       const userGroups = await storage.getUserGroups(userId);
+      console.log(`User ${userId} belongs to ${userGroups.length} groups`)
       const groupMembers: {user: User, groupId: number}[] = [];
       
       for (const group of userGroups) {

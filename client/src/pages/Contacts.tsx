@@ -238,6 +238,11 @@ function ContactsPage() {
     // Cast to ExtendedContact to access the additional properties
     const extendedContact = contact as ExtendedContact;
     
+    // IMPORTANT FIX: Return true for ALL contacts that come from the API
+    // The server already filters appropriately, so we just need to display what it sends
+    return true;
+    
+    /* Previous overly-restrictive filtering logic
     // Important: Always display contacts with invitationId - these are your sent invitations
     if (extendedContact.invitationId) {
       console.log('Including invitation contact:', extendedContact.email, extendedContact.invitationId);
@@ -266,6 +271,7 @@ function ContactsPage() {
     
     console.log('Excluding contact:', extendedContact.email);
     return false;
+    */
   });
 
   // Sorting state
