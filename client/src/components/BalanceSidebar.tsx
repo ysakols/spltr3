@@ -102,13 +102,17 @@ export function BalanceSidebar() {
   // Add current group members first (if any)
   if (currentMembers) {
     currentMembers.forEach(member => {
-      userMap[member.id.toString()] = member.username;
+      userMap[member.id.toString()] = member.firstName && member.lastName 
+        ? `${member.firstName} ${member.lastName}` 
+        : member.displayName || member.email;
     });
   }
   
   // Then add all other users from the global list
   allUsers.forEach(user => {
-    userMap[user.id.toString()] = user.username;
+    userMap[user.id.toString()] = user.firstName && user.lastName 
+      ? `${user.firstName} ${user.lastName}` 
+      : user.displayName || user.email;
   });
   
   // Get settlements that involve the current user

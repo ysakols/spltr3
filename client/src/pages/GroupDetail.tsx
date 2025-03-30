@@ -181,7 +181,9 @@ function GroupDetail() {
                         {`${members.length} members: `}
                         {members.map((m, index) => (
                           <span key={m.id}>
-                            {m.displayName || m.email}
+                            {m.firstName && m.lastName 
+                              ? `${m.firstName} ${m.lastName}` 
+                              : m.displayName || m.email}
                             {group.createdById === m.id && <span className="font-medium text-primary"> (Admin)</span>}
                             {index < members.length - 1 ? ', ' : ''}
                           </span>

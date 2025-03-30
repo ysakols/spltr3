@@ -244,7 +244,11 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
                       key={member.id} 
                       className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
                     >
-                      <span>{member.username}</span>
+                      <span>
+                        {member.firstName && member.lastName 
+                          ? `${member.firstName} ${member.lastName}` 
+                          : member.displayName || member.email}
+                      </span>
                       <button 
                         type="button" 
                         onClick={() => handleRemoveMember(member)}
