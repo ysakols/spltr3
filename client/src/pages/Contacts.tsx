@@ -163,6 +163,16 @@ function ContactsPage() {
       return;
     }
     
+    // Only attempt deletion for contacts with a valid contactUserId
+    if (!contactUserId || contactUserId <= 0) {
+      toast({
+        title: "Cannot delete invitation",
+        description: "This contact hasn't registered yet, so it can't be deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       // Delete the contact
       await apiRequest('DELETE', `/api/contacts/${contactUserId}`);

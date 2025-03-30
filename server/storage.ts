@@ -51,6 +51,7 @@ export interface IStorage {
   getGroupInvitationByToken(token: string): Promise<GroupInvitation | undefined>;
   getGroupInvitationsByEmail(email: string): Promise<GroupInvitation[]>;
   getGroupInvitationsByGroupId(groupId: number): Promise<GroupInvitation[]>;
+  getGroupInvitationsByInviterUserId(userId: number): Promise<GroupInvitation[]>;
   updateGroupInvitation(id: number, data: Partial<InsertGroupInvitation>): Promise<GroupInvitation | undefined>;
   
   // Contact methods
@@ -715,11 +716,17 @@ export class DatabaseStorage implements IStorage {
   
   async getGroupInvitationsByGroupId(groupId: number): Promise<GroupInvitation[]> {
     return await db
-      .select({
-        ...groupInvitations
-      })
+      .select()
       .from(groupInvitations)
       .where(eq(groupInvitations.groupId, groupId))
+      .orderBy(desc(groupInvitations.invitedAt));
+  }
+  
+  async getGroupInvitationsByInviterUserId(userId: number): Promise<GroupInvitation[]> {
+    return await db
+      .select()
+      .from(groupInvitations)
+      .where(eq(groupInvitations.inviterUserId, userId))
       .orderBy(desc(groupInvitations.invitedAt));
   }
   

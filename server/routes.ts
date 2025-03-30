@@ -388,9 +388,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Not authorized to view these contacts' });
       }
       
-      const contacts = await storage.getUserContacts(userId);
+      // Get list of actual contacts from stored contacts
+      const storedContacts = await storage.getUserContacts(userId);
+      
+      // Get all pending invitations sent by this user
+      const pendingInvitations = await storage.getGroupInvitationsByInviterUserId(userId);
+      
+      // Get all group members from groups the user belongs to (excluding self)
+      const userGroups = await storage.getUserGroups(userId);
+      const groupMembers: {user: User, groupId: number}[] = [];
+      
+      for (const group of userGroups) {
+        const members = await storage.getGroupMembers(group.id);
+        for (const member of members) {
+          if (member.id !== userId) {
+            groupMembers.push({user: member, groupId: group.id});
+          }
+        }
+      }
+      
+      // Create a map to deduplicate contacts by contactUserId
+      const contactMap = new Map();
+      
+      // Add stored contacts to the map
+      for (const contact of storedContacts) {
+        contactMap.set(contact.contactUserId, {
+          ...contact,
+          isUser: true,
+          groupIds: []
+        });
+      }
+      
+      // Add group members to the map
+      for (const {user, groupId} of groupMembers) {
+        if (contactMap.has(user.id)) {
+          const existing = contactMap.get(user.id);
+          if (!existing.groupIds.includes(groupId)) {
+            existing.groupIds.push(groupId);
+          }
+        } else {
+          contactMap.set(user.id, {
+            contactUserId: user.id,
+            userId: userId,
+            email: user.email || '',
+            lastInteractionAt: new Date(),
+            frequency: 1,
+            isUser: true,
+            groupIds: [groupId],
+            firstName: user.firstName,
+            lastName: user.lastName
+          });
+        }
+      }
+
+      // Add pending invitations to the map (these won't have contactUserId yet)
+      for (const invitation of pendingInvitations) {
+        // Using email as key for invitations
+        const email = invitation.inviteeEmail;
+        
+        // Only add if we don't already have a contact with this email
+        const userExists = Array.from(contactMap.values()).some(
+          contact => contact.email === email
+        );
+        
+        if (!userExists) {
+          contactMap.set(`inv_${invitation.id}`, {
+            invitationId: invitation.id,
+            userId: userId,
+            email: email,
+            lastInteractionAt: invitation.invitedAt,
+            frequency: 1,
+            isUser: false,
+            groupIds: [invitation.groupId],
+            status: invitation.status,
+            token: invitation.token
+          });
+        }
+      }
+
+      // Convert map back to array
+      const contacts = Array.from(contactMap.values());
+      
       res.json(contacts);
     } catch (err) {
+      console.error('Error fetching contacts:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
