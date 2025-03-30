@@ -1503,39 +1503,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Received PUT request for expense:', id);
       console.log('Request body:', req.body);
       
-      const expense = await storage.getExpense(id);
-      if (!expense) {
-        console.error('Expense not found:', id);
+      // First, get the expense as a transaction
+      const transaction = await storage.getTransaction(id);
+      if (!transaction || transaction.type !== TransactionType.EXPENSE) {
+        console.error('Expense transaction not found:', id);
         return res.status(404).json({ message: 'Expense not found' });
       }
       
       const currentUserId = (req.user as User).id;
       
       // Check if the current user is the one who paid for the expense or created it
-      if (expense.paidByUserId !== currentUserId && expense.createdByUserId !== currentUserId) {
+      if (transaction.paidByUserId !== currentUserId && transaction.createdByUserId !== currentUserId) {
         return res.status(403).json({ message: 'Only the expense creator or payer can update this expense' });
       }
       
       // Retain the original groupId and createdByUserId
-      // If the expense doesn't have a createdByUserId yet, set it to the current user
-      // Otherwise, keep the original createdByUserId
       const updatedData = {
         ...req.body,
-        groupId: expense.groupId,
-        createdByUserId: expense.createdByUserId || currentUserId
+        groupId: transaction.groupId,
+        createdByUserId: transaction.createdByUserId || currentUserId,
+        type: TransactionType.EXPENSE
       };
       
-      const validatedData = insertExpenseSchema.safeParse(updatedData);
+      // Validate the data
+      const validatedData = insertTransactionSchema.safeParse(updatedData);
       if (!validatedData.success) {
         const error = fromZodError(validatedData.error);
         console.error('Validation error:', error.message);
         return res.status(400).json({ message: error.message });
       }
       
-      console.log('Updating expense with data:', validatedData.data);
-      const updatedExpense = await storage.updateExpense(id, validatedData.data);
-      console.log('Expense updated successfully:', updatedExpense);
-      res.json(updatedExpense);
+      console.log('Updating expense transaction with data:', validatedData.data);
+      const updatedTransaction = await storage.updateTransaction(id, validatedData.data, currentUserId);
+      console.log('Expense transaction updated successfully:', updatedTransaction);
+      res.json(updatedTransaction);
     } catch (err) {
       console.error('Error updating expense:', err);
       res.status(500).json({ message: (err as Error).message });
