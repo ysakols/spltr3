@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 
 function Login() {
   const [location, setLocation] = useLocation();
@@ -134,10 +135,17 @@ function Login() {
                 </div>
               </div>
               
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700 mb-2">
+                <div className="flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span>Google sign-in temporarily unavailable. Please use email login.</span>
+                </div>
+              </div>
               <Button 
                 variant="outline" 
-                className="flex items-center justify-center gap-2"
-                onClick={handleGoogleLogin}
+                className="flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+                disabled={true}
+                title="Google sign-in temporarily unavailable"
               >
                 <FaGoogle className="h-4 w-4" />
                 Sign in with Google
