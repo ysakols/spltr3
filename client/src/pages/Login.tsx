@@ -54,7 +54,13 @@ function Login() {
         });
         // Redirect to original destination if specified in URL
         const redirectPath = getRedirectPath();
-        setLocation(redirectPath);
+        
+        // Force a reload of the app to ensure auth state is updated
+        if (redirectPath === '/') {
+          window.location.href = '/';
+        } else {
+          window.location.href = redirectPath;
+        }
       } else {
         toast({
           title: "Error",

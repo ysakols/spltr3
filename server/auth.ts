@@ -28,7 +28,7 @@ async function processPendingInvitations(userId: number, email: string): Promise
 }
 
 // Serialize user to the session
-passport.serializeUser((user: User, done) => {
+passport.serializeUser((user: any, done) => {
   done(null, user.id);
 });
 
