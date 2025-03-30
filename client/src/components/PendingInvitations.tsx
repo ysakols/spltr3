@@ -84,9 +84,9 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
   return (
     <Card className="mt-4">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Pending Invitations</CardTitle>
+        <CardTitle className="text-sm font-medium">Invitations</CardTitle>
         <CardDescription className="text-xs">
-          Invitations that have been sent but not yet accepted
+          People who have been invited to join this group
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -107,11 +107,18 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
                     {invitation.inviterName && (
                       <span> by {invitation.inviterName}</span>
                     )}
+                    
+                    {/* Add note for accepted invitations where user hasn't created an account yet */}
+                    {invitation.status === 'accepted' && (
+                      <div className="mt-1 italic">
+                        Waiting for user to create an account
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               
-              {/* Action buttons for pending invitations */}
+              {/* Action buttons based on invitation status */}
               {invitation.status === 'pending' && (
                 <div className="flex space-x-1">
                   {/* Copy link button */}
@@ -150,6 +157,37 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
                   >
                     <Trash2 className="h-4 w-4" />
                     <span className="sr-only">Cancel invitation</span>
+                  </Button>
+                </div>
+              )}
+              
+              {/* Action buttons for accepted invitations */}
+              {invitation.status === 'accepted' && (
+                <div className="flex space-x-1">
+                  {/* Copy link button - useful if they need to resend the invitation link */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                    onClick={async () => {
+                      const success = await copyInvitationLink(invitation.token);
+                      if (success) {
+                        toast({
+                          title: "Link copied!",
+                          description: "Invitation link copied to clipboard to resend",
+                        });
+                      } else {
+                        toast({
+                          title: "Error",
+                          description: "Could not copy link to clipboard",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    title="Copy invitation link to resend"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    <span className="sr-only">Copy invitation link</span>
                   </Button>
                 </div>
               )}
