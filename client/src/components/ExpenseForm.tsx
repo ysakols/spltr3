@@ -16,12 +16,13 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 import type { Group, Expense, User } from '@shared/schema';
+import type { ExtendedExpense } from '@/types';
 import { SplitType } from '@shared/schema';
 
 interface ExpenseFormProps {
   group: Group;
   onExpenseAdded: () => void;
-  expenseToEdit?: Expense;
+  expenseToEdit?: ExtendedExpense;
   isEditing?: boolean;
   onExpenseEdited?: () => void;
   onCancelEdit?: () => void;

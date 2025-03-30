@@ -28,6 +28,7 @@ import EditGroupForm from '@/components/EditGroupForm';
 import { PendingInvitations } from '@/components/PendingInvitations';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
+import type { ExtendedExpense } from '@/types';
 
 function GroupDetail() {
   const [, params] = useRoute<{ groupId: string }>('/groups/:groupId');
@@ -35,7 +36,7 @@ function GroupDetail() {
   const groupId = params?.groupId ? parseInt(params.groupId) : 0;
   const handleError = useQueryErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
-  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  const [expenseToEdit, setExpenseToEdit] = useState<ExtendedExpense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const expenseFormRef = useRef<{ setOpen: (open: boolean) => void } | null>(null);
   const { toast } = useToast();
@@ -55,7 +56,7 @@ function GroupDetail() {
     enabled: !!groupId,
   });
   
-  const { data: expenses, isLoading: isLoadingExpenses, error: expensesError } = useQuery<Expense[]>({
+  const { data: expenses, isLoading: isLoadingExpenses, error: expensesError } = useQuery<ExtendedExpense[]>({
     queryKey: [`/api/groups/${groupId}/expenses`],
     enabled: !!groupId,
   });
@@ -84,12 +85,13 @@ function GroupDetail() {
     refreshData();
   };
   
-  const handleEditExpense = (expense: Expense) => {
+  const handleEditExpense = (expense: ExtendedExpense) => {
     setExpenseToEdit(expense);
     // Open the expense form dialog
     if (expenseFormRef.current) {
       expenseFormRef.current.setOpen(true);
     }
+    console.log("Expense to edit changed:", expense);
   };
   
   const handleExpenseEdited = () => {

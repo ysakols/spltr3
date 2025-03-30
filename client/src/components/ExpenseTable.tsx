@@ -16,14 +16,15 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 
-import type { Expense, User } from '@shared/schema';
+import type { User, Expense } from '@shared/schema';
+import type { ExtendedExpense } from '@/types';
 import { SplitType } from '@shared/schema';
 
 interface ExpenseTableProps {
-  expenses: Expense[];
+  expenses: ExtendedExpense[];
   totalExpenses: number;
   onExpenseDeleted: () => void;
-  onEditExpense?: (expense: Expense) => void;
+  onEditExpense?: (expense: ExtendedExpense) => void;
   members?: User[]; // Accept members from parent component if available
 }
 
@@ -193,7 +194,11 @@ function ExpenseTable({
                       {formatCurrency(Number(expense.amount))}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      {getUsernameById(expense.paidByUserId)}
+                      {expense.paidByUser ? (
+                        expense.paidByUser.firstName && expense.paidByUser.lastName
+                          ? `${expense.paidByUser.firstName} ${expense.paidByUser.lastName}`
+                          : expense.paidByUser.displayName || expense.paidByUser.email
+                      ) : getUsernameById(expense.paidByUserId)}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
                       <Badge variant={
