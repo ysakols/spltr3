@@ -8,6 +8,8 @@ import CreateGroup from "@/pages/CreateGroup";
 import GroupDetail from "@/pages/GroupDetail";
 import Login from "@/pages/Login";
 import Invitation from "@/pages/Invitation";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
 // Contacts and ContactDetail pages have been removed as the contacts concept is no longer used
 import Profile from "@/pages/Profile";
 import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
@@ -77,8 +79,11 @@ function App() {
     checkAuth();
   }, []);
 
-  // Check if current route is authentication-related
-  const isAuthRoute = location.startsWith('/login') || location.startsWith('/invitation');
+  // Check if current route is authentication-related or legal pages
+  const isAuthRoute = location.startsWith('/login') || 
+                      location.startsWith('/invitation') || 
+                      location.startsWith('/privacy-policy') || 
+                      location.startsWith('/terms-of-service');
 
   // Show loading state while checking authentication
   if (loading) {
@@ -108,6 +113,8 @@ function App() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/invitation/:token" component={Invitation} />
+          <Route path="/privacy-policy" component={PrivacyPolicy} />
+          <Route path="/terms-of-service" component={TermsOfService} />
           <Route component={NotFound} />
         </Switch>
       ) : (
