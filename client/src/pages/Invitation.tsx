@@ -35,9 +35,14 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 interface InvitationResponse {
   groupId?: number;
   invitation?: {
+    id?: number;
     inviteeEmail: string;
     groupId: number;
     requiresAuthentication: boolean;
+    requiresConfirmation?: boolean;
+    userEmail?: string;
+    token?: string;
+    isExpired?: boolean;
   };
 }
 
@@ -112,6 +117,45 @@ function Invitation() {
     setShowProfileForm(true);
   };
   
+  // Handle invitation acceptance for logged-in users
+  const handleAcceptInvitation = async () => {
+    if (!invitation || !invitation.id) {
+      toast({
+        title: "Error",
+        description: "Invalid invitation data",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setAcceptingInvitation(true);
+      
+      // Update invitation status to accepted
+      const result = await apiRequest('PUT', `/api/invitations/${invitation.id}`, {
+        status: 'accepted'
+      });
+      
+      toast({
+        title: "Success!",
+        description: "You've joined the group successfully.",
+      });
+      
+      // Redirect to the group
+      setLocation(`/groups/${invitation.groupId}`);
+    } catch (error: any) {
+      console.error('Error accepting invitation:', error);
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to accept the invitation. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setAcceptingInvitation(false);
+    }
+  };
+  
   // Handle profile creation submission
   const onSubmitProfile = async (data: ProfileFormValues) => {
     if (!invitation || !params?.token) {
@@ -152,22 +196,25 @@ function Invitation() {
         throw new Error("Account created but login failed. Please try logging in manually.");
       }
       
-      // Accept the invitation with the newly created account
-      const acceptResult = await apiRequest<{groupId: number}>('GET', `/api/invitations/${params.token}`);
+      // After login, fetch the invitation details again to get the updated invitation ID
+      const inviteResponse = await apiRequest<InvitationResponse>('GET', `/api/invitations/${params.token}`);
+      
+      if (!inviteResponse || !inviteResponse.invitation || !inviteResponse.invitation.id) {
+        throw new Error("Failed to retrieve invitation details after login.");
+      }
+      
+      // Explicitly accept the invitation
+      await apiRequest('PUT', `/api/invitations/${inviteResponse.invitation.id}`, {
+        status: 'accepted'
+      });
       
       toast({
         title: "Success!",
-        description: "Your account has been created and you've been added to the group.",
+        description: "Your account has been created and you've joined the group.",
       });
       
       // Redirect to the group
-      if (acceptResult && acceptResult.groupId) {
-        setLocation(`/groups/${acceptResult.groupId}`);
-      } else {
-        // Fallback to groups list
-        setLocation('/groups');
-      }
-      
+      setLocation(`/groups/${invitation.groupId}`);
     } catch (error: any) {
       console.error('Error creating profile:', error);
       
@@ -366,7 +413,32 @@ function Invitation() {
                     </Button>
                   </>
                 )}
-                {!invitation.requiresAuthentication && (
+                {!invitation.requiresAuthentication && invitation.requiresConfirmation && (
+                  <>
+                    <div className="mb-2 text-sm">
+                      <p>You're logged in as <strong>{invitation.userEmail}</strong></p>
+                      <p className="mt-2">Would you like to join this group?</p>
+                    </div>
+                    <div className="flex gap-2 w-full">
+                      <Button 
+                        onClick={handleAcceptInvitation}
+                        disabled={acceptingInvitation}
+                        className="flex-1"
+                      >
+                        {acceptingInvitation && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Accept & Join Group
+                      </Button>
+                      <Button 
+                        onClick={() => setLocation("/")}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </>
+                )}
+                {!invitation.requiresAuthentication && !invitation.requiresConfirmation && (
                   <Button 
                     onClick={() => setLocation(`/groups/${invitation.groupId}`)}
                     className="w-full"

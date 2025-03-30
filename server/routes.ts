@@ -222,22 +222,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invitation has expired' });
       }
       
-      // If user is logged in, process the invitation immediately
+      // Check if invitation is already accepted
+      if (invitation.status === 'accepted') {
+        return res.status(400).json({ 
+          message: 'This invitation has already been accepted',
+          groupId: invitation.groupId
+        });
+      }
+      
+      // If user is logged in and matches the invited email
       if (req.isAuthenticated() && req.user) {
         const user = req.user as User;
         
-        // Add the user to the group
-        await storage.addUserToGroup(invitation.groupId, user.id);
+        // Verify the invitation matches this user's email
+        if (user.email.toLowerCase() !== invitation.inviteeEmail.toLowerCase()) {
+          return res.status(403).json({ 
+            message: 'This invitation was sent to a different email address',
+            invitedEmail: invitation.inviteeEmail 
+          });
+        }
         
-        // Mark invitation as accepted
-        await storage.updateGroupInvitation(invitation.id, {
-          status: 'accepted',
-          acceptedAt: new Date()
-        });
-        
-        return res.json({ 
-          message: 'Invitation accepted',
-          groupId: invitation.groupId
+        // Ask for explicit confirmation before adding to group
+        return res.json({
+          invitation: {
+            ...invitation,
+            isExpired: expired,
+            requiresAuthentication: false,
+            requiresConfirmation: true,
+            userEmail: user.email,
+            groupId: invitation.groupId
+          }
         });
       }
       
@@ -251,6 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (err) {
+      console.error('Error processing invitation:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
@@ -1044,7 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add a user to a group
+  // Add a user to a group - DEPRECATED: Now redirects to invitation flow
   app.post('/api/groups/:groupId/members', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
@@ -1052,7 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
-      console.log('Adding member to group:', groupId);
+      console.log('Redirecting add member request to invitation flow for group:', groupId);
       console.log('Request body:', req.body);
       
       // Validate request body - accepting either userId or username/email
@@ -1071,43 +1086,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { userId: userIdInput, username } = validatedData.data;
-      let user;
-      let userId: number;
+      let email = username;
       
-      // If we have a username/email but no userId, look up the user
-      if (username && !userIdInput) {
-        console.log('Looking up user by email:', username);
-        user = await storage.getUserByEmail(username);
-        
+      // If we have a userId but no email, look up the user's email
+      if (userIdInput !== undefined && !email) {
+        const user = await storage.getUser(userIdInput);
         if (!user) {
-          console.error('User not found with email:', username);
-          return res.status(404).json({ message: 'User not found with that email' });
-        }
-        
-        userId = user.id;
-        console.log('Found user by email:', username, 'with ID:', userId);
-      } else if (userIdInput !== undefined) {
-        // Get the user by ID to make sure they exist
-        console.log('Looking up user by ID:', userIdInput);
-        userId = userIdInput as number; // Type assertion since we validated this with zod schema
-        user = await storage.getUser(userId);
-        
-        if (!user) {
-          console.error('User not found with ID:', userId);
           return res.status(404).json({ message: 'User not found' });
         }
-      } else {
-        // Neither userId nor username was provided, which shouldn't happen due to the refinement
-        return res.status(400).json({ message: 'Either userId or username must be provided' });
+        email = user.email;
       }
       
-      // Add user to group
-      const userGroup = await storage.addUserToGroup(groupId, userId);
-      console.log('User added to group successfully:', userGroup);
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required to send an invitation' });
+      }
       
-      res.status(201).json(userGroup);
+      // Check if the user is already a member of the group
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        const members = await storage.getGroupMembers(groupId);
+        const isAlreadyMember = members.some(member => member.id === existingUser.id);
+        
+        if (isAlreadyMember) {
+          return res.status(400).json({ message: 'User is already a member of this group' });
+        }
+      }
+      
+      // Check if group exists
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
+      // Generate a unique token
+      const token = crypto.randomBytes(32).toString('hex');
+      const currentUser = req.user as User;
+      
+      // Create invitation
+      const invitation = await storage.createGroupInvitation({
+        groupId,
+        inviterUserId: currentUser.id,
+        inviteeEmail: email,
+        inviteeFirstName: null,
+        token,
+        status: 'pending',
+        invitedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        resendCount: 0,
+        lastResendAt: null
+      });
+      
+      // Import email service
+      const { sendInvitationEmail, checkEmailConfig } = await import('./email');
+      
+      // Try to send the invitation email
+      let emailSent = false;
+      const emailConfig = checkEmailConfig();
+      
+      if (emailConfig.configured) {
+        try {
+          emailSent = await sendInvitationEmail(invitation, group, currentUser);
+        } catch (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+        }
+      }
+      
+      // Extract the base URL for invitation link
+      let baseUrl = process.env.APP_URL;
+      if (!baseUrl && process.env.REPL_ID) {
+        baseUrl = `https://${process.env.REPL_ID}.replit.app`;
+      }
+      if (!baseUrl) {
+        baseUrl = 'http://localhost:5000';
+      }
+      const invitationLink = `${baseUrl}/invitation/${token}`;
+      
+      res.status(201).json({
+        message: 'Invitation created and sent',
+        invitation,
+        emailSent,
+        invitationLink
+      });
     } catch (err) {
-      console.error('Error adding user to group:', err);
+      console.error('Error creating invitation:', err);
       res.status(400).json({ message: (err as Error).message });
     }
   });
