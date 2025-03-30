@@ -16,13 +16,27 @@ import { isAuthenticated } from "./auth";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 
+// Helper function to sanitize user objects by removing sensitive data
+export function sanitizeUser(user: User) {
+  if (!user) return null;
+  // Destructure to remove password and other sensitive fields
+  const { password, googleAccessToken, googleRefreshToken, ...userWithoutSensitiveData } = user;
+  return userWithoutSensitiveData;
+}
+
+// Helper function to sanitize an array of users
+export function sanitizeUsers(users: User[]) {
+  return users.map(sanitizeUser);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   // ==========================================================
   
   // Get current authenticated user
   app.get('/api/auth/me', isAuthenticated, (req: Request, res: Response) => {
-    res.json(req.user);
+    // Return user without sensitive information
+    res.json(sanitizeUser(req.user as User));
   });
   
   // Local login route
@@ -75,12 +89,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // Return user without password
-        const { password: _, ...userWithoutPassword } = user;
-        
+        // Return sanitized user without sensitive information
         return res.json({ 
           success: true, 
-          user: userWithoutPassword 
+          user: sanitizeUser(user)
         });
       });
     } catch (error) {
@@ -1373,7 +1385,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const members = await storage.getGroupMembers(groupId);
-      res.json(members);
+      // Remove sensitive password data before sending to client
+      const sanitizedMembers = members.map(member => {
+        const { password, ...userWithoutPassword } = member;
+        return userWithoutPassword;
+      });
+      res.json(sanitizedMembers);
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
@@ -1397,9 +1414,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get the user who paid for the expense
         const paidByUser = expense.paidByUserId ? await storage.getUser(expense.paidByUserId) : null;
         
+        // Remove sensitive password data from user object
+        let sanitizedUser = null;
+        if (paidByUser) {
+          const { password, ...userWithoutPassword } = paidByUser;
+          sanitizedUser = userWithoutPassword;
+        }
+        
         return {
           ...expense,
-          paidByUser
+          paidByUser: sanitizedUser
         };
       }));
       
