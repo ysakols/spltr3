@@ -467,6 +467,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert map back to array
       const contacts = Array.from(contactMap.values());
       
+      // Log the contacts being sent for debugging
+      console.log(`Sending ${contacts.length} contacts to user ${userId}`);
+      
+      // Log details of contacts with invitationId for debugging
+      const invitationContacts = contacts.filter(c => c.invitationId);
+      console.log(`Found ${invitationContacts.length} invitations in contacts list:`, 
+                  invitationContacts.map(c => `${c.email} (ID: ${c.invitationId})`));
+      
       res.json(contacts);
     } catch (err) {
       console.error('Error fetching contacts:', err);
