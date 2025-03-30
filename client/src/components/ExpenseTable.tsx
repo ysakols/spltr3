@@ -80,28 +80,42 @@ function ExpenseTable({
     ) : `User ${userId}`;
   };
   
-  // Function to get user initials for avatar
-  const getUserInitials = (userId: number) => {
+  // Function to get user avatar initial (single letter)
+  const getUserAvatar = (userId: number) => {
     if (!members) return 'U';
     
     const user = members.find(member => member.id === userId);
     if (!user) return 'U';
     
-    // Get the first initial of the name parts
-    let firstInitial = '';
-    let lastInitial = '';
-    
     if (user.firstName) {
-      firstInitial = user.firstName.substring(0, 1).toUpperCase();
+      return user.firstName.substring(0, 1).toUpperCase();
     } else if (user.displayName) {
-      firstInitial = user.displayName.substring(0, 1).toUpperCase();
+      return user.displayName.substring(0, 1).toUpperCase();
     } else if (user.username) {
-      firstInitial = user.username.substring(0, 1).toUpperCase();
+      return user.username.substring(0, 1).toUpperCase();
     } else if (user.email) {
-      firstInitial = user.email.substring(0, 1).toUpperCase();
+      return user.email.substring(0, 1).toUpperCase();
     }
     
-    return firstInitial;
+    return 'U';
+  };
+  
+  // Function to get abbreviated user display name
+  const getShortUserName = (userId: number) => {
+    if (!members) return 'Unknown';
+    
+    const user = members.find(member => member.id === userId);
+    if (!user) return 'Unknown';
+    
+    if (user.firstName && user.lastName) {
+      return `${user.firstName.substring(0, 1)}. ${user.lastName}`;
+    } else if (user.displayName) {
+      return user.displayName;
+    } else if (user.email) {
+      return user.email;
+    }
+    
+    return `User ${userId}`;
   };
 
   const deleteExpense = async (id: number) => {
@@ -238,20 +252,12 @@ function ExpenseTable({
                               <Avatar className="h-5 w-5">
                                 <AvatarFallback className="text-[10px]">
                                   {expense.paidByUser ? 
-                                    (expense.paidByUser.firstName ? 
-                                      expense.paidByUser.firstName.substring(0, 1).toUpperCase() :
-                                      (expense.paidByUser.displayName ? 
-                                        expense.paidByUser.displayName.substring(0, 1).toUpperCase() : 
-                                        expense.paidByUser.email[0].toUpperCase()))
-                                    : getUserInitials(expense.paidByUserId)}
+                                    getUserAvatar(expense.paidByUserId) : 
+                                    getUserAvatar(expense.paidByUserId)}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="truncate max-w-[80px]">
-                                {expense.paidByUser ? (
-                                  expense.paidByUser.firstName && expense.paidByUser.lastName
-                                    ? `${expense.paidByUser.firstName.substring(0, 1)}. ${expense.paidByUser.lastName}`
-                                    : expense.paidByUser.displayName || expense.paidByUser.email
-                                ) : getUsernameById(expense.paidByUserId)}
+                                {getShortUserName(expense.paidByUserId)}
                               </span>
                             </div>
                           </TooltipTrigger>
@@ -272,21 +278,12 @@ function ExpenseTable({
                             <div className="flex items-center gap-1 cursor-default">
                               <Avatar className="h-5 w-5">
                                 <AvatarFallback className="text-[10px]">
-                                  {expense.createdByUser ? 
-                                    (expense.createdByUser.firstName ? 
-                                      expense.createdByUser.firstName.substring(0, 1).toUpperCase() :
-                                      (expense.createdByUser.displayName ? 
-                                        expense.createdByUser.displayName.substring(0, 1).toUpperCase() : 
-                                        expense.createdByUser.email[0].toUpperCase()))
-                                    : (expense.createdByUserId ? getUserInitials(expense.createdByUserId) : 'U')}
+                                  {expense.createdByUserId ? 
+                                    getUserAvatar(expense.createdByUserId) : 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="truncate max-w-[80px]">
-                                {expense.createdByUser ? (
-                                  expense.createdByUser.firstName && expense.createdByUser.lastName
-                                    ? `${expense.createdByUser.firstName.substring(0, 1)}. ${expense.createdByUser.lastName}`
-                                    : expense.createdByUser.displayName || expense.createdByUser.email
-                                ) : expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}
+                                {expense.createdByUserId ? getShortUserName(expense.createdByUserId) : 'Unknown'}
                               </span>
                             </div>
                           </TooltipTrigger>
@@ -340,11 +337,11 @@ function ExpenseTable({
                                       <div className="flex items-center">
                                         <Avatar className="h-5 w-5">
                                           <AvatarFallback className="text-[10px]">
-                                            {getUserInitials(shownUserIds[0])}
+                                            {getUserAvatar(shownUserIds[0])}
                                           </AvatarFallback>
                                         </Avatar>
                                         <span className="ml-1 truncate max-w-[80px]">
-                                          {getUsernameById(shownUserIds[0]).split(' ')[0]} 
+                                          {getShortUserName(shownUserIds[0]).split(' ')[0]} 
                                           {remainingCount > 0 && (
                                             <Badge variant="secondary" className="ml-1 px-1.5 text-[10px] py-0 h-4">
                                               +{remainingCount + (shownUserIds.length > 1 ? shownUserIds.length - 1 : 0)}
