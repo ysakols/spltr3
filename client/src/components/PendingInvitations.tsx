@@ -8,11 +8,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Mail, UserCheck, XCircle, CheckCircle, Trash2 } from 'lucide-react';
+import { Clock, Mail, UserCheck, XCircle, CheckCircle, Trash2, Copy, Link2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { copyInvitationLink, getInvitationUrl } from '@/lib/invitationUtils';
 
 type GroupInvitation = {
   id: number;
@@ -110,18 +111,47 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
                 </div>
               </div>
               
-              {/* Only show cancel button for pending invitations */}
+              {/* Action buttons for pending invitations */}
               {invitation.status === 'pending' && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleCancelInvitation(invitation.id)}
-                  title="Cancel invitation"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Cancel invitation</span>
-                </Button>
+                <div className="flex space-x-1">
+                  {/* Copy link button */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                    onClick={async () => {
+                      const success = await copyInvitationLink(invitation.token);
+                      if (success) {
+                        toast({
+                          title: "Link copied!",
+                          description: "Invitation link copied to clipboard",
+                        });
+                      } else {
+                        toast({
+                          title: "Error",
+                          description: "Could not copy link to clipboard",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    title="Copy invitation link"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    <span className="sr-only">Copy invitation link</span>
+                  </Button>
+                  
+                  {/* Cancel button */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleCancelInvitation(invitation.id)}
+                    title="Cancel invitation"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Cancel invitation</span>
+                  </Button>
+                </div>
               )}
             </div>
           ))}

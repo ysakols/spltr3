@@ -239,11 +239,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check email configuration
       const emailConfig = checkEmailConfig();
       
+      // Log invitation details for debugging
+      console.log(`Invitation sent to ${email} with token: ${token}`);
+      
+      // Extract the base URL for logging purposes only
+      let baseUrl = process.env.APP_URL;
+      if (!baseUrl && process.env.REPL_ID) {
+        baseUrl = `https://${process.env.REPL_ID}.replit.app`;
+      }
+      if (!baseUrl) {
+        baseUrl = 'http://localhost:5000';
+      }
+      console.log(`Invitation link: ${baseUrl}/invitation/${token}`);
+      
       // Try to send the invitation email
       if (emailConfig.configured) {
         try {
-          await sendInvitationEmail(invitation, group, currentUser);
-          console.log(`Invitation email sent to ${email} for group ${groupId}`);
+          const emailSent = await sendInvitationEmail(invitation, group, currentUser);
+          if (emailSent) {
+            console.log(`Invitation email sent to ${email} for group ${groupId}`);
+          } else {
+            console.log(`Failed to send email to ${email} but invitation was created`);
+          }
         } catch (emailError) {
           console.error('Failed to send invitation email:', emailError);
           // Don't fail the invitation creation if email fails
@@ -448,21 +465,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check email configuration
         const emailConfig = checkEmailConfig();
         
+        // Log invitation details for debugging
+        console.log(`Contact invitation sent to ${email} with token: ${token}`);
+        
+        // Extract the base URL for the invitation link
+        let baseUrl = process.env.APP_URL;
+        if (!baseUrl && process.env.REPL_ID) {
+          baseUrl = `https://${process.env.REPL_ID}.replit.app`;
+        }
+        if (!baseUrl) {
+          baseUrl = `${req.protocol}://${req.get('host')}`;
+        }
+        const invitationLink = `${baseUrl}/invitation/${token}`;
+        console.log(`Contact invitation link: ${invitationLink}`);
+        
         // Try to send the invitation email
         if (emailConfig.configured) {
           // Get the inviter's user record
           const inviter = await storage.getUser(userId);
           
           try {
-            await sendInvitationEmail(invitation, tempGroup, inviter);
-            console.log(`Invitation email sent to ${email} for contact creation`);
+            const emailSent = await sendInvitationEmail(invitation, tempGroup, inviter);
+            if (emailSent) {
+              console.log(`Contact invitation email sent to ${email} successfully`);
+            } else {
+              console.log(`Failed to send contact invitation email to ${email} but invitation was created`);
+            }
           } catch (emailError) {
             console.error('Failed to send contact invitation email:', emailError);
             // Don't fail the invitation creation if email fails
           }
         }
-        
-        console.log(`Invitation link: ${req.protocol}://${req.get('host')}/invitation/${token}`);
         
         res.status(201).json({ contact, invitation });
       }

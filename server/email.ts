@@ -57,9 +57,26 @@ export function createInvitationEmailContent(
   group: Group, 
   inviter?: User
 ): { html: string; text: string; subject: string } {
-  // Base URL for invitation link (from environment or default to localhost)
-  const baseUrl = process.env.APP_URL || 'http://localhost:5000';
+  // Generate the correct base URL
+  let baseUrl = process.env.APP_URL;
+  
+  // If APP_URL isn't set and we're running in Replit, try to generate the URL
+  if (!baseUrl && process.env.REPL_ID) {
+    // Format: https://[repl-id]-[port]-[random].replit.dev
+    // For our purposes, since we can't get the full URL, we'll use window.location in the client
+    // Just use the Replit domain format with the repl ID
+    baseUrl = `https://${process.env.REPL_ID}.replit.app`;
+  }
+  
+  // Fall back to localhost if we can't determine the URL
+  if (!baseUrl) {
+    baseUrl = 'http://localhost:5000';
+  }
+  
   const invitationLink = `${baseUrl}/invitation/${invitation.token}`;
+  
+  // Log the link for debugging
+  console.log('Invitation link:', invitationLink);
 
   // Format inviter's name if available
   const inviterName = inviter 
