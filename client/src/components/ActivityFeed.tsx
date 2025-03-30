@@ -235,7 +235,7 @@ function SettlementActivity({
         </Badge>
       </div>
       <p className="text-sm">
-        {settlement.fromUser?.firstName || 'Someone'} paid {settlement.toUser?.firstName || 'someone'} ${amount.toFixed(2)} via {formatPaymentMethod(settlement.paymentMethod)}
+        {settlement.fromUser ? `${settlement.fromUser.firstName} ${settlement.fromUser.lastName}` : 'Someone'} paid {settlement.toUser ? `${settlement.toUser.firstName} ${settlement.toUser.lastName}` : 'someone'} ${amount.toFixed(2)} via {formatPaymentMethod(settlement.paymentMethod)}
       </p>
       {settlement.notes && (
         <p className="text-xs italic">"{settlement.notes}"</p>

@@ -116,11 +116,37 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getGroupSettlements(groupId: number): Promise<Settlement[]> {
-    return await db
+    // First get all settlements for the group
+    const groupSettlements = await db
       .select()
       .from(settlements)
       .where(eq(settlements.groupId, groupId))
       .orderBy(desc(settlements.createdAt));
+    
+    // Get user details for these settlements
+    const userIds = new Set<number>();
+    groupSettlements.forEach(s => {
+      userIds.add(s.fromUserId);
+      userIds.add(s.toUserId);
+    });
+    
+    // Fetch all needed users
+    const usersList = await db
+      .select()
+      .from(users)
+      .where(inArray(users.id, Array.from(userIds)));
+    
+    const userMap = usersList.reduce((map, user) => {
+      map[user.id] = user;
+      return map;
+    }, {} as Record<number, User>);
+    
+    // Attach user details to settlements
+    return groupSettlements.map(settlement => ({
+      ...settlement,
+      fromUser: userMap[settlement.fromUserId],
+      toUser: userMap[settlement.toUserId]
+    }));
   }
   
   async updateSettlement(id: number, data: Partial<InsertSettlement>): Promise<Settlement | undefined> {
