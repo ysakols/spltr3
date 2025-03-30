@@ -504,9 +504,24 @@ export class DatabaseStorage implements IStorage {
         eq(userGroups.userId, userId)
       ));
     
-    // Update any expenses where this user is involved
-    // This is a complex operation that would involve reassigning expenses
-    // Here we're keeping it simple - we'll handle this when calculating summaries
+    // First, fetch all expenses created by this user in the group
+    const userExpenses = await db.select()
+      .from(expenses)
+      .where(and(
+        eq(expenses.groupId, groupId),
+        eq(expenses.createdByUserId, userId)
+      ));
+    
+    // Delete all expenses created by this user in the group
+    if (userExpenses.length > 0) {
+      console.log(`Removing ${userExpenses.length} expense(s) created by user ${userId} from group ${groupId}`);
+      
+      await db.delete(expenses)
+        .where(and(
+          eq(expenses.groupId, groupId),
+          eq(expenses.createdByUserId, userId)
+        ));
+    }
   }
 
   async getGroupMembers(groupId: number): Promise<User[]> {

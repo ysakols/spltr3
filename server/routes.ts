@@ -1150,13 +1150,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      await storage.removeUserFromGroup(groupId, userId);
+      console.log(`Removing user ${userId} from group ${groupId}`);
       
-      // If user is removing themselves, give a different message
-      if (userId === currentUserId) {
-        res.json({ message: 'You have left the group successfully' });
-      } else {
-        res.json({ message: 'User removed from group successfully' });
+      try {
+        await storage.removeUserFromGroup(groupId, userId);
+        console.log(`Successfully removed user ${userId} from group ${groupId}`);
+        
+        // If user is removing themselves, give a different message
+        if (userId === currentUserId) {
+          res.json({ message: 'You have left the group successfully' });
+        } else {
+          res.json({ message: 'User removed from group successfully. Any expenses created by this user have been deleted.' });
+        }
+      } catch (error) {
+        console.error('Error removing user from group:', error);
+        res.status(500).json({ message: `Error removing user: ${(error as Error).message}` });
       }
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
