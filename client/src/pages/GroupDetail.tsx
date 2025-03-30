@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { numericToDisplayId, displayToNumericId } from '@/lib/id-utils';
 
 import ExpenseForm from '@/components/ExpenseForm';
 import ExpenseTable from '@/components/ExpenseTable';
@@ -33,7 +34,8 @@ import type { ExtendedExpense } from '@/types';
 function GroupDetail() {
   const [, params] = useRoute<{ groupId: string }>('/groups/:groupId');
   const [, setLocation] = useLocation();
-  const groupId = params?.groupId ? parseInt(params.groupId) : 0;
+  // Convert display ID to numeric ID for API calls
+  const groupId = params?.groupId ? displayToNumericId(params.groupId) : 0;
   const handleError = useQueryErrorHandler();
   const [isEditing, setIsEditing] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState<ExtendedExpense | null>(null);

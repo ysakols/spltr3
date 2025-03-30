@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X, Plus, Mail } from 'lucide-react';
+import { numericToDisplayId } from '@/lib/id-utils';
 
 // Define our member type to include emails
 interface GroupMember {
@@ -215,8 +216,8 @@ function CreateGroup() {
           duration: 10000, // Show for 10 seconds
         });
       } else {
-        // If no invitations were sent, navigate to the group
-        navigate(`/groups/${groupId}`);
+        // If no invitations were sent, navigate to the group with display ID
+        navigate(`/groups/${numericToDisplayId(groupId)}`);
       }
     } catch (err) {
       console.error('Error creating group:', err);
@@ -275,7 +276,7 @@ function CreateGroup() {
               <div className="mt-4">
                 <Button
                   type="button"
-                  onClick={() => navigate(`/groups/${createdGroupId}`)}
+                  onClick={() => navigate(`/groups/${createdGroupId ? numericToDisplayId(createdGroupId) : ''}`)}
                   className="w-full"
                 >
                   Continue to Group

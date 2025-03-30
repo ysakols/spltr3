@@ -8,12 +8,13 @@ import GroupSummary from './GroupSummary';
 import { SettlementButton } from '@/components/SettlementButton';
 import { useState, useEffect } from 'react';
 import { getQueryFn } from '@/lib/queryClient';
+import { displayToNumericId } from '@/lib/id-utils';
 
 export function BalanceSidebar() {
   // Get current location to detect if we're on a group details page
   const [location] = useLocation();
-  const groupIdMatch = location.match(/\/groups\/(\d+)/);
-  const currentGroupId = groupIdMatch ? parseInt(groupIdMatch[1]) : null;
+  const groupIdMatch = location.match(/\/groups\/([a-zA-Z0-9]+)/);
+  const currentGroupId = groupIdMatch ? displayToNumericId(groupIdMatch[1]) : null;
   
   // Get the current user first
   const { data: currentUser } = useQuery<User | null>({

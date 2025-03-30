@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQueryErrorHandler } from '@/lib/hooks';
 import { getQueryFn } from '@/lib/queryClient';
 import { Users, Calendar } from 'lucide-react';
+import { numericToDisplayId } from '@/lib/id-utils';
 
 import type { User } from '@shared/schema';
 import type { ExtendedGroup } from '@/types';
@@ -118,7 +119,7 @@ function GroupList() {
             <div 
               key={group.id} 
               className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer" 
-              onClick={() => setLocation(`/groups/${group.id}`)}
+              onClick={() => setLocation(`/groups/${numericToDisplayId(group.id)}`)}
             >
               <div className="p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
