@@ -1100,6 +1100,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the group members
       const members = await storage.getGroupMembers(id);
       
+      // Ensure the current user is a member of this group
+      const currentUser = req.user as User;
+      const isMember = members.some(member => member.id === currentUser.id);
+      
+      // If not a member, check if user has a pending invitation to this group
+      if (!isMember) {
+        // Get invitations for this user's email
+        const invitations = await storage.getGroupInvitationsByEmail(currentUser.email);
+        const hasPendingInvitation = invitations.some(
+          inv => inv.groupId === id && inv.status === 'pending'
+        );
+        
+        if (hasPendingInvitation) {
+          // Allow limited access to users with pending invitations
+          return res.json({
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            createdById: group.createdById,
+            hasPendingInvitation: true,
+            isGroupMember: false,
+            memberCount: members.length
+          });
+        }
+        
+        // Not a member and no pending invitation, deny access
+        return res.status(403).json({ 
+          message: 'You are not a member of this group',
+          note: 'You need an invitation to access this group'
+        });
+      }
+      
       // Get the creator information
       let creatorInfo = undefined;
       if (group.createdById) {
@@ -1113,14 +1145,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         ...group,
         members: sanitizeUsers(members),
-        creatorInfo: creatorInfo
+        creatorInfo: creatorInfo,
+        isGroupMember: true,
+        isGroupCreator: currentUser.id === group.createdById
       });
     } catch (err) {
+      console.error('Error getting group details:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
   
-  // Update a group
+  // Update a group (only creator can update)
   app.put('/api/groups/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -1144,6 +1179,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Group not found' });
       }
       
+      // Get current user information
+      const currentUser = req.user as User;
+      
+      // First check if the user is the creator of the group
+      if (group.createdById !== currentUser.id) {
+        return res.status(403).json({ 
+          message: 'Only the group creator can edit the group',
+          note: 'Group details can only be modified by the creator'
+        });
+      }
+      
+      // Second, check if the user is actually a member of the group
+      const members = await storage.getGroupMembers(id);
+      const isMember = members.some(member => member.id === currentUser.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ 
+          message: 'You are not a member of this group and cannot edit it',
+          note: 'You need to be both the creator and a member to edit a group'
+        });
+      }
+      
       console.log('Updating group with data:', validatedData.data);
       const updatedGroup = await storage.updateGroup(id, validatedData.data);
       console.log('Group updated successfully:', updatedGroup);
@@ -1153,7 +1210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get updated members
-      const members = await storage.getGroupMembers(id);
+      const updatedMembers = await storage.getGroupMembers(id);
       
       // Get creator information
       let creatorInfo = undefined;
@@ -1166,8 +1223,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         ...updatedGroup,
-        members: sanitizeUsers(members),
-        creatorInfo: creatorInfo
+        members: sanitizeUsers(updatedMembers),
+        creatorInfo: creatorInfo,
+        isGroupMember: true,
+        isGroupCreator: currentUser.id === updatedGroup.createdById
       });
     } catch (err) {
       console.error('Error updating group:', err);
@@ -1191,11 +1250,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get current user information
       const currentUser = req.user as User;
       
-      // Ensure only the group creator can delete the group
+      // First check if the user is the creator of the group
       if (group.createdById !== currentUser.id) {
         return res.status(403).json({ 
           message: 'Only the group creator can delete the group',
           note: 'You can leave the group instead by removing yourself as a member'
+        });
+      }
+      
+      // Second, check if the user is actually a member of the group
+      const members = await storage.getGroupMembers(id);
+      const isMember = members.some(member => member.id === currentUser.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ 
+          message: 'You are not a member of this group and cannot delete it',
+          note: 'Only group members with creator privileges can delete a group'
         });
       }
       
