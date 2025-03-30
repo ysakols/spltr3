@@ -257,15 +257,8 @@ function ExpenseTable({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1 cursor-default">
-                              <Avatar className="h-5 w-5">
-                                <AvatarFallback className="text-[10px]">
-                                  {expense.paidByUser ? 
-                                    getUserAvatar(expense.paidByUserId) : 
-                                    getUserAvatar(expense.paidByUserId)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="truncate max-w-[120px]">
+                            <div className="cursor-default">
+                              <span className="truncate max-w-[150px] block">
                                 {getUsernameById(expense.paidByUserId)}
                               </span>
                             </div>
@@ -284,14 +277,8 @@ function ExpenseTable({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1 cursor-default">
-                              <Avatar className="h-5 w-5">
-                                <AvatarFallback className="text-[10px]">
-                                  {expense.createdByUserId ? 
-                                    getUserAvatar(expense.createdByUserId) : 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="truncate max-w-[120px]">
+                            <div className="cursor-default">
+                              <span className="truncate max-w-[150px] block">
                                 {expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}
                               </span>
                             </div>
