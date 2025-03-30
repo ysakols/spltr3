@@ -87,11 +87,7 @@ function TransactionsTable({
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/groups', groupId, 'transactions'],
     queryFn: () => {
-      console.log("Fetching transactions for group:", groupId);
-      return apiRequest('GET', `/api/groups/${groupId}/transactions`).then(data => {
-        console.log("Transactions data:", data);
-        return data;
-      });
+      return apiRequest('GET', `/api/groups/${groupId}/transactions`);
     },
   });
   
@@ -323,7 +319,8 @@ function TransactionsTable({
     } 
     // For settlements, we currently use the delete action and then create a new one
     // Future enhancement: Implement a dedicated settlement edit form
-    else if (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id) {
+    else if (transaction.type === 'settlement' && 
+             (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)) {
       handleDeleteTransaction(transaction);
       // Settlement editing could be implemented in a future iteration
       // For now, delete the settlement and the user can create a new one
@@ -533,10 +530,12 @@ function TransactionsTable({
                         {/* For settlements, currently we only support delete (no edit) */}
                         {/* Omitted as we'll use the delete button below */}
                         
-                        {/* Delete button with debug logging */}
-                        {console.log(`Transaction ${transaction.id}: type=${transaction.type}, createdByUserId=${transaction.createdByUserId}, currentUser=${currentUser?.id}`)}
+                        {/* Delete button */}
                         {(transaction.type === 'expense' || 
-                          (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id)) && (
+                          (transaction.type === 'settlement' && 
+                            // Check for created by OR paid by (since createdBy might be null for settlements)
+                            (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)
+                          )) && (
                           <Button 
                             variant="outline"
                             size="icon"
