@@ -173,24 +173,42 @@ function GroupDetail() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3">
               <h2 className="text-xl font-bold text-gray-900 mb-1 sm:mb-0">{group.name}</h2>
               <div className="flex items-center gap-2">
-                <div className="flex items-center text-xs text-gray-500">
-                  <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
-                  <span>
-                    {members ? (
-                      <>
-                        {`${members.length} members: `}
-                        {members.map((m, index) => (
-                          <span key={m.id}>
-                            {m.firstName && m.lastName 
-                              ? `${m.firstName} ${m.lastName}` 
-                              : m.displayName || m.email}
-                            {group.createdById === m.id && <span className="font-medium text-primary"> (Admin)</span>}
-                            {index < members.length - 1 ? ', ' : ''}
-                          </span>
-                        ))}
-                      </>
-                    ) : 'Loading members...'}
-                  </span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  {/* Created by info */}
+                  <div className="flex items-center text-xs text-gray-500">
+                    <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
+                    <span className="mr-1">Created by:</span>
+                    <span className="mr-1">
+                      {(() => {
+                        const creator = members?.find(m => m.id === group.createdById);
+                        if (!creator) return 'Unknown';
+                        return creator.firstName && creator.lastName
+                          ? `${creator.firstName} ${creator.lastName}`
+                          : creator.displayName || creator.email || 'Unknown';
+                      })()}
+                    </span>
+                    <span className="font-medium text-primary">(Admin)</span>
+                  </div>
+                  
+                  {/* Members list */}
+                  <div className="flex items-center text-xs text-gray-500">
+                    <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
+                    <span>
+                      {members ? (
+                        <>
+                          {`${members.length} members: `}
+                          {members.map((m, index) => (
+                            <span key={m.id}>
+                              {m.firstName && m.lastName 
+                                ? `${m.firstName} ${m.lastName}` 
+                                : m.displayName || m.email}
+                              {index < members.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
+                        </>
+                      ) : 'Loading members...'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   {/* Show edit button for all group members */}

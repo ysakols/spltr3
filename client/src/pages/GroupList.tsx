@@ -134,7 +134,13 @@ function GroupList() {
                         <Users className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                         <span className="mr-1">Created by:</span>
                         <span className="mr-1">
-                          {users.find(user => user.id === group.createdById)?.username || 'Unknown'}
+                          {(() => {
+                            const creator = users.find(user => user.id === group.createdById);
+                            if (!creator) return 'Unknown';
+                            return creator.firstName && creator.lastName
+                              ? `${creator.firstName} ${creator.lastName}`
+                              : creator.displayName || creator.email || 'Unknown';
+                          })()}
                         </span>
                         <span className="font-medium text-primary">(Admin)</span>
                       </div>
