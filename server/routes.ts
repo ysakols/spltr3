@@ -1058,15 +1058,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if a user ID was provided to filter groups
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
       
+      let groups = [];
       if (userId) {
         // Get groups for a specific user
-        const groups = await storage.getUserGroups(userId);
-        res.json(groups);
+        groups = await storage.getUserGroups(userId);
       } else {
         // Get all groups
-        const groups = await storage.getGroups();
-        res.json(groups);
+        groups = await storage.getGroups();
       }
+      
+      // Fetch creator information for each group
+      const groupsWithCreatorInfo = await Promise.all(groups.map(async (group) => {
+        if (group.createdById) {
+          const creator = await storage.getUser(group.createdById);
+          return {
+            ...group,
+            creatorInfo: creator || undefined
+          };
+        }
+        return group;
+      }));
+      
+      res.json(groupsWithCreatorInfo);
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
@@ -1108,10 +1121,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the group members
       const members = await storage.getGroupMembers(id);
       
-      // Return group with members
+      // Get the creator information
+      let creatorInfo = undefined;
+      if (group.createdById) {
+        creatorInfo = await storage.getUser(group.createdById);
+      }
+      
+      // Return group with members and creator info
       res.json({
         ...group,
-        members: members
+        members: members,
+        creatorInfo: creatorInfo
       });
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
@@ -1146,12 +1166,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedGroup = await storage.updateGroup(id, validatedData.data);
       console.log('Group updated successfully:', updatedGroup);
       
+      if (!updatedGroup) {
+        return res.status(500).json({ message: 'Failed to update group' });
+      }
+      
       // Get updated members
       const members = await storage.getGroupMembers(id);
       
+      // Get creator information
+      let creatorInfo = undefined;
+      if (updatedGroup.createdById) {
+        creatorInfo = await storage.getUser(updatedGroup.createdById);
+      }
+      
       res.json({
         ...updatedGroup,
-        members: members
+        members: members,
+        creatorInfo: creatorInfo
       });
     } catch (err) {
       console.error('Error updating group:', err);
@@ -1357,7 +1388,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const expenses = await storage.getExpenses(groupId);
-      res.json(expenses);
+      
+      // Enhance expenses with user information
+      const enhancedExpenses = await Promise.all(expenses.map(async (expense) => {
+        // Get the user who paid for the expense
+        const paidByUser = expense.paidByUserId ? await storage.getUser(expense.paidByUserId) : null;
+        
+        return {
+          ...expense,
+          paidByUser
+        };
+      }));
+      
+      res.json(enhancedExpenses);
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }

@@ -8,7 +8,8 @@ import { useQueryErrorHandler } from '@/lib/hooks';
 import { getQueryFn } from '@/lib/queryClient';
 import { Users, Calendar } from 'lucide-react';
 
-import type { Group, User } from '@shared/schema';
+import type { User } from '@shared/schema';
+import type { ExtendedGroup } from '@/types';
 
 function GroupList() {
   const handleError = useQueryErrorHandler();
@@ -25,7 +26,7 @@ function GroupList() {
   });
   
   // Fetch groups for the logged-in user if authenticated, otherwise fetch all groups
-  const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery<Group[]>({
+  const { data: groups, isLoading: isLoadingGroups, error: groupsError } = useQuery<ExtendedGroup[]>({
     queryKey: ['/api/groups', currentUser?.id],
     queryFn: async ({ queryKey }) => {
       const userId = queryKey[1] as number | undefined;
@@ -117,7 +118,7 @@ function GroupList() {
             <div 
               key={group.id} 
               className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer" 
-              onClick={() => window.location.href = `/groups/${group.id}`}
+              onClick={() => setLocation(`/groups/${group.id}`)}
             >
               <div className="p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -135,6 +136,15 @@ function GroupList() {
                         <span className="mr-1">Created by:</span>
                         <span className="mr-1">
                           {(() => {
+                            // First check if creatorInfo is available from the backend
+                            if (group.creatorInfo) {
+                              const creator = group.creatorInfo;
+                              return creator.firstName && creator.lastName
+                                ? `${creator.firstName} ${creator.lastName}`
+                                : creator.displayName || creator.email || 'Unknown';
+                            }
+                            
+                            // Fall back to users array if creatorInfo is not available
                             const creator = users.find(user => user.id === group.createdById);
                             if (!creator) return 'Unknown';
                             return creator.firstName && creator.lastName
