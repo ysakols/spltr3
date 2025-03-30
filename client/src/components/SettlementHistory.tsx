@@ -13,7 +13,8 @@ import {
   HelpCircle,
   MoreVertical,
   Check,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
