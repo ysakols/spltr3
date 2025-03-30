@@ -1343,8 +1343,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const members = await storage.getGroupMembers(groupId);
-      // Use the sanitizeUsers helper function to remove sensitive data
-      res.json(sanitizeUsers(members));
+      
+      // Limit the exposed data to only what's needed for UI rendering
+      const limitedMemberData = members.map(member => ({
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        displayName: member.displayName,
+        // Only include email if absolutely necessary for functionality
+        email: member.email
+      }));
+      
+      res.json(limitedMemberData);
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
