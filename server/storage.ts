@@ -57,6 +57,7 @@ export interface IStorage {
   addContact(contact: InsertContact): Promise<Contact>;
   getUserContacts(userId: number): Promise<Contact[]>;
   updateContactInteraction(userId: number, contactUserId: number): Promise<Contact | undefined>;
+  deleteContact(userId: number, contactUserId: number): Promise<boolean>;
   
   // Summary method
   calculateSummary(groupId: number): Promise<Balance>;
@@ -782,6 +783,20 @@ export class DatabaseStorage implements IStorage {
     }
     
     return undefined;
+  }
+  
+  async deleteContact(userId: number, contactUserId: number): Promise<boolean> {
+    // Delete the contact relationship
+    const result = await db
+      .delete(contacts)
+      .where(
+        and(
+          eq(contacts.userId, userId),
+          eq(contacts.contactUserId, contactUserId)
+        )
+      );
+    
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Calculate summary for a group

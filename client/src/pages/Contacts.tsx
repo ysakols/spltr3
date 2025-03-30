@@ -51,7 +51,8 @@ import {
   Mail,
   Search,
   Send,
-  User as UserIcon
+  User as UserIcon,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +66,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // Schema for adding a new contact
 const addContactSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  firstName: z.string().min(1, { message: "First name is required" }),
 });
 
 type AddContactFormValues = z.infer<typeof addContactSchema>;
@@ -101,7 +101,6 @@ function ContactsPage() {
     resolver: zodResolver(addContactSchema),
     defaultValues: {
       email: '',
-      firstName: '',
     },
   });
 
@@ -120,7 +119,6 @@ function ContactsPage() {
       // Create a contact through the contacts API
       await apiRequest('POST', `/api/contacts`, { 
         email: values.email,
-        firstName: values.firstName,
         userId,
       });
       
@@ -141,6 +139,46 @@ function ContactsPage() {
       
       // Try to extract the error message from the response
       let errorMessage = "Failed to add contact. Please try again.";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle deleting a contact
+  const handleDeleteContact = async (contactUserId: number) => {
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete contacts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Delete the contact
+      await apiRequest('DELETE', `/api/contacts/${contactUserId}`);
+      
+      toast({
+        title: "Contact deleted",
+        description: "The contact has been removed from your list",
+      });
+      
+      // Refresh the contact list
+      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'contacts'] });
+      
+    } catch (error: any) {
+      console.error('Error deleting contact:', error);
+      
+      // Try to extract the error message from the response
+      let errorMessage = "Failed to delete contact. Please try again.";
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
@@ -308,6 +346,14 @@ function ContactsPage() {
                                 <Mail className="h-3.5 w-3.5" />
                               </a>
                             </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                              onClick={() => handleDeleteContact(contact.contactUserId)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -332,27 +378,7 @@ function ContactsPage() {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleAddContact)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <UserIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="John"
-                          className="pl-9"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
+              {/* First name field removed as requested */}
               <FormField
                 control={form.control}
                 name="email"

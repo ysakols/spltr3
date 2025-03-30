@@ -395,13 +395,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete a contact
+  app.delete('/api/contacts/:contactUserId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const contactUserId = parseInt(req.params.contactUserId);
+      const userId = (req.user as User).id;
+      
+      if (isNaN(contactUserId)) {
+        return res.status(400).json({ message: 'Invalid contact ID' });
+      }
+      
+      const deleted = await storage.deleteContact(userId, contactUserId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: 'Contact not found' });
+      }
+      
+      res.json({ message: 'Contact deleted successfully' });
+    } catch (err) {
+      console.error('Error deleting contact:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
   // Add a new contact
   app.post('/api/contacts', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { email, firstName, userId } = req.body;
+      const { email, userId } = req.body;
       
-      if (!email || !firstName || !userId) {
-        return res.status(400).json({ message: 'Email, firstName and userId are required' });
+      if (!email || !userId) {
+        return res.status(400).json({ message: 'Email and userId are required' });
       }
       
       // Check if the user adding the contact is the authenticated user
@@ -432,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Create a temporary group for invitation purposes
         const tempGroup = await storage.createGroup({
-          name: `${firstName}'s Invitation Group`,
+          name: `New Contact's Invitation Group`,
           description: `Temporary group for inviting ${email}`,
           createdById: userId,
           initialMembers: [userId]
@@ -442,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const invitation = await storage.createGroupInvitation({
           inviterUserId: userId,
           inviteeEmail: email,
-          inviteeFirstName: firstName,
+          inviteeFirstName: null,
           groupId: tempGroup.id,
           token,
           status: 'pending',
