@@ -285,7 +285,9 @@ export const groupInvitations = pgTable("group_invitations", {
   invitedAt: timestamp("invited_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // Optional expiration date
   acceptedAt: timestamp("accepted_at"), // When the invitation was accepted
-  token: text("token").notNull().unique() // Unique token for invitation URL
+  token: text("token").notNull().unique(), // Unique token for invitation URL
+  resendCount: integer("resend_count").default(0).notNull(), // Number of times the invitation has been resent
+  lastResendAt: timestamp("last_resend_at") // When the invitation was last resent
 });
 
 // Define group invitation relations
@@ -315,14 +317,18 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
     token: true,
     expiresAt: true,
     invitedAt: true,
-    acceptedAt: true
+    acceptedAt: true,
+    resendCount: true,
+    lastResendAt: true
   })
   .extend({
     inviteeEmail: z.string().email({ message: "Invalid email address format" }),
     inviteeFirstName: z.string().optional().nullable(),
     expiresAt: z.date().optional().nullable(),
     invitedAt: z.date().optional(),
-    acceptedAt: z.date().optional().nullable()
+    acceptedAt: z.date().optional().nullable(),
+    resendCount: z.number().default(0),
+    lastResendAt: z.date().optional().nullable()
   });
 
 // Types for new schemas

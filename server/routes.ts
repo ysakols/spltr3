@@ -306,7 +306,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token,
         status: 'pending',
         invitedAt: new Date(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        resendCount: 0,
+        lastResendAt: null
       });
       
       // Import email service
@@ -463,6 +465,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Only the inviter can resend an invitation' });
       }
       
+      // Check rate limit - maximum 3 resends in a 24-hour period
+      const MAX_RESENDS_PER_DAY = 3;
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      
+      // If resendCount >= 3 and the last resend was within 24 hours
+      if (foundInvitation.resendCount >= MAX_RESENDS_PER_DAY && 
+          foundInvitation.lastResendAt && 
+          (Date.now() - foundInvitation.lastResendAt.getTime()) < ONE_DAY_MS) {
+        
+        // Calculate when the user can try again
+        const nextResendTime = new Date(foundInvitation.lastResendAt.getTime() + ONE_DAY_MS);
+        const timeRemaining = nextResendTime.getTime() - Date.now();
+        const hoursRemaining = Math.ceil(timeRemaining / (60 * 60 * 1000));
+        
+        return res.status(429).json({ 
+          message: `Rate limit exceeded. You can resend this invitation again in ${hoursRemaining} hours.`,
+          nextResendTime
+        });
+      }
+      
       // Get the group for the email content
       const group = await storage.getGroup(foundInvitation.groupId);
       if (!group) {
@@ -485,8 +507,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const emailSent = await sendInvitationEmail(foundInvitation, group, currentUser);
         if (emailSent) {
-          console.log(`Invitation email resent to ${foundInvitation.inviteeEmail} successfully`);
-          res.json({ success: true, message: 'Invitation email sent successfully' });
+          // Update the resend counter and timestamp
+          const now = new Date();
+          
+          // Reset counter if 24 hours have passed since last resend
+          const newResendCount = foundInvitation.lastResendAt && 
+                                (now.getTime() - foundInvitation.lastResendAt.getTime() >= ONE_DAY_MS) 
+                                ? 1 : foundInvitation.resendCount + 1;
+          
+          // Update invitation with new resend count and timestamp
+          await db
+            .update(groupInvitations)
+            .set({
+              resendCount: newResendCount,
+              lastResendAt: now
+            })
+            .where(eq(groupInvitations.id, id));
+          
+          console.log(`Invitation email resent to ${foundInvitation.inviteeEmail} successfully (resend count: ${newResendCount})`);
+          res.json({ 
+            success: true, 
+            message: 'Invitation email sent successfully',
+            resendCount: newResendCount,
+            resendLimit: MAX_RESENDS_PER_DAY
+          });
         } else {
           console.error(`Failed to resend invitation email to ${foundInvitation.inviteeEmail}`);
           res.status(500).json({ message: 'Failed to send invitation email' });
@@ -1600,7 +1644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending',
         invitedAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        acceptedAt: null
+        acceptedAt: null,
+        resendCount: 0,
+        lastResendAt: null
       };
       
       // Create a mock group
@@ -1657,7 +1703,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending',
         invitedAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        acceptedAt: null
+        acceptedAt: null,
+        resendCount: 0,
+        lastResendAt: null
       };
       
       // Create a mock group
@@ -1728,7 +1776,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending',
         invitedAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        acceptedAt: null
+        acceptedAt: null,
+        resendCount: 0,
+        lastResendAt: null
       };
       
       // Create a mock group
