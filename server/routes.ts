@@ -1175,7 +1175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Delete a group
+  // Delete a group - only the creator can delete a group
   app.delete('/api/groups/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -1191,11 +1191,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get current user information
       const currentUser = req.user as User;
       
-      // For debugging
-      console.log('Current authenticated user:', currentUser);
-      
-      // Allow any authenticated user to delete the group
-      // This is a temporary fix for the demo - in a production app, we'd want proper permission checks
+      // Ensure only the group creator can delete the group
+      if (group.createdById !== currentUser.id) {
+        return res.status(403).json({ 
+          message: 'Only the group creator can delete the group',
+          note: 'You can leave the group instead by removing yourself as a member'
+        });
+      }
       
       // Delete the group
       const deleted = await storage.deleteGroup(id);
@@ -1320,7 +1322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Remove a user from a group
+  // Remove a user from a group or leave a group
   app.delete('/api/groups/:groupId/members/:userId', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
@@ -1331,20 +1333,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID or user ID' });
       }
       
-      // Get the group to check if the current user is the admin (creator)
+      // Get the group
       const group = await storage.getGroup(groupId);
       if (!group) {
         return res.status(404).json({ message: 'Group not found' });
       }
       
-      // Only allow the group creator to remove members
-      if (group.createdById !== currentUserId) {
-        return res.status(403).json({ message: 'Only the group admin can remove members' });
+      // Users can remove themselves (leave the group) or group creators can remove any member
+      if (userId === currentUserId) {
+        // User is leaving the group (removing themselves)
+        // Cannot leave if you're the creator and there are other members
+        if (group.createdById === currentUserId) {
+          const members = await storage.getGroupMembers(groupId);
+          if (members.length > 1) {
+            return res.status(400).json({ 
+              message: 'As the group creator, you cannot leave the group while other members exist', 
+              note: 'You need to either remove all other members first or delete the group'
+            });
+          }
+        }
+      } else if (group.createdById !== currentUserId) {
+        // User is trying to remove someone else but is not the group creator
+        return res.status(403).json({ 
+          message: 'Only the group creator can remove other members',
+          note: 'Users can only remove themselves from a group'
+        });
       }
       
       await storage.removeUserFromGroup(groupId, userId);
       
-      res.json({ message: 'User removed from group successfully' });
+      // If user is removing themselves, give a different message
+      if (userId === currentUserId) {
+        res.json({ message: 'You have left the group successfully' });
+      } else {
+        res.json({ message: 'User removed from group successfully' });
+      }
     } catch (err) {
       res.status(500).json({ message: (err as Error).message });
     }
