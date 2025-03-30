@@ -1301,13 +1301,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Remove a user from a group
-  app.delete('/api/groups/:groupId/members/:userId', async (req: Request, res: Response) => {
+  app.delete('/api/groups/:groupId/members/:userId', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
       const userId = parseInt(req.params.userId);
+      const currentUserId = (req.user as User).id;
       
       if (isNaN(groupId) || isNaN(userId)) {
         return res.status(400).json({ message: 'Invalid group ID or user ID' });
+      }
+      
+      // Get the group to check if the current user is the admin (creator)
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
+      // Only allow the group creator to remove members
+      if (group.createdById !== currentUserId) {
+        return res.status(403).json({ message: 'Only the group admin can remove members' });
       }
       
       await storage.removeUserFromGroup(groupId, userId);
@@ -1388,7 +1400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete an expense
-  app.delete('/api/expenses/:id', async (req: Request, res: Response) => {
+  app.delete('/api/expenses/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1398,6 +1410,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expense = await storage.getExpense(id);
       if (!expense) return res.status(404).json({ message: 'Expense not found' });
       
+      const currentUserId = (req.user as User).id;
+      
+      // Check if the current user is the one who paid for the expense (creator)
+      if (expense.paidByUserId !== currentUserId) {
+        return res.status(403).json({ message: 'Only the expense creator can delete this expense' });
+      }
+      
       await storage.deleteExpense(id);
       res.json({ message: 'Expense deleted' });
     } catch (err) {
@@ -1406,7 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update an expense
-  app.put('/api/expenses/:id', async (req: Request, res: Response) => {
+  app.put('/api/expenses/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1420,6 +1439,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!expense) {
         console.error('Expense not found:', id);
         return res.status(404).json({ message: 'Expense not found' });
+      }
+      
+      const currentUserId = (req.user as User).id;
+      
+      // Check if the current user is the one who paid for the expense (creator)
+      if (expense.paidByUserId !== currentUserId) {
+        return res.status(403).json({ message: 'Only the expense creator can update this expense' });
       }
       
       // Retain the original groupId
