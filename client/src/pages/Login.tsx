@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { FaGoogle } from "react-icons/fa";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
 function Login() {
@@ -20,31 +18,6 @@ function Login() {
   const getRedirectPath = () => {
     const searchParams = new URLSearchParams(window.location.search);
     return searchParams.get("redirect") || "/";
-  };
-  
-  // Function to redirect to Google OAuth
-  const handleGoogleLogin = () => {
-    // Log current environment for debugging
-    console.log("Current environment:", {
-      hostname: window.location.hostname,
-      protocol: window.location.protocol,
-      host: window.location.host
-    });
-    
-    // Add redirect parameter to Google OAuth URL if needed
-    const redirectPath = getRedirectPath();
-    const redirectParam = redirectPath !== "/" ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
-    
-    try {
-      window.location.href = `/auth/google${redirectParam}`;
-    } catch (error) {
-      console.error("Google login error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to initiate Google login. Please try the email/password option.",
-        variant: "destructive"
-      });
-    }
   };
 
   // Function to handle local login
@@ -117,7 +90,7 @@ function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              {/* Local login form */}
+              {/* Login form */}
               <form onSubmit={handleLocalLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -165,28 +138,6 @@ function Login() {
                   Create Account
                 </Button>
               </div>
-              
-              <div className="relative my-4">
-                <Separator />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-card px-2 text-xs text-muted-foreground">OR</span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center justify-center gap-2 w-full"
-                  onClick={handleGoogleLogin}
-                >
-                  <FaGoogle className="h-4 w-4" />
-                  Sign in with Google
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Note: Google Sign-In requires proper configuration. 
-                  If you experience issues, please use email/password instead.
-                </p>
-              </div>
             </CardContent>
             <CardFooter className="flex flex-col">
               <div className="text-sm text-muted-foreground mt-4">
@@ -194,8 +145,6 @@ function Login() {
               </div>
             </CardFooter>
           </Card>
-          
-          {/* "Return to Home" button removed to prevent unauthorized access */}
         </div>
       </div>
     </div>

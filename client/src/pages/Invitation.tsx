@@ -103,8 +103,8 @@ function Invitation() {
       sessionStorage.setItem("pendingInvitationToken", params.token);
     }
     
-    // Redirect to login (absolute path)
-    window.location.href = "/auth/google";
+    // Redirect to login page
+    setLocation(`/login?redirect=/invitation/${params?.token}`);
   };
   
   // Handle showing the profile form
@@ -362,7 +362,7 @@ function Invitation() {
                       className="w-full"
                     >
                       {acceptingInvitation && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Sign in with Google
+                      Sign in with Email
                     </Button>
                   </>
                 )}
