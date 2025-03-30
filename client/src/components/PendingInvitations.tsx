@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Mail, UserCheck, XCircle, CheckCircle, Trash2, Copy, Link2 } from 'lucide-react';
+import { Clock, Mail, UserCheck, XCircle, CheckCircle, Trash2, Copy, Link2, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
@@ -64,6 +64,25 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
     }
   };
   
+  const handleResendEmail = async (invitation: GroupInvitation) => {
+    try {
+      // Call the API to resend the invitation email
+      await apiRequest('POST', `/api/invitations/${invitation.id}/resend`, {});
+      
+      toast({
+        title: "Email sent",
+        description: `Invitation email has been sent to ${invitation.inviteeEmail}.`,
+      });
+    } catch (error) {
+      console.error('Error sending invitation email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send the invitation email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   if (isLoading) {
     return (
       <Card className="mt-4">
@@ -107,6 +126,11 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
                     {invitation.inviterName && (
                       <span> by {invitation.inviterName}</span>
                     )}
+                    {invitation.expiresAt && invitation.status === 'pending' && (
+                      <div className="text-xs text-amber-600">
+                        Expires {formatInvitationDate(invitation.expiresAt)}
+                      </div>
+                    )}
                     
                     {/* Add note for accepted invitations where user hasn't created an account yet */}
                     {invitation.status === 'accepted' && (
@@ -121,6 +145,18 @@ export function PendingInvitations({ groupId }: PendingInvitationsProps) {
               {/* Action buttons based on invitation status */}
               {invitation.status === 'pending' && (
                 <div className="flex space-x-1">
+                  {/* Send email button */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-500"
+                    onClick={() => handleResendEmail(invitation)}
+                    title="Resend invitation email"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span className="sr-only">Resend invitation email</span>
+                  </Button>
+                  
                   {/* Copy link button */}
                   <Button 
                     variant="ghost" 

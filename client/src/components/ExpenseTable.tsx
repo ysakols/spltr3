@@ -43,7 +43,11 @@ function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense
   // Function to get username by user ID
   const getUsernameById = (userId: number) => {
     const user = members?.find(member => member.id === userId);
-    return user ? user.username : `User ${userId}`;
+    return user ? (
+      user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.displayName || user.email
+    ) : `User ${userId}`;
   };
 
   const deleteExpense = async (id: number) => {

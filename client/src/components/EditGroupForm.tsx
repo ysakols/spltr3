@@ -49,7 +49,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const handleAddMember = () => {
     if (!newMember.trim()) return;
     
-    // We'll post this username to create a new user and add them to the group
+    // Send the email as the username parameter (the API expects email for lookup)
     apiRequest('POST', `/api/groups/${group.id}/members`, { username: newMember.trim() })
       .then(() => {
         // Mark members as changed (to enable save button)
@@ -87,7 +87,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
         
         toast({
           title: 'Member removed',
-          description: `${user.username} has been removed from the group.`
+          description: `${user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}` 
+            : user.displayName || user.email} has been removed from the group.`
         });
       })
       .catch((error) => {
@@ -216,7 +218,7 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
             
             <div className="flex space-x-2 mb-2">
               <Input
-                placeholder="Add a member"
+                placeholder="Enter email address"
                 value={newMember}
                 onChange={(e) => setNewMember(e.target.value)}
                 onKeyDown={handleKeyPress}

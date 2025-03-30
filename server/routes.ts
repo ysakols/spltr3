@@ -374,6 +374,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Resend invitation email
+  app.post('/api/invitations/:id/resend', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid invitation ID' });
+      }
+      
+      // Find the invitation
+      const invitation = await db
+        .select()
+        .from(groupInvitations)
+        .where(eq(groupInvitations.id, id))
+        .limit(1);
+        
+      if (!invitation || !invitation[0]) {
+        return res.status(404).json({ message: 'Invitation not found' });
+      }
+      
+      const foundInvitation = invitation[0];
+      
+      // Security check: Only the inviter can resend the email
+      const currentUser = req.user as User;
+      if (foundInvitation.inviterUserId !== currentUser.id) {
+        return res.status(403).json({ message: 'Only the inviter can resend an invitation' });
+      }
+      
+      // Get the group for the email content
+      const group = await storage.getGroup(foundInvitation.groupId);
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+      
+      // Import email service
+      const { sendInvitationEmail, checkEmailConfig } = await import('./email');
+      
+      // Check email configuration
+      const emailConfig = checkEmailConfig();
+      if (!emailConfig.configured) {
+        return res.status(500).json({ 
+          message: 'Email service is not configured properly',
+          details: emailConfig
+        });
+      }
+      
+      // Send the invitation email
+      try {
+        const emailSent = await sendInvitationEmail(foundInvitation, group, currentUser);
+        if (emailSent) {
+          console.log(`Invitation email resent to ${foundInvitation.inviteeEmail} successfully`);
+          res.json({ success: true, message: 'Invitation email sent successfully' });
+        } else {
+          console.error(`Failed to resend invitation email to ${foundInvitation.inviteeEmail}`);
+          res.status(500).json({ message: 'Failed to send invitation email' });
+        }
+      } catch (emailError) {
+        console.error('Failed to send invitation email:', emailError);
+        res.status(500).json({ message: 'Error sending email', error: (emailError as Error).message });
+      }
+    } catch (err) {
+      console.error('Error resending invitation:', err);
+      res.status(500).json({ message: (err as Error).message });
+    }
+  });
+  
   // Get user's contacts for quick selection
   app.get('/api/users/:userId/contacts', isAuthenticated, async (req: Request, res: Response) => {
     try {
