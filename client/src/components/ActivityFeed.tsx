@@ -69,6 +69,11 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
 
   // Combine and sort invitations and settlements by timestamp
   useEffect(() => {
+    // Only process if we have valid arrays 
+    if (!Array.isArray(invitations) || !Array.isArray(settlements)) {
+      return;
+    }
+    
     const invitationActivities: Activity[] = invitations.map((invitation: GroupInvitation) => ({
       type: 'invitation',
       timestamp: invitation.invitedAt,

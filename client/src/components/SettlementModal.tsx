@@ -42,6 +42,12 @@ import {
 
 // Form schema
 const settlementFormSchema = z.object({
+  amount: z.string()
+    .min(1, { message: "Amount is required" })
+    .refine(
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+      { message: "Amount must be a positive number" }
+    ),
   notes: z.string().optional(),
   transactionReference: z.string().optional(),
 });
@@ -56,9 +62,11 @@ export function SettlementModal() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Set up form with the amount defaulting to the suggested amount
   const form = useForm<SettlementFormValues>({
     resolver: zodResolver(settlementFormSchema),
     defaultValues: {
+      amount: settlementDetails?.amount.toString() || '',
       notes: '',
       transactionReference: '',
     },
@@ -77,13 +85,23 @@ export function SettlementModal() {
   const { fromUserId, toUserId, amount, groupId, fromUsername, toUsername } = settlementDetails;
 
   const handleVenmoPayment = async () => {
+    // Validate the amount before proceeding
+    const formAmount = form.getValues().amount;
+    if (!formAmount || isNaN(parseFloat(formAmount)) || parseFloat(formAmount) <= 0) {
+      form.setError('amount', { 
+        type: 'manual', 
+        message: 'Please enter a valid positive amount' 
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       // Create a settlement record with status pending
       const settlement = await apiRequest('POST', '/api/settlements', {
           fromUserId,
           toUserId,
-          amount: amount.toString(),
+          amount: formAmount,
           groupId: groupId || null,
           paymentMethod: PaymentMethod.VENMO,
           status: SettlementStatus.PENDING,
@@ -109,7 +127,7 @@ export function SettlementModal() {
       // Show toast with clearer instructions
       toast({
         title: 'Manual action required',
-        description: `Find and pay ${toUsername} ${formatCurrency(amount)} in Venmo, then return here to mark it complete.`,
+        description: `Find and pay ${toUsername} ${formatCurrency(parseFloat(formAmount))} in Venmo, then return here to mark it complete.`,
         duration: 10000, // Show for 10 seconds
       });
 
@@ -180,13 +198,22 @@ export function SettlementModal() {
   };
 
   const handleCashPayment = async (values: SettlementFormValues) => {
+    // Form validation should handle this, but double-check
+    if (!values.amount || isNaN(parseFloat(values.amount)) || parseFloat(values.amount) <= 0) {
+      form.setError('amount', { 
+        type: 'manual', 
+        message: 'Please enter a valid positive amount' 
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       // Create settlement record with status completed
       await apiRequest('POST', '/api/settlements', {
           fromUserId,
           toUserId,
-          amount: amount.toString(),
+          amount: values.amount,
           groupId: groupId || null,
           paymentMethod: PaymentMethod.CASH,
           status: SettlementStatus.COMPLETED,
@@ -197,7 +224,7 @@ export function SettlementModal() {
 
       toast({
         title: 'Settlement recorded',
-        description: 'The payment has been marked as complete.',
+        description: `You paid ${toUsername} ${formatCurrency(parseFloat(values.amount))}`,
       });
 
       // Invalidate queries to refresh data
@@ -244,6 +271,28 @@ export function SettlementModal() {
           <TabsContent value={PaymentMethod.CASH}>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleCashPayment)} className="space-y-4 py-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Amount ($)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                          <input
+                            type="text"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="0.00"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="notes"
@@ -295,7 +344,7 @@ export function SettlementModal() {
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       <AlertTitle>Final Step</AlertTitle>
                       <AlertDescription>
-                        If you've completed your payment of <strong>{formatCurrency(amount)}</strong> to <strong>{toUsername}</strong> in Venmo, 
+                        If you've completed your payment to <strong>{toUsername}</strong> in Venmo, 
                         please click "Mark as Completed" below to record it in the system.
                       </AlertDescription>
                     </Alert>
@@ -339,10 +388,32 @@ export function SettlementModal() {
                       </p>
                       <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-1">
                         <li>Search for recipient <strong>{toUsername}</strong> in Venmo</li>
-                        <li>Pay them <strong>{formatCurrency(amount)}</strong></li>
+                        <li>Pay them the amount you specify below</li>
                         <li>Once payment is complete, return here and click "Mark as Completed"</li>
                       </ol>
                     </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Payment Amount ($)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                              <input
+                                type="text"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="0.00"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     
                     <FormField
                       control={form.control}
