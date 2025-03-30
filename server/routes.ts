@@ -473,14 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           invitedAt: new Date()
         });
         
-        // Also create a contact entry
-        const contact = await storage.addContact({
-          userId,
-          contactUserId: 0, // Will be updated when the user registers
-          email,
-          frequency: 0,
-          lastInteractionAt: new Date()
-        });
+        // We can't create a contact entry yet since the user doesn't exist
+        // We'll record this as a pending invitation only for now
         
         // Import email service
         const { sendInvitationEmail, checkEmailConfig } = await import('./email');
@@ -520,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        res.status(201).json({ contact, invitation });
+        res.status(201).json({ success: true, invitation });
       }
     } catch (err) {
       console.error('Error adding contact:', err);
