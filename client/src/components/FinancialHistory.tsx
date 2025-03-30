@@ -7,33 +7,44 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CreditCard, CheckCircle2, Clock, XCircle, Banknote, ArrowUpRight, HelpCircle } from 'lucide-react';
 
-import type { User, Settlement } from '@shared/schema';
-import { SplitType } from '@shared/schema';
-import type { ExtendedExpense } from '@/types';
+import type { User } from '@shared/schema';
+import { SplitType, TransactionType, PaymentMethod, TransactionStatus } from '@shared/schema';
 
-// Extended Settlement type that includes user info
-type ExtendedSettlement = Settlement & {
-  fromUser?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    displayName: string;
-  };
-  toUser?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    displayName: string;
-  };
-};
+// Extended Transaction type that includes user info
+interface TransactionUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+}
 
-type FinancialEvent = {
-  type: 'expense' | 'settlement';
-  timestamp: string;
-  data: ExtendedExpense | ExtendedSettlement;
-};
+interface Transaction {
+  id: number;
+  type: string; // 'expense' or 'settlement'
+  description: string;
+  amount: string | number;
+  paidByUserId: number;
+  createdByUserId?: number;
+  date: string;
+  createdAt: string;
+  groupId: number;
+  // Expense-specific fields
+  splitType?: string;
+  splitDetails?: string;
+  // Settlement-specific fields
+  toUserId?: number;
+  paymentMethod?: string;
+  status?: string;
+  notes?: string;
+  completedAt?: string;
+  transactionReference?: string;
+  // User details
+  paidByUser?: TransactionUser;
+  createdByUser?: TransactionUser;
+  toUser?: TransactionUser;
+}
 
 type SplitTypeLabelProps = {
   splitType: SplitType;
@@ -64,59 +75,20 @@ function SplitTypeLabel({ splitType }: SplitTypeLabelProps) {
 }
 
 export function FinancialHistory({ groupId }: { groupId: number }) {
-  const [financialEvents, setFinancialEvents] = useState<FinancialEvent[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
 
-  // Fetch group expenses
-  const { data: expenses = [] } = useQuery<ExtendedExpense[]>({
-    queryKey: ['/api/groups', groupId, 'expenses'],
-    queryFn: () => apiRequest('GET', `/api/groups/${groupId}/expenses`),
+  // Fetch transactions for this group (combines both expenses and settlements)
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
+    queryKey: ['/api/groups', groupId, 'transactions'],
+    queryFn: () => apiRequest('GET', `/api/groups/${groupId}/transactions`),
   });
 
-  // Fetch settlements for this group
-  const { data: settlements = [] } = useQuery<ExtendedSettlement[]>({
-    queryKey: ['/api/groups', groupId, 'settlements'],
-    queryFn: () => apiRequest('GET', `/api/groups/${groupId}/settlements`),
-  });
-
-  // Combine and sort expenses and settlements by timestamp
-  useEffect(() => {
-    // Only process if we have valid arrays 
-    if (!Array.isArray(expenses) || !Array.isArray(settlements)) {
-      return;
-    }
-    
-    // Deep compare to prevent unnecessary updates
-    const expenseIds = expenses.map(e => e.id).sort().join(',');
-    const settlementIds = settlements.map(s => s.id).sort().join(',');
-    
-    const expenseEvents: FinancialEvent[] = expenses.map((expense: ExtendedExpense) => ({
-      type: 'expense',
-      timestamp: String(expense.date || expense.createdAt), // Convert Date to string
-      data: expense
-    }));
-
-    const settlementEvents: FinancialEvent[] = settlements.map((settlement: ExtendedSettlement) => ({
-      type: 'settlement',
-      timestamp: String(settlement.createdAt), // Convert Date to string
-      data: settlement
-    }));
-
-    // Combine all events and sort by timestamp (most recent first)
-    const allEvents = [...expenseEvents, ...settlementEvents].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    setFinancialEvents(allEvents);
-  }, [JSON.stringify({ 
-    expenseIds: expenses?.map(e => e.id).sort() || [], 
-    settlementIds: settlements?.map(s => s.id).sort() || []
-  })]);
-
-  // Filter activities based on active tab
-  const filteredEvents = activeTab === 'all' 
-    ? financialEvents 
-    : financialEvents.filter(event => event.type === activeTab);
+  // Filter transactions based on active tab
+  const filteredTransactions = activeTab === 'all' 
+    ? transactions 
+    : transactions.filter(transaction => 
+        transaction.type.toLowerCase() === activeTab.toLowerCase()
+      );
 
   // Format currency
   const formatCurrency = (amount: number | string) => {
@@ -175,29 +147,31 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
         </Tabs>
       </CardHeader>
       <CardContent>
-        {filteredEvents.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-4 text-muted-foreground">
+            Loading transactions...
+          </div>
+        ) : filteredTransactions.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             No financial history found
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredEvents.map((event, index) => (
-              <div key={`${event.type}-${event.type === 'expense' 
-                  ? (event.data as ExtendedExpense).id 
-                  : (event.data as ExtendedSettlement).id}`}>
+            {filteredTransactions.map((transaction, index) => (
+              <div key={`transaction-${transaction.id}`}>
                 {index > 0 && <Separator className="my-3" />}
                 
-                {event.type === 'expense' && (
-                  <ExpenseEvent 
-                    expense={event.data as ExtendedExpense} 
+                {transaction.type.toLowerCase() === 'expense' && (
+                  <TransactionExpenseView 
+                    transaction={transaction} 
                     formatCurrency={formatCurrency}
                     truncateText={truncateText}
                   />
                 )}
                 
-                {event.type === 'settlement' && (
-                  <SettlementEvent 
-                    settlement={event.data as ExtendedSettlement} 
+                {transaction.type.toLowerCase() === 'settlement' && (
+                  <TransactionSettlementView 
+                    transaction={transaction} 
                     getStatusColor={getStatusColor}
                     formatPaymentMethod={formatPaymentMethod}
                     formatCurrency={formatCurrency}
@@ -212,53 +186,57 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
   );
 }
 
-// Component for expense events
-function ExpenseEvent({ 
-  expense, 
+// Component for expense transactions
+function TransactionExpenseView({ 
+  transaction, 
   formatCurrency, 
   truncateText
 }: { 
-  expense: ExtendedExpense, 
+  transaction: Transaction, 
   formatCurrency: (amount: number | string) => string,
   truncateText: (text: string, maxLength?: number) => string
 }) {
   // Format date for display
-  const formattedDate = expense.date 
-    ? format(new Date(expense.date), 'MMM d, yyyy')
-    : format(new Date(expense.createdAt), 'MMM d, yyyy');
+  const formattedDate = transaction.date 
+    ? format(new Date(transaction.date), 'MMM d, yyyy')
+    : format(new Date(transaction.createdAt), 'MMM d, yyyy');
 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <span className="font-medium">Expense</span>
-        <SplitTypeLabel splitType={expense.splitType as SplitType} />
+        {transaction.splitType && (
+          <SplitTypeLabel splitType={transaction.splitType as SplitType} />
+        )}
       </div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
         <div className="flex-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger className="text-left w-auto max-w-[150px] truncate">
-                <span className="text-sm font-medium">{expense.description}</span>
+                <span className="text-sm font-medium">{transaction.description}</span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{expense.description}</p>
+                <p>{transaction.description}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
         <div className="flex-none">
           <span className="text-sm font-bold">
-            {formatCurrency(expense.amount)}
+            {formatCurrency(transaction.amount)}
           </span>
         </div>
       </div>
       <div className="flex flex-col xs:flex-row text-xs text-muted-foreground gap-x-2">
         <div>
-          <span className="font-medium">Paid by:</span> {expense.paidByUser?.firstName} {expense.paidByUser?.lastName}
+          <span className="font-medium">Paid by:</span> {transaction.paidByUser?.firstName} {transaction.paidByUser?.lastName}
         </div>
-        <div>
-          <span className="font-medium">Created by:</span> {expense.createdByUser?.firstName} {expense.createdByUser?.lastName}
-        </div>
+        {transaction.createdByUser && (
+          <div>
+            <span className="font-medium">Created by:</span> {transaction.createdByUser.firstName} {transaction.createdByUser.lastName}
+          </div>
+        )}
         <div className="ml-auto">
           {formattedDate}
         </div>
@@ -267,54 +245,59 @@ function ExpenseEvent({
   );
 }
 
-// Component for settlement events
-function SettlementEvent({ 
-  settlement, 
+// Component for settlement transactions
+function TransactionSettlementView({ 
+  transaction, 
   getStatusColor,
   formatPaymentMethod,
   formatCurrency
 }: { 
-  settlement: ExtendedSettlement, 
+  transaction: Transaction, 
   getStatusColor: (status: string) => string,
   formatPaymentMethod: (method: string) => string,
   formatCurrency: (amount: number | string) => string
 }) {
-  const amount = typeof settlement.amount === 'string' 
-    ? parseFloat(settlement.amount) 
-    : settlement.amount;
+  const amount = typeof transaction.amount === 'string' 
+    ? parseFloat(transaction.amount) 
+    : transaction.amount;
 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <span className="font-medium">Settlement</span>
-        <Badge className={`${getStatusColor(settlement.status)} font-normal`}>
-          {settlement.status}
-        </Badge>
+        {transaction.status && (
+          <Badge className={`${getStatusColor(transaction.status)} font-normal`}>
+            {transaction.status}
+          </Badge>
+        )}
       </div>
       <p className="text-sm">
         <span className="font-medium">
-          {settlement.fromUser 
-            ? `${settlement.fromUser.firstName} ${settlement.fromUser.lastName}` 
-            : `User ${settlement.fromUserId}`}
+          {transaction.paidByUser 
+            ? `${transaction.paidByUser.firstName} ${transaction.paidByUser.lastName}` 
+            : `User ${transaction.paidByUserId}`}
         </span> 
         paid 
         <span className="font-medium">
-          {' '}{settlement.toUser 
-            ? `${settlement.toUser.firstName} ${settlement.toUser.lastName}` 
-            : `User ${settlement.toUserId}`}{' '}
+          {' '}{transaction.toUser 
+            ? `${transaction.toUser.firstName} ${transaction.toUser.lastName}` 
+            : `User ${transaction.toUserId}`}{' '}
         </span>
-        <span className="font-bold">{formatCurrency(amount)}</span> via {formatPaymentMethod(settlement.paymentMethod)}
+        <span className="font-bold">{formatCurrency(amount)}</span>
+        {transaction.paymentMethod && (
+          <> via {formatPaymentMethod(transaction.paymentMethod)}</>
+        )}
       </p>
-      {settlement.notes && (
-        <p className="text-xs italic">"{settlement.notes}"</p>
+      {transaction.notes && (
+        <p className="text-xs italic">"{transaction.notes}"</p>
       )}
       <div className="flex justify-between items-center mt-1">
         <span className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(settlement.createdAt), { addSuffix: true })}
+          {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
         </span>
-        {settlement.completedAt && (
+        {transaction.completedAt && (
           <span className="text-xs text-muted-foreground">
-            Completed {formatDistanceToNow(new Date(settlement.completedAt), { addSuffix: true })}
+            Completed {formatDistanceToNow(new Date(transaction.completedAt), { addSuffix: true })}
           </span>
         )}
       </div>

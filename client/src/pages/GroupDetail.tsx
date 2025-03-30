@@ -76,6 +76,9 @@ function GroupDetail() {
   if (summaryError) handleError(summaryError as Error);
 
   const refreshData = () => {
+    // Invalidate transactions which includes both expenses and settlements
+    queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/transactions`] });
+    // Still invalidate expenses for backward compatibility
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/expenses`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
     queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/members`] });
