@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settlement, PaymentMethod, SettlementStatus } from '@shared/schema';
+import { PaymentMethod, TransactionStatus, TransactionType } from '@shared/schema';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { 
@@ -46,26 +46,51 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 
+// Transaction interface definition based on the unified data model
+interface Transaction {
+  id: number;
+  type: string; // 'expense' or 'settlement'
+  description: string;
+  amount: string | number;
+  paidByUserId: number;
+  createdByUserId?: number;
+  date: string;
+  createdAt: string;
+  groupId: number;
+  // Settlement-specific fields
+  toUserId?: number;
+  paymentMethod?: string;
+  status?: string;
+  notes?: string;
+  completedAt?: string;
+  transactionReference?: string;
+}
+
 interface SettlementHistoryProps {
   userId: number;
   groupId?: number;
 }
 
 export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
-  const [settlementToUpdate, setSettlementToUpdate] = useState<Settlement | null>(null);
+  const [transactionToUpdate, setTransactionToUpdate] = useState<Transaction | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch settlements based on context (global or group-specific)
+  // Fetch transactions based on context (global or group-specific)
   const queryKey = groupId 
-    ? [`/api/groups/${groupId}/settlements`]
-    : [`/api/users/${userId}/settlements`];
+    ? ['/api/groups', groupId, 'transactions']
+    : ['/api/users', userId, 'transactions'];
   
-  const { data: settlements, isLoading } = useQuery<Settlement[]>({
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey,
   });
+
+  // Filter to show only settlement transactions
+  const settlements = useMemo(() => {
+    return transactions.filter(tx => tx.type === TransactionType.SETTLEMENT);
+  }, [transactions]);
 
   // Fetch all users to get usernames
   const { data: users = [] } = useQuery<{ id: number; firstName: string; lastName: string; displayName: string; email: string }[]>({
@@ -81,30 +106,16 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
   });
 
   // Function to mark a settlement as completed
-  const markAsCompleted = async (settlementId: number) => {
+  const markAsCompleted = async (transactionId: number) => {
     setIsProcessing(true);
     try {
-      await apiRequest('PUT', `/api/settlements/${settlementId}`, {
-        status: SettlementStatus.COMPLETED,
+      await apiRequest('PATCH', `/api/transactions/${transactionId}`, {
+        status: TransactionStatus.COMPLETED,
         completedAt: new Date()
       });
       
       // Invalidate all relevant queries to refresh all UI components
-      // This ensures that all tables, summaries, and history are updated
-
-      // First invalidate the specific settlement list we're displaying
-      queryClient.invalidateQueries({ queryKey });
-      
-      // Invalidate all related queries to ensure every component updates
-      if (groupId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-      }
-      
-      // Invalidate user-specific queries
-      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      invalidateAllQueries();
       
       toast({
         title: "Success!",
@@ -124,29 +135,15 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
   };
 
   // Function to cancel a settlement
-  const cancelSettlement = async (settlementId: number) => {
+  const cancelSettlement = async (transactionId: number) => {
     setIsProcessing(true);
     try {
-      await apiRequest('PUT', `/api/settlements/${settlementId}`, {
-        status: SettlementStatus.CANCELED
+      await apiRequest('PATCH', `/api/transactions/${transactionId}`, {
+        status: TransactionStatus.CANCELED
       });
       
       // Invalidate all relevant queries to refresh all UI components
-      // This ensures that all tables, summaries, and history are updated
-
-      // First invalidate the specific settlement list we're displaying
-      queryClient.invalidateQueries({ queryKey });
-      
-      // Invalidate all related queries to ensure every component updates
-      if (groupId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-      }
-      
-      // Invalidate user-specific queries
-      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      invalidateAllQueries();
       
       toast({
         title: "Success!",
@@ -163,18 +160,65 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
     } finally {
       setIsProcessing(false);
       setDeleteDialogOpen(false);
-      setSettlementToUpdate(null);
+      setTransactionToUpdate(null);
     }
   };
 
+  // Function to delete a settlement
+  const deleteSettlement = async (transactionId: number) => {
+    setIsProcessing(true);
+    try {
+      await apiRequest('DELETE', `/api/transactions/${transactionId}`);
+      
+      // Invalidate all relevant queries to refresh all UI components
+      invalidateAllQueries();
+      
+      toast({
+        title: "Success!",
+        description: "Settlement has been deleted.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error deleting settlement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete settlement.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+      setDeleteDialogOpen(false);
+      setTransactionToUpdate(null);
+    }
+  };
+  
+  // Helper function to invalidate all relevant queries
+  const invalidateAllQueries = () => {
+    // Invalidate transaction lists
+    queryClient.invalidateQueries({ queryKey });
+    
+    // Invalidate all related queries to ensure every component updates
+    if (groupId) {
+      queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
+    }
+    
+    // Invalidate user-specific queries
+    queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'global-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+  };
+
   // Get appropriate icon for settlement status
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status?: string) => {
+    if (!status) return <HelpCircle className="h-4 w-4 text-gray-500" />;
+    
     switch(status) {
-      case SettlementStatus.COMPLETED:
+      case TransactionStatus.COMPLETED:
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case SettlementStatus.PENDING:
+      case TransactionStatus.PENDING:
         return <Clock className="h-4 w-4 text-amber-500" />;
-      case SettlementStatus.CANCELED:
+      case TransactionStatus.CANCELED:
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <HelpCircle className="h-4 w-4 text-gray-500" />;
@@ -182,7 +226,9 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
   };
 
   // Get appropriate icon for payment method
-  const getPaymentMethodIcon = (method: string) => {
+  const getPaymentMethodIcon = (method?: string) => {
+    if (!method) return <CreditCard className="h-4 w-4" />;
+    
     switch(method) {
       case PaymentMethod.CASH:
         return <Banknote className="h-4 w-4" />;
@@ -227,9 +273,9 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {settlements.map((settlement) => {
-            const isFromCurrentUser = settlement.fromUserId === userId;
-            const otherUserId = isFromCurrentUser ? settlement.toUserId : settlement.fromUserId;
-            const otherUsername = userMap[otherUserId] || `User ${otherUserId}`;
+            const isFromCurrentUser = settlement.paidByUserId === userId;
+            const otherUserId = isFromCurrentUser ? settlement.toUserId : settlement.paidByUserId;
+            const otherUsername = otherUserId ? userMap[otherUserId] || `User ${otherUserId}` : 'Unknown';
             
             return (
               <div 
@@ -261,7 +307,7 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
                     </span>
                     
                     {/* Status-dependent actions */}
-                    {settlement.status === SettlementStatus.PENDING && (
+                    {settlement.status === TransactionStatus.PENDING && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -276,7 +322,7 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={() => {
-                              setSettlementToUpdate(settlement);
+                              setTransactionToUpdate(settlement);
                               setDeleteDialogOpen(true);
                             }}
                             className="text-red-600"
@@ -298,9 +344,9 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
                   
                   <Badge 
                     variant={
-                      settlement.status === SettlementStatus.COMPLETED 
+                      settlement.status === TransactionStatus.COMPLETED 
                         ? "default" 
-                        : settlement.status === SettlementStatus.CANCELED 
+                        : settlement.status === TransactionStatus.CANCELED 
                           ? "destructive" 
                           : "outline"
                     }
@@ -333,7 +379,7 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => settlementToUpdate && cancelSettlement(settlementToUpdate.id)}
+              onClick={() => transactionToUpdate && cancelSettlement(transactionToUpdate.id)}
               disabled={isProcessing}
               className="bg-red-600 hover:bg-red-700"
             >
