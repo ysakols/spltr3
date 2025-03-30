@@ -168,9 +168,6 @@ function ExpenseTable({
 
   return (
     <Card className="shadow-sm border-muted/60">
-      <CardHeader className="p-3 pb-2">
-        <CardTitle className="text-base">Expenses</CardTitle>
-      </CardHeader>
       <CardContent className="p-2">
         {expenses.length === 0 ? (
           <div className="text-center py-3 text-gray-500 text-xs">
@@ -334,22 +331,21 @@ function ExpenseTable({
                                   <TooltipTrigger asChild>
                                     <div className="flex items-center gap-0">
                                       {/* Show the first few avatars */}
-                                      <div className="flex -space-x-1.5">
-                                        {shownUserIds.map(userId => (
-                                          <Avatar key={userId} className="h-6 w-6 border-2 border-background">
-                                            <AvatarFallback className="text-[10px]">
-                                              {getUserInitials(userId)}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                        ))}
+                                      <div className="flex items-center">
+                                        <Avatar className="h-5 w-5">
+                                          <AvatarFallback className="text-[10px]">
+                                            {getUserInitials(shownUserIds[0])}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="ml-1 truncate max-w-[80px]">
+                                          {getUsernameById(shownUserIds[0]).split(' ')[0]} 
+                                          {remainingCount > 0 && (
+                                            <Badge variant="secondary" className="ml-1 px-1.5 text-[10px] py-0 h-4">
+                                              +{remainingCount + (shownUserIds.length > 1 ? shownUserIds.length - 1 : 0)}
+                                            </Badge>
+                                          )}
+                                        </span>
                                       </div>
-                                      
-                                      {/* Show a count badge if there are more users */}
-                                      {remainingCount > 0 && (
-                                        <Badge variant="secondary" className="ml-1 px-1.5 text-[10px] py-0 h-4">
-                                          +{remainingCount}
-                                        </Badge>
-                                      )}
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="p-2 text-xs">
