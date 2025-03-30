@@ -455,7 +455,9 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                     <SelectContent>
                       {members.map((user) => (
                         <SelectItem key={user.id} value={String(user.id)}>
-                          {user.username}
+                          {user.firstName && user.lastName 
+                            ? `${user.firstName} ${user.lastName}`
+                            : user.email || `User ${user.id}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -506,7 +508,11 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                       <tbody className="divide-y">
                         {members.map((member, index) => (
                           <tr key={member.id} className={index % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}>
-                            <td className="px-4 py-2 text-left">{member.username}</td>
+                            <td className="px-4 py-2 text-left">
+                              {member.firstName && member.lastName 
+                                ? `${member.firstName} ${member.lastName}`
+                                : member.email || `User ${member.id}`}
+                            </td>
                             <td className="px-4 py-2 text-right">
                               <div className="relative inline-block">
                                 {expenseData.splitType === SplitType.PERCENTAGE && (
