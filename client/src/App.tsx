@@ -14,7 +14,7 @@ import TermsOfService from "@/pages/TermsOfService";
 import Profile from "@/pages/Profile";
 import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
 import { BalanceSidebar } from "@/components/BalanceSidebar";
-/* Settlement functionality has been removed */
+import { SettlementModal } from "@/components/SettlementModal";
 import { useState, useEffect } from "react";
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -129,7 +129,7 @@ function App() {
           </Switch>
         </Layout>
       )}
-      {/* Settlement functionality has been removed */}
+      <SettlementModal />
       <Toaster />
     </QueryClientProvider>
   );
