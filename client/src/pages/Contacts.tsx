@@ -164,12 +164,7 @@ function ContactsPage() {
             <UserIcon className="mr-2 h-4 w-4" />
             Add Contact
           </Button>
-          <Link href="/create">
-            <Button className="mt-2 sm:mt-0">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Group
-            </Button>
-          </Link>
+          {/* Create Group button removed as requested */}
         </div>
       </div>
 
@@ -215,12 +210,11 @@ function ContactsPage() {
               <p className="text-sm text-muted-foreground mt-1 mb-6">
                 As you add people to your expense groups, they'll appear here
               </p>
-              <Link href="/create">
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create a Group
-                </Button>
-              </Link>
+              {/* Create Group button removed as requested */}
+              <Button onClick={() => setShowAddContactDialog(true)}>
+                <UserIcon className="mr-2 h-4 w-4" />
+                Add a Contact
+              </Button>
             </div>
           ) : (
             <ScrollArea className="h-[500px] rounded-md">
@@ -276,17 +270,7 @@ function ContactsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-8"
-                              asChild
-                            >
-                              <Link href={`/create?email=${encodeURIComponent(contact.email)}`}>
-                                <Users className="mr-2 h-3.5 w-3.5" />
-                                New Group
-                              </Link>
-                            </Button>
+                            {/* New Group button removed as requested */}
                             <Button 
                               variant="ghost" 
                               size="icon"
