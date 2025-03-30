@@ -512,9 +512,8 @@ function TransactionsTable({
                     <TableCell>
                       <div className="flex space-x-1">
                         {/* Edit button */}
-                        {((transaction.type === 'expense' || 
-                           (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id)) 
-                          && onEditExpense) && (
+                        {/* For expenses, show if onEditExpense is available */}
+                        {(transaction.type === 'expense' && onEditExpense) && (
                           <Button 
                             variant="outline"
                             size="icon"
@@ -524,6 +523,9 @@ function TransactionsTable({
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         )}
+                        
+                        {/* For settlements, currently we only support delete (no edit) */}
+                        {/* Omitted as we'll use the delete button below */}
                         
                         {/* Delete button */}
                         {(transaction.type === 'expense' || 
