@@ -150,11 +150,7 @@ function Login() {
             </CardFooter>
           </Card>
           
-          <div className="text-center mt-8">
-            <Button variant="link" onClick={() => setLocation("/")}>
-              Return to Home
-            </Button>
-          </div>
+          {/* "Return to Home" button removed to prevent unauthorized access */}
         </div>
       </div>
     </div>

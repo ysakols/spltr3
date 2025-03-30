@@ -20,7 +20,7 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Separator } from "./ui/separator";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn, queryClient } from "@/lib/queryClient";
 
 // Types
 import type { User as UserType } from "@shared/schema";
@@ -109,15 +109,18 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
   const handleLogout = async () => {
     try {
       await fetch('/auth/logout');
+      // Force query client to reset auth state
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.setQueryData(['/api/auth/me'], null);
       // Redirect to login page after logout
-      setLocation('/login');
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
   
   const handleLogin = () => {
-    setLocation('/login');
+    window.location.href = '/login';
   };
 
   return (
