@@ -504,74 +504,101 @@ export class DatabaseStorage implements IStorage {
     affectedExpensesCount: number;
     affectedExpenses: Array<{ id: number; description: string; amount: string }>;
   }> {
-    // Mark the user as inactive in the group rather than deleting
-    await db.update(userGroups)
-      .set({ isActive: false })
-      .where(and(
-        eq(userGroups.groupId, groupId),
-        eq(userGroups.userId, userId)
-      ));
-    
-    // First, fetch all expenses created by this user in the group
-    const userExpenses = await db.select()
-      .from(expenses)
-      .where(and(
-        eq(expenses.groupId, groupId),
-        eq(expenses.createdByUserId, userId)
-      ));
-    
-    // Delete all expenses created by this user in the group
-    let deletedExpensesCount = 0;
-    if (userExpenses.length > 0) {
-      console.log(`Removing ${userExpenses.length} expense(s) created by user ${userId} from group ${groupId}`);
-      
-      const result = await db.delete(expenses)
-        .where(and(
-          eq(expenses.groupId, groupId),
-          eq(expenses.createdByUserId, userId)
-        ));
-      
-      deletedExpensesCount = result.rowCount || 0;
+    try {
+      // Use a transaction to ensure all operations succeed or fail together
+      return await db.transaction(async (tx) => {
+        // Mark the user as inactive in the group rather than deleting
+        await tx.update(userGroups)
+          .set({ isActive: false })
+          .where(and(
+            eq(userGroups.groupId, groupId),
+            eq(userGroups.userId, userId)
+          ));
+        
+        // First, find all expenses in this group
+        const groupExpenses = await tx.select()
+          .from(expenses)
+          .where(eq(expenses.groupId, groupId));
+        
+        // Find all expenses created by this user in the group
+        const userCreatedExpenses = groupExpenses.filter(
+          expense => expense.createdByUserId === userId
+        );
+        
+        // Find expenses where the user is involved but didn't create them
+        const expenseSplitsResult = await tx.select({
+          expenseSplit: expenseSplits,
+          expense: expenses
+        })
+        .from(expenseSplits)
+        .innerJoin(
+          expenses, 
+          and(
+            eq(expenseSplits.expenseId, expenses.id),
+            eq(expenses.groupId, groupId),
+            not(eq(expenses.createdByUserId, userId)) // Not created by this user
+          )
+        )
+        .where(eq(expenseSplits.userId, userId));
+        
+        // Collect expenses where user is involved but didn't create
+        const affectedExpenses: Array<{ id: number; description: string; amount: string }> = [];
+        const processedExpenseIds = new Set<number>();
+        
+        for (const { expense } of expenseSplitsResult) {
+          if (!processedExpenseIds.has(expense.id)) {
+            processedExpenseIds.add(expense.id);
+            affectedExpenses.push({
+              id: expense.id,
+              description: expense.description,
+              amount: expense.amount.toString()
+            });
+          }
+        }
+        
+        // Remove splits for expenses the user didn't create
+        for (const expense of affectedExpenses) {
+          await tx.delete(expenseSplits)
+            .where(and(
+              eq(expenseSplits.expenseId, expense.id),
+              eq(expenseSplits.userId, userId)
+            ));
+        }
+        
+        // Process expenses created by this user
+        let deletedExpensesCount = 0;
+        if (userCreatedExpenses.length > 0) {
+          console.log(`Removing ${userCreatedExpenses.length} expense(s) created by user ${userId} from group ${groupId}`);
+          
+          // Delete all expense splits for each expense first to avoid foreign key constraint violations
+          for (const expense of userCreatedExpenses) {
+            await tx.delete(expenseSplits)
+              .where(eq(expenseSplits.expenseId, expense.id));
+          }
+          
+          // Then delete the expenses themselves
+          for (const expense of userCreatedExpenses) {
+            const result = await tx.delete(expenses)
+              .where(eq(expenses.id, expense.id));
+            
+            if (result.rowCount && result.rowCount > 0) {
+              deletedExpensesCount++;
+            }
+          }
+        }
+        
+        console.log(`Found ${affectedExpenses.length} expense(s) with orphaned splits from user ${userId}`);
+        
+        return {
+          deletedExpensesCount,
+          affectedExpensesCount: affectedExpenses.length,
+          affectedExpenses
+        };
+      });
+    } catch (error) {
+      console.error('Error in removeUserFromGroup:', error);
+      throw error;
     }
-    
-    // Find expenses where the user is included in splits but doesn't own the expense
-    // These expenses will have orphaned splits and need to be re-split
-    const expenseSplitsQuery = await db.select({
-      expense: expenses
-    })
-    .from(expenses)
-    .where(eq(expenses.groupId, groupId))
-    .innerJoin(
-      expenseSplits,
-      and(
-        eq(expenseSplits.expenseId, expenses.id),
-        eq(expenseSplits.userId, userId),
-        not(eq(expenses.createdByUserId, userId)) // Exclude expenses already deleted
-      )
-    );
-    
-    // Extract unique expenses that have orphaned splits
-    const affectedExpenses: Array<{ id: number; description: string; amount: string }> = [];
-    const processedExpenseIds = new Set<number>();
-    
-    for (const { expense } of expenseSplitsQuery) {
-      if (!processedExpenseIds.has(expense.id)) {
-        processedExpenseIds.add(expense.id);
-        affectedExpenses.push({
-          id: expense.id,
-          description: expense.description,
-          amount: expense.amount.toString()
-        });
-      }
-    }
-    
-    console.log(`Found ${affectedExpenses.length} expense(s) with orphaned splits from user ${userId}`);
-    
-    return {
-      deletedExpensesCount,
-      affectedExpensesCount: affectedExpenses.length,
-      affectedExpenses
-    };
   }
 
   async getGroupMembers(groupId: number): Promise<User[]> {
