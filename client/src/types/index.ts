@@ -9,4 +9,5 @@ export interface ExtendedGroup extends BaseGroup {
 // Extend the base Expense type with additional user information
 export interface ExtendedExpense extends BaseExpense {
   paidByUser?: User;
+  createdByUser?: User;
 }

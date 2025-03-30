@@ -115,6 +115,7 @@ export const expenses = pgTable("expenses", {
   description: text("description").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   paidByUserId: integer("paid_by_user_id").notNull().references(() => users.id),
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
   splitType: text("split_type").notNull().default(SplitType.EQUAL),
   splitDetails: text("split_details").notNull().default('{}'), // JSON string with split allocations
   date: timestamp("date").defaultNow().notNull(),
@@ -126,6 +127,10 @@ export const expenses = pgTable("expenses", {
 export const expensesRelations = relations(expenses, ({ one, many }) => ({
   paidBy: one(users, {
     fields: [expenses.paidByUserId],
+    references: [users.id]
+  }),
+  createdBy: one(users, {
+    fields: [expenses.createdByUserId],
     references: [users.id]
   }),
   group: one(groups, {
@@ -213,6 +218,7 @@ export const insertExpenseSchema = createInsertSchema(expenses)
     description: true,
     amount: true,
     paidByUserId: true,
+    createdByUserId: true,
     groupId: true,
     splitType: true,
     splitDetails: true,
@@ -227,6 +233,8 @@ export const insertExpenseSchema = createInsertSchema(expenses)
     splitDetails: z.string().default('{}').optional(),
     // Array of user IDs involved in this expense
     splitWithUserIds: z.array(z.number()),
+    // Optional createdByUserId for tracking who created the expense
+    createdByUserId: z.number().optional(),
     // Optional specific date for the expense - accept both string and Date types
     date: z.preprocess(
       // Convert string to Date if it's a string
