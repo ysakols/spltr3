@@ -284,6 +284,7 @@ function GroupDetail() {
                 totalExpenses={summary.totalExpenses}
                 onExpenseDeleted={refreshData}
                 onEditExpense={handleEditExpense}
+                members={members} // Pass members to ExpenseTable
               />
               
               {/* Show pending invitations */}

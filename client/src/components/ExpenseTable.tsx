@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 
 import type { Expense, User } from '@shared/schema';
 import { SplitType } from '@shared/schema';
@@ -23,26 +24,47 @@ interface ExpenseTableProps {
   totalExpenses: number;
   onExpenseDeleted: () => void;
   onEditExpense?: (expense: Expense) => void;
+  members?: User[]; // Accept members from parent component if available
 }
 
-function ExpenseTable({ expenses, totalExpenses, onExpenseDeleted, onEditExpense }: ExpenseTableProps) {
+function ExpenseTable({ 
+  expenses, 
+  totalExpenses, 
+  onExpenseDeleted, 
+  onEditExpense,
+  members: propMembers 
+}: ExpenseTableProps) {
   const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
   
   // State for sorting
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
-  // Only fetch members if we have expenses
+  // Only fetch members if we have expenses and they weren't passed as props
   const groupId = expenses.length > 0 ? expenses[0].groupId : null;
   
-  const { data: members } = useQuery<User[]>({
+  const { data: fetchedMembers, isLoading } = useQuery<User[]>({
     queryKey: groupId ? [`/api/groups/${groupId}/members`] : ['no-members'],
-    enabled: !!groupId
+    enabled: !!groupId && !propMembers
   });
+  
+  // Use members from props if available, otherwise use fetched members
+  const members = propMembers || fetchedMembers;
+  
+  // Prefetch user data for expenses if needed
+  useEffect(() => {
+    if (groupId && !members) {
+      queryClient.prefetchQuery({
+        queryKey: [`/api/groups/${groupId}/members`]
+      });
+    }
+  }, [groupId, members]);
   
   // Function to get username by user ID
   const getUsernameById = (userId: number) => {
-    const user = members?.find(member => member.id === userId);
+    if (!members) return `Loading...`;
+    
+    const user = members.find(member => member.id === userId);
     return user ? (
       user.firstName && user.lastName 
         ? `${user.firstName} ${user.lastName}` 
