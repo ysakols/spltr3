@@ -272,8 +272,7 @@ function GroupDetail() {
 
           {!isEditing && (
             <div className="pt-2">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-sm font-medium">Financial Activity</h3>
+              <div className="flex justify-end mb-2">
                 <ExpenseForm 
                   ref={expenseFormRef}
                   group={group} 

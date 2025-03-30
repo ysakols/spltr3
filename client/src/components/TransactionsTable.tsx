@@ -5,8 +5,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-  TableFooter
+  TableRow
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -358,7 +357,7 @@ function TransactionsTable({
     <Card>
       <CardHeader className="pb-1">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl">Financial Activity</CardTitle>
+          <CardTitle className="text-xl">Transactions</CardTitle>
           <div className="flex space-x-1 text-sm">
             <Button
               variant={activeTab === 'all' ? "secondary" : "ghost"}
@@ -543,13 +542,6 @@ function TransactionsTable({
                   </TableRow>
                 ))}
               </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={4} className="text-right font-medium">Total</TableCell>
-                  <TableCell className="text-right font-bold">{formatCurrency(totalAmount)}</TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
-              </TableFooter>
             </Table>
           </div>
         )}
