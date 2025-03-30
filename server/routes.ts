@@ -136,7 +136,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (err) {
         return res.status(500).json({ message: err.message });
       }
-      res.redirect('/');
+      // Clear the session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+        // Redirect to login page instead of home to ensure authentication check
+        res.redirect('/login');
+      });
     });
   });
   
