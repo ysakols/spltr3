@@ -1668,7 +1668,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      const settlement = await storage.createSettlement(validatedData.data);
+      // Make sure the current user is the one creating the settlement
+      const user = req.user as User;
+      if (validatedData.data.fromUserId !== user.id) {
+        return res.status(403).json({ message: 'You can only create settlements for yourself' });
+      }
+      
+      // If status is COMPLETED, set the completedAt timestamp
+      const dataToCreate: any = {...validatedData.data};
+      if (dataToCreate.status === SettlementStatus.COMPLETED) {
+        dataToCreate.completedAt = new Date();
+      }
+      
+      const settlement = await storage.createSettlement(dataToCreate);
+      
+      // If the settlement is completed, mark the corresponding splits as settled
+      if (settlement.status === SettlementStatus.COMPLETED) {
+        await storage.markExpenseSplitsAsSettled(settlement.id);
+      }
+      
       res.status(201).json(settlement);
     } catch (error) {
       console.error('Error creating settlement:', error);

@@ -13,13 +13,26 @@ import type { User, Settlement } from '@shared/schema';
 import { SplitType } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
 
+// Extended Settlement type that includes user info
+type ExtendedSettlement = Settlement & {
+  fromUser?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+  };
+  toUser?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    displayName: string;
+  };
+};
+
 type FinancialEvent = {
   type: 'expense' | 'settlement';
   timestamp: string;
-  data: ExtendedExpense | Settlement & {
-    fromUser?: User;
-    toUser?: User;
-  };
+  data: ExtendedExpense | ExtendedSettlement;
 };
 
 type SplitTypeLabelProps = {
@@ -61,7 +74,7 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
   });
 
   // Fetch settlements for this group
-  const { data: settlements = [] } = useQuery<Settlement[]>({
+  const { data: settlements = [] } = useQuery<ExtendedSettlement[]>({
     queryKey: ['/api/groups', groupId, 'settlements'],
     queryFn: () => apiRequest('GET', `/api/groups/${groupId}/settlements`),
   });
@@ -73,13 +86,17 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
       return;
     }
     
+    // Deep compare to prevent unnecessary updates
+    const expenseIds = expenses.map(e => e.id).sort().join(',');
+    const settlementIds = settlements.map(s => s.id).sort().join(',');
+    
     const expenseEvents: FinancialEvent[] = expenses.map((expense: ExtendedExpense) => ({
       type: 'expense',
       timestamp: String(expense.date || expense.createdAt), // Convert Date to string
       data: expense
     }));
 
-    const settlementEvents: FinancialEvent[] = settlements.map((settlement: Settlement) => ({
+    const settlementEvents: FinancialEvent[] = settlements.map((settlement: ExtendedSettlement) => ({
       type: 'settlement',
       timestamp: String(settlement.createdAt), // Convert Date to string
       data: settlement
@@ -91,7 +108,10 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
     );
 
     setFinancialEvents(allEvents);
-  }, [expenses, settlements]);
+  }, [JSON.stringify({ 
+    expenseIds: expenses?.map(e => e.id).sort() || [], 
+    settlementIds: settlements?.map(s => s.id).sort() || []
+  })]);
 
   // Filter activities based on active tab
   const filteredEvents = activeTab === 'all' 
@@ -164,7 +184,7 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
             {filteredEvents.map((event, index) => (
               <div key={`${event.type}-${event.type === 'expense' 
                   ? (event.data as ExtendedExpense).id 
-                  : (event.data as Settlement).id}`}>
+                  : (event.data as ExtendedSettlement).id}`}>
                 {index > 0 && <Separator className="my-3" />}
                 
                 {event.type === 'expense' && (
@@ -177,7 +197,7 @@ export function FinancialHistory({ groupId }: { groupId: number }) {
                 
                 {event.type === 'settlement' && (
                   <SettlementEvent 
-                    settlement={event.data as Settlement} 
+                    settlement={event.data as ExtendedSettlement} 
                     getStatusColor={getStatusColor}
                     formatPaymentMethod={formatPaymentMethod}
                     formatCurrency={formatCurrency}
@@ -254,7 +274,7 @@ function SettlementEvent({
   formatPaymentMethod,
   formatCurrency
 }: { 
-  settlement: Settlement, 
+  settlement: ExtendedSettlement, 
   getStatusColor: (status: string) => string,
   formatPaymentMethod: (method: string) => string,
   formatCurrency: (amount: number | string) => string
@@ -273,11 +293,15 @@ function SettlementEvent({
       </div>
       <p className="text-sm">
         <span className="font-medium">
-          {settlement.fromUserId ? `User ${settlement.fromUserId}` : 'Someone'} 
+          {settlement.fromUser 
+            ? `${settlement.fromUser.firstName} ${settlement.fromUser.lastName}` 
+            : `User ${settlement.fromUserId}`}
         </span> 
         paid 
         <span className="font-medium">
-          {' '}{settlement.toUserId ? `User ${settlement.toUserId}` : 'someone'}{' '}
+          {' '}{settlement.toUser 
+            ? `${settlement.toUser.firstName} ${settlement.toUser.lastName}` 
+            : `User ${settlement.toUserId}`}{' '}
         </span>
         <span className="font-bold">{formatCurrency(amount)}</span> via {formatPaymentMethod(settlement.paymentMethod)}
       </p>
