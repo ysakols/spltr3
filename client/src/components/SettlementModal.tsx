@@ -93,21 +93,23 @@ export function SettlementModal() {
       // Store the settlement ID for later
       setPendingSettlementId(settlement.id);
 
-      // Use Venmo web URL instead of deep link for browser compatibility
-      const venmoWebUrl = `https://venmo.com/?txn=pay&audience=friends&recipients=${toUsername}&amount=${amount}&note=Payment from expense sharing app`;
+      // Use Venmo web URL with simpler parameters to avoid triggering security restrictions
+      const paymentNote = encodeURIComponent("Payment from expense sharing app");
+      const venmoWebUrl = `https://venmo.com/`;
       
-      // Open a new tab with the Venmo web interface
+      // Open a new tab with the Venmo interface instead of direct payment URL
+      // This avoids triggering Venmo's anti-fraud mechanisms that block scripted payment redirects
       const venmoWindow = window.open(venmoWebUrl, '_blank');
       
       toast({
-        title: 'Payment initialized',
-        description: 'Opening Venmo in a new tab. After completing payment, mark it as completed.',
+        title: 'Navigate to Venmo',
+        description: 'Opening Venmo in a new tab. Search for the recipient and send payment manually.',
       });
       
-      // Show toast to confirm payment is completed
+      // Show toast with clearer instructions
       toast({
-        title: 'Action required',
-        description: 'After completing payment in Venmo, please mark your settlement as completed.',
+        title: 'Manual action required',
+        description: `Find and pay ${toUsername} ${formatCurrency(amount)} in Venmo, then return here to mark it complete.`,
         duration: 10000, // Show for 10 seconds
       });
 
@@ -290,9 +292,10 @@ export function SettlementModal() {
                   <>
                     <Alert className="bg-green-50 border-green-200">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertTitle>Payment initiated</AlertTitle>
+                      <AlertTitle>Final Step</AlertTitle>
                       <AlertDescription>
-                        After completing the payment in Venmo, click "Mark as Completed" below.
+                        If you've completed your payment of <strong>{formatCurrency(amount)}</strong> to <strong>{toUsername}</strong> in Venmo, 
+                        please click "Mark as Completed" below to record it in the system.
                       </AlertDescription>
                     </Alert>
                     
@@ -329,10 +332,16 @@ export function SettlementModal() {
                 ) : (
                   // Show this initially before they go to Venmo
                   <>
-                    <p className="text-sm text-muted-foreground">
-                      You'll be redirected to Venmo to complete the payment.
-                      After you complete the payment, mark it as settled.
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        You'll be redirected to the Venmo website. To complete payment:
+                      </p>
+                      <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-1">
+                        <li>Search for recipient <strong>{toUsername}</strong> in Venmo</li>
+                        <li>Pay them <strong>{formatCurrency(amount)}</strong></li>
+                        <li>Once payment is complete, return here and click "Mark as Completed"</li>
+                      </ol>
+                    </div>
                     
                     <FormField
                       control={form.control}
