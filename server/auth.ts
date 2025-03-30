@@ -75,21 +75,37 @@ passport.use(new LocalStrategy(
 // Setup Google OAuth strategy
 // Only set up Google strategy if environment variables are set
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  console.log('Setting up Google OAuth strategy with callback URL:', process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback");
+  // Output configuration information for debugging
+  console.log('==== Google OAuth Configuration ====');
+  console.log('Setting up Google OAuth strategy with:');
+  console.log('- Client ID:', process.env.GOOGLE_CLIENT_ID.substring(0, 5) + '...' + process.env.GOOGLE_CLIENT_ID.substring(process.env.GOOGLE_CLIENT_ID.length - 5));
+  console.log('- Callback URL:', process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback");
+  
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback",
-    scope: ['profile', 'email']
+    scope: ['profile', 'email'],
+    // Add state parameter validation for security
+    state: true
   }, async (accessToken, refreshToken, profile, done) => {
     try {
+      console.log('Received Google profile:', {
+        id: profile.id,
+        displayName: profile.displayName,
+        emails: profile.emails?.map(e => e.value) || [],
+        hasPhotos: !!profile.photos?.length
+      });
+      
       // Check if we have a user with this Google ID
       let user = await storage.getUserByGoogleId(profile.id);
       
       if (!user) {
+        console.log('No existing user with Google ID:', profile.id);
         // Check if we have a user with the same email
         const email = profile.emails?.[0]?.value;
         if (email) {
+          console.log('Checking for existing user with email:', email);
           user = await storage.getUserByEmail(email);
           
           if (user) {

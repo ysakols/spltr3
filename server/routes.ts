@@ -204,15 +204,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google OAuth callback endpoint
   app.get('/auth/google/callback', 
     (req: Request, res: Response, next: NextFunction) => {
-      console.log('Google callback route accessed with query params:', req.query);
+      console.log('===== Google callback route =====');
+      console.log('Callback received with query params:', req.query);
       console.log('Session redirect path:', req.session.redirectTo);
+      console.log('User authenticated?', req.isAuthenticated());
+      
+      // Handle errors passed in the OAuth state
+      if (req.query.error) {
+        console.error('Google auth error:', req.query.error);
+        return res.redirect(`/login?error=${encodeURIComponent(req.query.error as string)}`);
+      }
       next();
     },
-    passport.authenticate('google', { 
-      failureRedirect: '/login?error=Authentication%20failed'
-    }),
+    // Use custom authentication handler for better error reporting
+    (req: Request, res: Response, next: NextFunction) => {
+      passport.authenticate('google', (err, user, info) => {
+        if (err) {
+          console.error('Google authentication error:', err);
+          return res.redirect(`/login?error=${encodeURIComponent(err.message)}`);
+        }
+        if (!user) {
+          console.error('Google authentication failed:', info);
+          return res.redirect('/login?error=Authentication%20failed');
+        }
+        // Log in the authenticated user
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error('Login error after Google auth:', loginErr);
+            return res.redirect(`/login?error=${encodeURIComponent(loginErr.message)}`);
+          }
+          next();
+        });
+      })(req, res, next);
+    },
     (req: Request, res: Response) => {
       console.log('Google authentication successful for user:', (req.user as User)?.email);
+      console.log('User is now authenticated:', req.isAuthenticated());
       
       // Use the stored redirect path or default to home
       const redirectPath = req.session.redirectTo || '/';
