@@ -1615,6 +1615,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const settlement = await storage.createSettlement(dataToCreate);
+      
+      // If the settlement is completed, mark the corresponding splits as settled
+      if (settlement.status === SettlementStatus.COMPLETED) {
+        await storage.markExpenseSplitsAsSettled(settlement.id);
+      }
+      
       res.status(201).json(settlement);
     } catch (error) {
       console.error('Error creating settlement:', error);
@@ -1739,6 +1745,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedSettlement = await storage.updateSettlement(id, dataToUpdate);
+      
+      // If the settlement status is now completed, mark the expense splits as settled
+      if (dataToUpdate.status === SettlementStatus.COMPLETED) {
+        await storage.markExpenseSplitsAsSettled(id);
+      }
+      
       res.json(updatedSettlement);
     } catch (error) {
       console.error('Error updating settlement:', error);
