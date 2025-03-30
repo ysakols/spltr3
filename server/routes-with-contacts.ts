@@ -1794,7 +1794,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: z.string().optional(),
         notes: z.string().nullable().optional(),
         transactionReference: z.string().nullable().optional(),
-        completedAt: z.date().nullable().optional()
+        completedAt: z.string().or(z.date()).nullable().optional().transform(val => 
+          typeof val === 'string' ? new Date(val) : val
+        )
       });
       
       const existingSettlement = await storage.getSettlement(id);
