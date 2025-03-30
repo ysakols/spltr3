@@ -14,7 +14,7 @@ import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Banknote, CreditCard, C
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, getQueryFn } from '@/lib/queryClient';
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +69,15 @@ function TransactionsTable({
 }: TransactionsTableProps) {
   const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
   const queryClient = useQueryClient();
+  
+  // Get current user
+  const { data: currentUser } = useQuery<User | null>({
+    queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn({ 
+      on401: "returnNull" 
+    }),
+    staleTime: 60000,
+  });
   
   // State for sorting
   const [sortField, setSortField] = useState<string | null>('date');
@@ -265,13 +274,28 @@ function TransactionsTable({
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
         onTransactionDeleted();
       });
+    } else if (transaction.type === 'settlement') {
+      try {
+        // Delete settlement via the transactions endpoint
+        await apiRequest('DELETE', `/api/transactions/${transaction.id}`);
+        
+        // Refresh all the relevant data after deletion
+        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'global-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+        
+        onTransactionDeleted();
+      } catch (error) {
+        console.error('Error deleting settlement:', error);
+        // You could add toast notifications here in the future
+      }
     }
-    // For settlements, currently we don't allow deletion
   };
   
-  // Function to handle edit expense
+  // Function to handle edit transaction
   const handleEditTransaction = (transaction: Transaction) => {
-    // Only expenses can be edited currently
+    // If it's an expense, pass it to the expense edit handler
     if (transaction.type === 'expense' && onEditExpense) {
       // Convert transaction to expense format for the existing edit function
       const expenseData = {
@@ -291,6 +315,13 @@ function TransactionsTable({
       };
       
       onEditExpense(expenseData);
+    } 
+    // For settlements, we currently use the delete action and then create a new one
+    // Future enhancement: Implement a dedicated settlement edit form
+    else if (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id) {
+      handleDeleteTransaction(transaction);
+      // Settlement editing could be implemented in a future iteration
+      // For now, delete the settlement and the user can create a new one
     }
   };
   
@@ -426,12 +457,7 @@ function TransactionsTable({
                       
                       {/* Show badges for additional details */}
                       <div className="flex mt-1 space-x-1">
-                        {/* For expenses, show split type */}
-                        {transaction.type === 'expense' && transaction.splitType && (
-                          <Badge className={`${getSplitTypeBadgeStyle(transaction.splitType)} text-xs font-normal`}>
-                            {getSplitTypeLabel(transaction.splitType)}
-                          </Badge>
-                        )}
+                        {/* We no longer show split type badges as requested */}
                         
                         {/* For settlements, show payment method and status */}
                         {transaction.type === 'settlement' && transaction.paymentMethod && (
@@ -450,7 +476,14 @@ function TransactionsTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={transaction.type === 'expense' ? "secondary" : "outline"}>
+                      <Badge 
+                        variant="outline" 
+                        className={`${
+                          transaction.type === 'expense' 
+                            ? 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200' 
+                            : 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200'
+                        }`}
+                      >
                         {transaction.type === 'expense' ? 'Expense' : 'Settlement'}
                       </Badge>
                     </TableCell>
@@ -468,14 +501,21 @@ function TransactionsTable({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-semibold">
+                      <span className={`font-semibold ${
+                        transaction.type === 'settlement' ? 'text-green-600 flex items-center justify-end' : ''
+                      }`}>
+                        {transaction.type === 'settlement' && (
+                          <span className="mr-1">+</span>
+                        )}
                         {formatCurrency(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
-                        {/* Edit button - only for expenses */}
-                        {transaction.type === 'expense' && onEditExpense && (
+                        {/* Edit button */}
+                        {((transaction.type === 'expense' || 
+                           (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id)) 
+                          && onEditExpense) && (
                           <Button 
                             variant="outline"
                             size="icon"
@@ -486,8 +526,9 @@ function TransactionsTable({
                           </Button>
                         )}
                         
-                        {/* Delete button - only for expenses */}
-                        {transaction.type === 'expense' && (
+                        {/* Delete button */}
+                        {(transaction.type === 'expense' || 
+                          (transaction.type === 'settlement' && transaction.createdByUserId === currentUser?.id)) && (
                           <Button 
                             variant="outline"
                             size="icon"
