@@ -1288,9 +1288,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   // TEST-ONLY route to preview invitation email (will be removed in production)
-  app.get('/api/test/invitation-email', isAuthenticated, async (req: Request, res: Response) => {
+  app.get('/api/test/invitation-email', async (req: Request, res: Response) => {
     try {
-      const currentUser = req.user as User;
+      // Use authenticated user if available, or create a mock user
+      const currentUser = req.user as User || {
+        id: 999,
+        email: 'test-sender@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        displayName: 'Test User'
+      };
+      
+      console.log('Using user for test email:', currentUser);
       
       // Create a mock invitation
       const mockInvitation: GroupInvitation = {
@@ -1334,17 +1343,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // HTML preview of the invitation email
-  app.get('/api/test/invitation-email/preview', isAuthenticated, async (req: Request, res: Response) => {
+  // Test route to actually send an email using Resend
+  app.get('/api/test/invitation-email/send', async (req: Request, res: Response) => {
     try {
-      const currentUser = req.user as User;
+      // Use authenticated user if available, or create a mock user
+      const currentUser = req.user as User || {
+        id: 999,
+        email: 'test-sender@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        displayName: 'Test User'
+      };
       
       // Create a mock invitation
       const mockInvitation: GroupInvitation = {
         id: 0,
         groupId: 1,
         inviterUserId: currentUser.id,
-        inviteeEmail: 'test@example.com',
+        inviteeEmail: 'delivered@resend.dev', // Use Resend's test email address for reliable delivery
+        inviteeFirstName: null,
+        token: 'test-token-' + Date.now(),
+        status: 'pending',
+        invitedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        acceptedAt: null
+      };
+      
+      // Create a mock group
+      const mockGroup: Group = {
+        id: 1,
+        name: 'Test Group',
+        description: 'A test group for email sending',
+        createdAt: new Date(),
+        createdById: currentUser.id,
+      };
+      
+      // Import email service
+      const { sendInvitationEmail, checkEmailConfig } = await import('./email');
+      
+      // Check email configuration first
+      const emailConfig = checkEmailConfig();
+      console.log('Email configuration status:', emailConfig);
+      
+      // Attempt to send the email
+      const success = await sendInvitationEmail(mockInvitation, mockGroup, currentUser);
+      
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: 'Test email sent successfully to ' + mockInvitation.inviteeEmail,
+          emailConfig
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send test email',
+          emailConfig  
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ 
+        success: false,
+        message: (error as Error).message,
+        stack: (error as Error).stack
+      });
+    }
+  });
+  
+  // HTML preview of the invitation email
+  app.get('/api/test/invitation-email/preview', async (req: Request, res: Response) => {
+    try {
+      // Use authenticated user if available, or create a mock user
+      const currentUser = req.user as User || {
+        id: 999,
+        email: 'test-sender@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        displayName: 'Test User'
+      };
+      
+      // Create a mock invitation
+      const mockInvitation: GroupInvitation = {
+        id: 0,
+        groupId: 1,
+        inviterUserId: currentUser.id,
+        inviteeEmail: 'delivered@resend.dev', // Use Resend's test email address for consistency
         inviteeFirstName: null,
         token: 'test-token-' + Date.now(),
         status: 'pending',

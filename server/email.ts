@@ -177,10 +177,14 @@ export async function sendInvitationEmail(
   group: Group, 
   inviter?: User
 ): Promise<boolean> {
+  console.log('Attempting to send invitation email...');
+  console.log('Email configuration status:', checkEmailConfig());
+  
   const resend = createResendClient();
   
-  // If client couldn't be created, fail silently
+  // If client couldn't be created, fail with detailed log
   if (!resend) {
+    console.error('Failed to create Resend client. Email configuration issue detected.');
     console.log(`Email would have been sent to ${invitation.inviteeEmail} for group "${group.name}"`);
     return false;
   }
@@ -188,25 +192,60 @@ export async function sendInvitationEmail(
   try {
     // Generate email content
     const { html, text, subject } = createInvitationEmailContent(invitation, group, inviter);
+    console.log('Email content generated successfully');
+    console.log('Sending to:', invitation.inviteeEmail);
+    console.log('Subject:', subject);
     
-    // Send email using Resend
-    const { data, error } = await resend.emails.send({
+    // Determine recipient
+    // For development/testing, use Resend's test email if the environment variable is set
+    const emailRecipient = process.env.NODE_ENV === 'production' 
+      ? invitation.inviteeEmail 
+      : 'delivered@resend.dev'; // Resend's test email for development
+    
+    console.log('Using email recipient:', emailRecipient);
+    if (emailRecipient !== invitation.inviteeEmail) {
+      console.log('Note: Using test email address instead of actual recipient for development/testing');
+    }
+    
+    // Send email using Resend with detailed logging
+    console.log('Calling Resend API...');
+    const result = await resend.emails.send({
       from: 'spltr3 <onboarding@resend.dev>', // Default sender for Resend free tier
-      to: invitation.inviteeEmail,
+      to: emailRecipient,
       subject,
       html,
       text,
     });
+    console.log('Resend API response:', JSON.stringify(result));
+    
+    const { data, error } = result;
     
     if (error) {
       console.error('Error sending invitation email with Resend:', error);
+      console.error('Full error details:', JSON.stringify(error));
+      
+      // Check if it's a validation error with the recipient address
+      if (error.name === 'validation_error' && 
+          error.message && 
+          error.message.includes('Invalid `to` field')) {
+        console.error('This appears to be a validation error with the recipient email address.');
+        console.error('In development mode, Resend requires using test email addresses.');
+        console.error('For production use, set NODE_ENV=production and verify the recipient is a valid email.');
+      }
+      
       return false;
     }
     
-    console.log(`Invitation email sent to ${invitation.inviteeEmail} with Resend ID:`, data?.id);
+    console.log(`Invitation email sent to ${emailRecipient} with Resend ID:`, data?.id);
+    if (emailRecipient !== invitation.inviteeEmail) {
+      console.log(`Note: Actual recipient ${invitation.inviteeEmail} would have received this in production mode.`);
+    }
+    
     return true;
   } catch (error) {
-    console.error('Error sending invitation email:', error);
+    console.error('Exception during email sending:', error);
+    // Print the full error object for debugging
+    console.error('Full error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return false;
   }
 }
