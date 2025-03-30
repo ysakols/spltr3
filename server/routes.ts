@@ -1515,7 +1515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Calculate summary
-  app.get('/api/groups/:groupId/summary', async (req: Request, res: Response) => {
+  app.get('/api/groups/:groupId/summary', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const groupId = parseInt(req.params.groupId);
       if (isNaN(groupId)) {
@@ -1525,6 +1525,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const group = await storage.getGroup(groupId);
       if (!group) return res.status(404).json({ message: 'Group not found' });
       
+      // Ensure the user is a member of the group
+      const user = req.user as User;
+      const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.id === user.id);
+      
+      if (!isMember) {
+        return res.status(403).json({ message: 'Not authorized to view this group summary' });
+      }
+      
       const summary = await storage.calculateSummary(groupId);
       res.json(summary);
     } catch (err) {
@@ -1533,11 +1542,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Calculate global summary across all groups for a user
-  app.get('/api/users/:userId/global-summary', async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/global-summary', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.userId);
       if (isNaN(userId)) {
         return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // Additional security check to ensure a user can only access their own summary
+      const currentUser = req.user as User;
+      if (currentUser.id !== userId) {
+        return res.status(403).json({ message: 'You are not authorized to view this user\'s summary' });
       }
       
       const summary = await storage.calculateGlobalSummary(userId);

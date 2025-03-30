@@ -67,11 +67,11 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
 
   const userInitial = currentUser?.firstName 
     ? currentUser.firstName.charAt(0) 
-    : (currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U');
+    : (currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'G');
   
   const displayName = currentUser?.firstName && currentUser?.lastName 
     ? `${currentUser.firstName} ${currentUser.lastName}` 
-    : currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
+    : currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Guest User';
 
   return (
     <div className={cn(
@@ -94,6 +94,18 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
 function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
   const [, setLocation] = useLocation();
   
+  // Check if user is authenticated
+  const { data: currentUser, isLoading } = useQuery<UserType | null>({
+    queryKey: ['/api/auth/me'],
+    queryFn: getQueryFn({ 
+      on401: "returnNull" 
+    }),
+    staleTime: 60000,
+    retry: false
+  });
+  
+  const isAuthenticated = !!currentUser;
+  
   const handleLogout = async () => {
     try {
       await fetch('/auth/logout');
@@ -102,6 +114,10 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+  
+  const handleLogin = () => {
+    setLocation('/login');
   };
 
   return (
@@ -128,32 +144,49 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
       
       <Separator className="my-2" />
       
-      <Link href="/profile">
+      {isAuthenticated && (
+        <Link href="/profile">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn(
+              "w-full justify-start text-xs py-1",
+              isCollapsed && "justify-center px-1"
+            )}
+          >
+            <User className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
+            {!isCollapsed && <span>Profile</span>}
+          </Button>
+        </Link>
+      )}
+      
+      {isAuthenticated ? (
         <Button 
           variant="ghost" 
           size="sm" 
+          onClick={handleLogout}
           className={cn(
-            "w-full justify-start text-xs py-1",
+            "w-full justify-start text-xs py-1 text-red-600 hover:text-red-700 hover:bg-red-100/30",
             isCollapsed && "justify-center px-1"
           )}
         >
-          <User className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-          {!isCollapsed && <span>Profile</span>}
+          <LogOut className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
+          {!isCollapsed && <span>Sign Out</span>}
         </Button>
-      </Link>
-      
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        onClick={handleLogout}
-        className={cn(
-          "w-full justify-start text-xs py-1 text-red-600 hover:text-red-700 hover:bg-red-100/30",
-          isCollapsed && "justify-center px-1"
-        )}
-      >
-        <LogOut className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-        {!isCollapsed && <span>Sign Out</span>}
-      </Button>
+      ) : (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleLogin}
+          className={cn(
+            "w-full justify-start text-xs py-1 text-green-600 hover:text-green-700 hover:bg-green-100/30",
+            isCollapsed && "justify-center px-1"
+          )}
+        >
+          <LogOut className={cn("h-3.5 w-3.5 rotate-180", !isCollapsed && "mr-1")} />
+          {!isCollapsed && <span>Sign In</span>}
+        </Button>
+      )}
     </div>
   );
 };
