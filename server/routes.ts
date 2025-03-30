@@ -443,27 +443,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add pending invitations to the map (these won't have contactUserId yet)
       for (const invitation of pendingInvitations) {
-        // Using email as key for invitations
+        // Using invitation ID as key for invitations
+        const key = `inv_${invitation.id}`;
         const email = invitation.inviteeEmail;
         
-        // Only add if we don't already have a contact with this email
-        const userExists = Array.from(contactMap.values()).some(
-          contact => contact.email === email
-        );
+        // Add all invitations regardless of whether we have a contact with this email already
+        // This ensures invitations are always displayed
+        console.log(`Adding invitation ${invitation.id} for ${email} to contacts list`);
         
-        if (!userExists) {
-          contactMap.set(`inv_${invitation.id}`, {
-            invitationId: invitation.id,
-            userId: userId,
-            email: email,
-            lastInteractionAt: invitation.invitedAt,
-            frequency: 1,
-            isUser: false,
-            groupIds: [invitation.groupId],
-            status: invitation.status,
-            token: invitation.token
-          });
-        }
+        contactMap.set(key, {
+          invitationId: invitation.id,
+          userId: userId,
+          email: email,
+          lastInteractionAt: invitation.invitedAt,
+          frequency: 1,
+          isUser: false,
+          groupIds: [invitation.groupId],
+          status: invitation.status,
+          token: invitation.token
+        });
       }
 
       // Convert map back to array

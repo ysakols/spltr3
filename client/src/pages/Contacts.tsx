@@ -232,17 +232,40 @@ function ContactsPage() {
     // 2. Contacts from groups the user is in 
     // 3. Pending invitations the user sent
     
+    // For debugging
+    console.log('Contact being filtered:', contact);
+    
     // Cast to ExtendedContact to access the additional properties
     const extendedContact = contact as ExtendedContact;
     
-    // Check if this is a pending invitation sent by this user
-    const isPendingInvitation = !extendedContact.isUser || !!extendedContact.invitationId || !!extendedContact.token;
+    // Important: Always display contacts with invitationId - these are your sent invitations
+    if (extendedContact.invitationId) {
+      console.log('Including invitation contact:', extendedContact.email, extendedContact.invitationId);
+      return true;
+    }
     
-    // Check if this is a group member with a valid contactUserId
+    // If it has a token, it's also an invitation
+    if (extendedContact.token) {
+      console.log('Including token contact:', extendedContact.email);
+      return true;
+    }
+    
+    // Show all directly added contacts (regular contacts)
+    if (contact.contactUserId > 0) {
+      console.log('Including regular contact:', extendedContact.email);
+      return true;
+    }
+    
+    // For group members, verify they have groups in common with you
     const isGroupMember = !!extendedContact.isUser && !!extendedContact.groupIds && extendedContact.groupIds.length > 0;
     
-    // Return true if the contact meets our criteria
-    return isPendingInvitation || isGroupMember;
+    if (isGroupMember) {
+      console.log('Including group member:', extendedContact.email, extendedContact.groupIds);
+      return true;
+    }
+    
+    console.log('Excluding contact:', extendedContact.email);
+    return false;
   });
 
   // Sorting state
