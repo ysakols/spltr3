@@ -18,9 +18,19 @@ import bcrypt from "bcrypt";
 // Helper function to sanitize user objects by removing sensitive data
 export function sanitizeUser(user: User) {
   if (!user) return null;
-  // Destructure to remove password and other sensitive fields
-  const { password, googleAccessToken, googleRefreshToken, ...userWithoutSensitiveData } = user;
-  return userWithoutSensitiveData;
+  
+  // Return only the fields that are absolutely necessary
+  // This is more secure than removing specific sensitive fields
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    displayName: user.displayName,
+    email: user.email,
+    username: user.username,
+    avatarUrl: user.avatarUrl,
+    // Omit: password, googleId, googleAccessToken, googleRefreshToken, lastLogin, and other sensitive data
+  };
 }
 
 // Helper function to sanitize an array of users
@@ -1342,20 +1352,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid group ID' });
       }
       
+      // Ensure the user is authorized to see group members
+      const user = req.user as User;
       const members = await storage.getGroupMembers(groupId);
+      const isMember = members.some(member => member.id === user.id);
       
-      // Limit the exposed data to only what's needed for UI rendering
-      const limitedMemberData = members.map(member => ({
+      if (!isMember) {
+        return res.status(403).json({ message: 'You are not authorized to view this group\'s members' });
+      }
+      
+      // Create a minimal representation of each member with only the data required for UI
+      const minimalMemberData = members.map(member => ({
         id: member.id,
         firstName: member.firstName,
         lastName: member.lastName,
         displayName: member.displayName,
-        // Only include email if absolutely necessary for functionality
+        // Include email only because it's needed for expense assignment and invitation features
         email: member.email
       }));
       
-      res.json(limitedMemberData);
+      res.json(minimalMemberData);
     } catch (err) {
+      console.error('Error fetching group members:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
@@ -1373,18 +1391,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const expenses = await storage.getExpenses(groupId);
       
-      // Enhance expenses with user information
+      // Enhance expenses with minimal user information needed for UI
       const enhancedExpenses = await Promise.all(expenses.map(async (expense) => {
-        // Get the user who paid for the expense and sanitize
+        // Get the user who paid for the expense and add only essential fields
         const paidByUser = expense.paidByUserId ? await storage.getUser(expense.paidByUserId) : null;
         
-        // Get the user who created the expense and sanitize
+        // Get the user who created the expense and add only essential fields
         const createdByUser = expense.createdByUserId ? await storage.getUser(expense.createdByUserId) : null;
+        
+        // Create user objects with only the necessary fields for the UI
+        const minimalPaidByUser = paidByUser ? {
+          id: paidByUser.id,
+          firstName: paidByUser.firstName,
+          lastName: paidByUser.lastName,
+          displayName: paidByUser.displayName
+        } : null;
+        
+        const minimalCreatedByUser = createdByUser ? {
+          id: createdByUser.id,
+          firstName: createdByUser.firstName,
+          lastName: createdByUser.lastName,
+          displayName: createdByUser.displayName
+        } : null;
         
         return {
           ...expense,
-          paidByUser: paidByUser ? sanitizeUser(paidByUser) : null,
-          createdByUser: createdByUser ? sanitizeUser(createdByUser) : null
+          paidByUser: minimalPaidByUser,
+          createdByUser: minimalCreatedByUser
         };
       }));
       
@@ -1596,14 +1629,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Not authorized to view this settlement' });
       }
       
-      // Sanitize any user data in the settlement
-      // The settlement might have user details if it was loaded with joins
+      // Create minimal user representations with only the necessary fields for the UI
+      // This is more secure than using sanitizeUser which might expose more data
       const settlementWithUsers = settlement as any;
       if (settlementWithUsers.fromUserDetails) {
-        settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+        settlementWithUsers.fromUserDetails = {
+          id: settlementWithUsers.fromUserDetails.id,
+          firstName: settlementWithUsers.fromUserDetails.firstName,
+          lastName: settlementWithUsers.fromUserDetails.lastName,
+          displayName: settlementWithUsers.fromUserDetails.displayName,
+          // Include email only for settlement communications
+          email: settlementWithUsers.fromUserDetails.email
+        };
       }
       if (settlementWithUsers.toUserDetails) {
-        settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+        settlementWithUsers.toUserDetails = {
+          id: settlementWithUsers.toUserDetails.id,
+          firstName: settlementWithUsers.toUserDetails.firstName,
+          lastName: settlementWithUsers.toUserDetails.lastName,
+          displayName: settlementWithUsers.toUserDetails.displayName,
+          // Include email only for settlement communications
+          email: settlementWithUsers.toUserDetails.email
+        };
       }
       
       res.json(settlement);
@@ -1629,15 +1676,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const settlements = await storage.getUserSettlements(userId);
       
-      // Sanitize user details in settlements if they exist
+      // Create minimal user representations with only the necessary fields for the UI
       const sanitizedSettlements = settlements.map(settlement => {
         // Handle potentially extended settlement objects with user details
         const settlementWithUsers = settlement as any;
         if (settlementWithUsers.fromUserDetails) {
-          settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+          settlementWithUsers.fromUserDetails = {
+            id: settlementWithUsers.fromUserDetails.id,
+            firstName: settlementWithUsers.fromUserDetails.firstName,
+            lastName: settlementWithUsers.fromUserDetails.lastName,
+            displayName: settlementWithUsers.fromUserDetails.displayName,
+            email: settlementWithUsers.fromUserDetails.email
+          };
         }
         if (settlementWithUsers.toUserDetails) {
-          settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+          settlementWithUsers.toUserDetails = {
+            id: settlementWithUsers.toUserDetails.id,
+            firstName: settlementWithUsers.toUserDetails.firstName,
+            lastName: settlementWithUsers.toUserDetails.lastName,
+            displayName: settlementWithUsers.toUserDetails.displayName,
+            email: settlementWithUsers.toUserDetails.email
+          };
         }
         return settlement;
       });
@@ -1673,15 +1732,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const settlements = await storage.getGroupSettlements(groupId);
       
-      // Sanitize user details in group settlements if they exist
+      // Create minimal user representations with only the necessary fields for the UI
       const sanitizedSettlements = settlements.map(settlement => {
         // Handle potentially extended settlement objects with user details
         const settlementWithUsers = settlement as any;
         if (settlementWithUsers.fromUserDetails) {
-          settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+          settlementWithUsers.fromUserDetails = {
+            id: settlementWithUsers.fromUserDetails.id,
+            firstName: settlementWithUsers.fromUserDetails.firstName,
+            lastName: settlementWithUsers.fromUserDetails.lastName,
+            displayName: settlementWithUsers.fromUserDetails.displayName,
+            email: settlementWithUsers.fromUserDetails.email
+          };
         }
         if (settlementWithUsers.toUserDetails) {
-          settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+          settlementWithUsers.toUserDetails = {
+            id: settlementWithUsers.toUserDetails.id,
+            firstName: settlementWithUsers.toUserDetails.firstName,
+            lastName: settlementWithUsers.toUserDetails.lastName,
+            displayName: settlementWithUsers.toUserDetails.displayName,
+            email: settlementWithUsers.toUserDetails.email
+          };
         }
         return settlement;
       });
@@ -1739,13 +1810,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.markExpenseSplitsAsSettled(id);
       }
       
-      // Sanitize any user details in the updated settlement
+      // Create minimal user representations with only the necessary fields for the UI
       const settlementWithUsers = updatedSettlement as any;
       if (settlementWithUsers.fromUserDetails) {
-        settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+        settlementWithUsers.fromUserDetails = {
+          id: settlementWithUsers.fromUserDetails.id,
+          firstName: settlementWithUsers.fromUserDetails.firstName,
+          lastName: settlementWithUsers.fromUserDetails.lastName,
+          displayName: settlementWithUsers.fromUserDetails.displayName,
+          email: settlementWithUsers.fromUserDetails.email
+        };
       }
       if (settlementWithUsers.toUserDetails) {
-        settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+        settlementWithUsers.toUserDetails = {
+          id: settlementWithUsers.toUserDetails.id,
+          firstName: settlementWithUsers.toUserDetails.firstName,
+          lastName: settlementWithUsers.toUserDetails.lastName,
+          displayName: settlementWithUsers.toUserDetails.displayName,
+          email: settlementWithUsers.toUserDetails.email
+        };
       }
       
       res.json(updatedSettlement);
@@ -1790,18 +1873,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Helper function to broadcast updates to all clients subscribed to a group
   const broadcastToGroup = (groupId: number, data: any) => {
-    // Sanitize any user data before broadcasting
+    // Create minimal user representations for any user data before broadcasting
+    
+    // Process single user field
     if (data.user) {
-      data.user = sanitizeUser(data.user);
+      data.user = {
+        id: data.user.id,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        displayName: data.user.displayName,
+        email: data.user.email
+      };
     }
+    
+    // Process user arrays
+    const minimizeUserArray = (users: any[]) => {
+      return users.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        displayName: user.displayName,
+        email: user.email
+      }));
+    };
+    
     if (data.users && Array.isArray(data.users)) {
-      data.users = sanitizeUsers(data.users);
+      data.users = minimizeUserArray(data.users);
     }
+    
     if (data.members && Array.isArray(data.members)) {
-      data.members = sanitizeUsers(data.members);
+      data.members = minimizeUserArray(data.members);
     }
+    
     if (data.creatorInfo) {
-      data.creatorInfo = sanitizeUser(data.creatorInfo);
+      data.creatorInfo = {
+        id: data.creatorInfo.id,
+        firstName: data.creatorInfo.firstName,
+        lastName: data.creatorInfo.lastName,
+        displayName: data.creatorInfo.displayName,
+        email: data.creatorInfo.email
+      };
     }
     
     wss.clients.forEach((client) => {
