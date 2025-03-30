@@ -82,20 +82,26 @@ function ExpenseTable({
   
   // Function to get user initials for avatar
   const getUserInitials = (userId: number) => {
-    if (!members) return '??';
+    if (!members) return 'U';
     
     const user = members.find(member => member.id === userId);
-    if (!user) return '??';
+    if (!user) return 'U';
     
-    if (user.firstName && user.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    // Get the first initial of the name parts
+    let firstInitial = '';
+    let lastInitial = '';
+    
+    if (user.firstName) {
+      firstInitial = user.firstName.substring(0, 1).toUpperCase();
     } else if (user.displayName) {
-      return user.displayName.substring(0, 2).toUpperCase();
+      firstInitial = user.displayName.substring(0, 1).toUpperCase();
+    } else if (user.username) {
+      firstInitial = user.username.substring(0, 1).toUpperCase();
     } else if (user.email) {
-      return user.email[0].toUpperCase();
+      firstInitial = user.email.substring(0, 1).toUpperCase();
     }
     
-    return 'U';
+    return firstInitial;
   };
 
   const deleteExpense = async (id: number) => {
@@ -232,10 +238,10 @@ function ExpenseTable({
                               <Avatar className="h-5 w-5">
                                 <AvatarFallback className="text-[10px]">
                                   {expense.paidByUser ? 
-                                    (expense.paidByUser.firstName && expense.paidByUser.lastName ? 
-                                      `${expense.paidByUser.firstName[0]}${expense.paidByUser.lastName[0]}`.toUpperCase() :
+                                    (expense.paidByUser.firstName ? 
+                                      expense.paidByUser.firstName.substring(0, 1).toUpperCase() :
                                       (expense.paidByUser.displayName ? 
-                                        expense.paidByUser.displayName.substring(0, 2).toUpperCase() : 
+                                        expense.paidByUser.displayName.substring(0, 1).toUpperCase() : 
                                         expense.paidByUser.email[0].toUpperCase()))
                                     : getUserInitials(expense.paidByUserId)}
                                 </AvatarFallback>
@@ -267,12 +273,12 @@ function ExpenseTable({
                               <Avatar className="h-5 w-5">
                                 <AvatarFallback className="text-[10px]">
                                   {expense.createdByUser ? 
-                                    (expense.createdByUser.firstName && expense.createdByUser.lastName ? 
-                                      `${expense.createdByUser.firstName[0]}${expense.createdByUser.lastName[0]}`.toUpperCase() :
+                                    (expense.createdByUser.firstName ? 
+                                      expense.createdByUser.firstName.substring(0, 1).toUpperCase() :
                                       (expense.createdByUser.displayName ? 
-                                        expense.createdByUser.displayName.substring(0, 2).toUpperCase() : 
+                                        expense.createdByUser.displayName.substring(0, 1).toUpperCase() : 
                                         expense.createdByUser.email[0].toUpperCase()))
-                                    : (expense.createdByUserId ? getUserInitials(expense.createdByUserId) : 'UN')}
+                                    : (expense.createdByUserId ? getUserInitials(expense.createdByUserId) : 'U')}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="truncate max-w-[80px]">
