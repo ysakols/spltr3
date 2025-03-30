@@ -75,13 +75,13 @@ export interface IStorage {
   calculateGlobalSummary(userId: number): Promise<Balance>;
   
   // Transaction methods (new unified approach)
-  getTransactions(groupId?: number): Promise<Transaction[]>;
-  getTransaction(id: number): Promise<Transaction | undefined>;
+  getTransactions(groupId?: number, includeDeleted?: boolean): Promise<Transaction[]>;
+  getTransaction(id: number, includeDeleted?: boolean): Promise<Transaction | undefined>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  updateTransaction(id: number, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
-  deleteTransaction(id: number): Promise<boolean>;
-  getUserTransactions(userId: number): Promise<Transaction[]>;
-  getGroupTransactions(groupId: number): Promise<Transaction[]>;
+  updateTransaction(id: number, transaction: Partial<InsertTransaction>, userId?: number): Promise<Transaction | undefined>;
+  deleteTransaction(id: number, userId: number): Promise<Transaction | undefined>;
+  getUserTransactions(userId: number, includeDeleted?: boolean): Promise<Transaction[]>;
+  getGroupTransactions(groupId: number, includeDeleted?: boolean): Promise<Transaction[]>;
   markTransactionSplitsAsSettled(transactionId: number): Promise<void>;
   
   // Settlement methods (legacy - to be migrated)
@@ -96,19 +96,45 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Transaction methods - new unified approach
-  async getTransaction(id: number): Promise<Transaction | undefined> {
+  async getTransaction(id: number, includeDeleted: boolean = false): Promise<Transaction | undefined> {
+    const conditions = [eq(transactions.id, id)];
+    
+    // By default, filter out soft-deleted transactions unless explicitly requested
+    if (!includeDeleted) {
+      conditions.push(or(
+        eq(transactions.isDeleted, false),
+        isNull(transactions.isDeleted)
+      ));
+    }
+    
     const [transaction] = await db
       .select()
       .from(transactions)
-      .where(eq(transactions.id, id));
+      .where(and(...conditions));
     
     return transaction;
   }
 
-  async getTransactions(groupId?: number): Promise<Transaction[]> {
+  async getTransactions(groupId?: number, includeDeleted: boolean = false): Promise<Transaction[]> {
+    // Start with basic conditions
+    let conditions = [];
+    
     // If groupId is provided, filter by group
-    const query = groupId 
-      ? db.select().from(transactions).where(eq(transactions.groupId, groupId))
+    if (groupId) {
+      conditions.push(eq(transactions.groupId, groupId));
+    }
+    
+    // By default, filter out soft-deleted transactions unless explicitly requested
+    if (!includeDeleted) {
+      conditions.push(or(
+        eq(transactions.isDeleted, false),
+        isNull(transactions.isDeleted)
+      ));
+    }
+    
+    // If we have conditions, apply them
+    const query = conditions.length > 0
+      ? db.select().from(transactions).where(and(...conditions))
       : db.select().from(transactions);
     
     return await query.orderBy(desc(transactions.createdAt));
@@ -213,33 +239,56 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async updateTransaction(id: number, updateData: Partial<InsertTransaction>): Promise<Transaction | undefined> {
+  async updateTransaction(id: number, updateData: Partial<InsertTransaction>, userId?: number): Promise<Transaction | undefined> {
+    // First, get the current transaction to store as previous values
+    const existingTransaction = await this.getTransaction(id);
+    if (!existingTransaction) {
+      return undefined;
+    }
+    
+    // Prepare audit fields
+    const now = new Date();
+    const updateFields: any = {
+      ...updateData,
+      updatedAt: now,
+      isEdited: true
+    };
+    
+    // Add user ID who performed the update if provided
+    if (userId) {
+      updateFields.updatedByUserId = userId;
+    }
+    
+    // Store the previous values as JSON for audit purposes
+    updateFields.previousValues = JSON.stringify(existingTransaction);
+    
+    // Perform the update
     const [updatedTransaction] = await db
       .update(transactions)
-      .set(updateData)
+      .set(updateFields)
       .where(eq(transactions.id, id))
       .returning();
     
     return updatedTransaction;
   }
 
-  async deleteTransaction(id: number): Promise<boolean> {
-    return await db.transaction(async (tx) => {
-      // First delete all splits for this transaction
-      await tx
-        .delete(transactionSplits)
-        .where(eq(transactionSplits.transactionId, id));
-      
-      // Then delete the transaction
-      const result = await tx
-        .delete(transactions)
-        .where(eq(transactions.id, id));
-      
-      return result.rowCount !== null && result.rowCount > 0;
-    });
+  async deleteTransaction(id: number, userId: number): Promise<Transaction | undefined> {
+    // Implement soft delete by setting the isDeleted flag and storing audit info
+    const now = new Date();
+    const [updatedTransaction] = await db
+      .update(transactions)
+      .set({
+        isDeleted: true,
+        deletedAt: now,
+        deletedByUserId: userId
+      })
+      .where(eq(transactions.id, id))
+      .returning();
+    
+    return updatedTransaction;
   }
 
-  async getUserTransactions(userId: number): Promise<Transaction[]> {
+  async getUserTransactions(userId: number, includeDeleted: boolean = false): Promise<Transaction[]> {
     // Find all transactions where the user is involved
     // Either as payer, recipient, or has a split
     const splits = await db
@@ -249,27 +298,46 @@ export class DatabaseStorage implements IStorage {
     
     const transactionIds = splits.map(split => split.transactionId);
     
+    const baseCondition = or(
+      eq(transactions.paidByUserId, userId),
+      eq(transactions.toUserId, userId),
+      inArray(transactions.id, transactionIds)
+    );
+    
+    // By default, filter out soft-deleted transactions unless explicitly requested
+    const conditions = [baseCondition];
+    if (!includeDeleted) {
+      conditions.push(or(
+        eq(transactions.isDeleted, false),
+        isNull(transactions.isDeleted)
+      ));
+    }
+    
     const userTransactions = await db
       .select()
       .from(transactions)
-      .where(
-        or(
-          eq(transactions.paidByUserId, userId),
-          eq(transactions.toUserId, userId),
-          inArray(transactions.id, transactionIds)
-        )
-      )
+      .where(and(...conditions))
       .orderBy(desc(transactions.createdAt));
     
     return userTransactions;
   }
 
-  async getGroupTransactions(groupId: number): Promise<Transaction[]> {
+  async getGroupTransactions(groupId: number, includeDeleted: boolean = false): Promise<Transaction[]> {
     // Get all transactions for the group with user details
+    const conditions = [eq(transactions.groupId, groupId)];
+    
+    // By default, filter out soft-deleted transactions unless explicitly requested
+    if (!includeDeleted) {
+      conditions.push(or(
+        eq(transactions.isDeleted, false),
+        isNull(transactions.isDeleted)
+      ));
+    }
+    
     const groupTransactions = await db
       .select()
       .from(transactions)
-      .where(eq(transactions.groupId, groupId))
+      .where(and(...conditions))
       .orderBy(desc(transactions.createdAt));
     
     // Get user details for these transactions

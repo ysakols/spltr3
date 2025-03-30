@@ -1731,8 +1731,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updateData.completedAt = new Date();
         }
         
-        // Update the transaction
-        const updatedTransaction = await storage.updateTransaction(id, updateData);
+        // Update the transaction with audit information
+        const updatedTransaction = await storage.updateTransaction(id, updateData, currentUserId);
         
         // Mark relevant expense splits as settled
         await storage.markTransactionSplitsAsSettled(id);
@@ -1740,8 +1740,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(updatedTransaction);
       }
       
-      // For other updates
-      const updatedTransaction = await storage.updateTransaction(id, updateData);
+      // For other updates, include user ID for audit purposes
+      const updatedTransaction = await storage.updateTransaction(id, updateData, currentUserId);
       res.json(updatedTransaction);
     } catch (err) {
       console.error('Error updating transaction:', err);
@@ -1749,7 +1749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Delete a transaction
+  // Delete a transaction (implemented as soft delete)
   app.delete('/api/transactions/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -1778,9 +1778,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       //   return res.status(400).json({ message: 'Cannot delete a completed settlement' });
       // }
       
-      const deleted = await storage.deleteTransaction(id);
-      if (deleted) {
-        res.status(204).end();
+      // Perform soft delete with audit information
+      const updatedTransaction = await storage.deleteTransaction(id, currentUserId);
+      if (updatedTransaction) {
+        // Return the updated transaction with the soft delete flags
+        res.json(updatedTransaction);
       } else {
         res.status(500).json({ message: 'Failed to delete transaction' });
       }

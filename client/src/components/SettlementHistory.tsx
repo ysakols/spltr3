@@ -46,7 +46,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 
-// Transaction interface definition based on the unified data model
+// Transaction interface definition based on the unified data model with audit fields
 interface Transaction {
   id: number;
   type: string; // 'expense' or 'settlement'
@@ -64,6 +64,20 @@ interface Transaction {
   notes?: string;
   completedAt?: string;
   transactionReference?: string;
+  // Audit fields
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  updatedAt?: string;
+  updatedByUserId?: number;
+  deletedAt?: string;
+  deletedByUserId?: number;
+  previousValues?: string;
+  // User references for audit fields
+  paidByUser?: { id: number; firstName?: string; lastName?: string; displayName?: string; email: string };
+  createdByUser?: { id: number; firstName?: string; lastName?: string; displayName?: string; email: string };
+  toUser?: { id: number; firstName?: string; lastName?: string; displayName?: string; email: string };
+  updatedByUser?: { id: number; firstName?: string; lastName?: string; displayName?: string; email: string };
+  deletedByUser?: { id: number; firstName?: string; lastName?: string; displayName?: string; email: string };
 }
 
 interface SettlementHistoryProps {

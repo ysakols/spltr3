@@ -149,7 +149,16 @@ export const transactions = pgTable("transactions", {
   status: text("status"), // pending, completed, canceled - only for settlement type
   notes: text("notes"), // Optional notes - mainly for settlements
   completedAt: timestamp("completed_at"), // When settlement is completed
-  transactionReference: text("transaction_reference") // For external payment references
+  transactionReference: text("transaction_reference"), // For external payment references
+  
+  // Audit fields for tracking edits and deletions
+  isEdited: boolean("is_edited").default(false), // Whether this transaction has been edited
+  isDeleted: boolean("is_deleted").default(false), // Soft delete flag
+  updatedAt: timestamp("updated_at"), // When the transaction was last updated
+  updatedByUserId: integer("updated_by_user_id").references(() => users.id), // Who updated it
+  deletedAt: timestamp("deleted_at"), // When the transaction was deleted
+  deletedByUserId: integer("deleted_by_user_id").references(() => users.id), // Who deleted it
+  previousValues: text("previous_values") // JSON string with previous values before the latest edit
 });
 
 // Define transaction relations
@@ -160,6 +169,14 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
   }),
   createdBy: one(users, {
     fields: [transactions.createdByUserId],
+    references: [users.id]
+  }),
+  updatedBy: one(users, {
+    fields: [transactions.updatedByUserId],
+    references: [users.id]
+  }),
+  deletedBy: one(users, {
+    fields: [transactions.deletedByUserId],
     references: [users.id]
   }),
   group: one(groups, {
@@ -299,6 +316,15 @@ export const insertTransactionSchema = createInsertSchema(transactions)
     notes: z.string().optional().nullable(),
     transactionReference: z.string().optional().nullable(),
     completedAt: z.date().optional().nullable(),
+    
+    // Audit fields for tracking edits and deletions
+    isEdited: z.boolean().optional().default(false),
+    isDeleted: z.boolean().optional().default(false),
+    updatedAt: z.date().optional().nullable(),
+    updatedByUserId: z.number().optional().nullable(),
+    deletedAt: z.date().optional().nullable(),
+    deletedByUserId: z.number().optional().nullable(),
+    previousValues: z.string().optional().nullable(),
     
     // Optional specific date for the transaction - accept both string and Date types
     date: z.preprocess(

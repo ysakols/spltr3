@@ -1,12 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
-import { User } from '@shared/schema';
+import { useState, useMemo } from 'react';
+import { User, TransactionType, TransactionStatus } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
+import { formatCurrency } from '@/lib/utils';
+import { 
+  FileEdit, 
+  Trash, 
+  RefreshCw 
+} from 'lucide-react';
 
 type GroupInvitation = {
   id: number;
@@ -25,30 +31,49 @@ type GroupInvitation = {
   };
 };
 
-type Settlement = {
+// Transaction type for the unified data model
+type Transaction = {
   id: number;
-  fromUserId: number;
-  toUserId: number;
-  amount: string;
-  groupId?: number;
-  paymentMethod: string;
-  status: string;
-  notes?: string;
+  type: string; // 'expense' or 'settlement'
+  description: string;
+  amount: string | number;
+  paidByUserId: number;
+  createdByUserId?: number;
+  date: string;
   createdAt: string;
+  groupId: number;
+  // Expense-specific fields
+  splitType?: string;
+  splitDetails?: string;
+  // Settlement-specific fields
+  toUserId?: number;
+  paymentMethod?: string;
+  status?: string;
+  notes?: string;
   completedAt?: string;
   transactionReference?: string;
-  fromUser?: User;
+  // User details
+  paidByUser?: User;
+  createdByUser?: User;
   toUser?: User;
-  group?: {
-    id: number;
-    name: string;
-  };
+  // Audit fields
+  updatedAt?: string;
+  deletedAt?: string;
+  updatedByUserId?: number;
+  deletedByUserId?: number;
+  updatedByUser?: User;
+  deletedByUser?: User;
+  isDeleted?: boolean;
+  isEdited?: boolean;
+  previousValues?: string;
 };
 
+// Activity type for the feed
 type Activity = {
-  type: 'invitation' | 'settlement';
+  type: 'invitation' | 'transaction' | 'edit' | 'delete';
+  activityType?: string; // More specific: 'expense', 'settlement', etc.
   timestamp: string;
-  data: GroupInvitation | Settlement;
+  data: GroupInvitation | Transaction;
 };
 
 export function ActivityFeed({ groupId }: { groupId: number }) {
@@ -60,17 +85,16 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
     queryFn: () => apiRequest('GET', `/api/groups/${groupId}/invitations`),
   });
 
-  // Fetch settlements for this group
-  const { data: settlements = [] } = useQuery({
-    queryKey: ['/api/groups', groupId, 'settlements'],
-    queryFn: () => apiRequest('GET', `/api/groups/${groupId}/settlements`),
+  // Fetch transactions for this group (replaces separate expense and settlement queries)
+  const { data: transactions = [] } = useQuery<Transaction[]>({
+    queryKey: ['/api/groups', groupId, 'transactions'],
+    queryFn: () => apiRequest('GET', `/api/groups/${groupId}/transactions`),
   });
 
-  // Directly compute the filtered activities without the intermediate state update
-  // This eliminates the need for the useState and useEffect that was causing the infinite loop
+  // Compute activities from invitations and transactions
   const sortedActivities = useMemo(() => {
     // Only process if we have valid arrays 
-    if (!Array.isArray(invitations) || !Array.isArray(settlements)) {
+    if (!Array.isArray(invitations) || !Array.isArray(transactions)) {
       return [];
     }
     
@@ -80,25 +104,63 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
       data: invitation
     }));
 
-    const settlementActivities: Activity[] = settlements.map((settlement: Settlement) => ({
-      type: 'settlement',
-      timestamp: settlement.createdAt,
-      data: settlement
-    }));
+    // Process regular transactions (creations)
+    const transactionActivities: Activity[] = transactions
+      .filter(transaction => !transaction.isDeleted && !transaction.isEdited)
+      .map((transaction: Transaction) => ({
+        type: 'transaction',
+        activityType: transaction.type,
+        timestamp: transaction.createdAt,
+        data: transaction
+      }));
+
+    // Process edited transactions
+    const editActivities: Activity[] = transactions
+      .filter(transaction => transaction.isEdited && !transaction.isDeleted && transaction.updatedAt)
+      .map((transaction: Transaction) => ({
+        type: 'edit',
+        activityType: transaction.type,
+        timestamp: transaction.updatedAt!,
+        data: transaction
+      }));
+
+    // Process deleted transactions
+    const deleteActivities: Activity[] = transactions
+      .filter(transaction => transaction.isDeleted && transaction.deletedAt)
+      .map((transaction: Transaction) => ({
+        type: 'delete',
+        activityType: transaction.type,
+        timestamp: transaction.deletedAt!,
+        data: transaction
+      }));
 
     // Combine all activities and sort by timestamp (most recent first)
-    return [...invitationActivities, ...settlementActivities].sort((a, b) => 
+    return [
+      ...invitationActivities, 
+      ...transactionActivities,
+      ...editActivities,
+      ...deleteActivities
+    ].sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-  }, [invitations, settlements]);
+  }, [invitations, transactions]);
 
-  // Filter activities based on active tab (using sortedActivities directly instead of the state)
+  // Filter activities based on active tab
   const filteredActivities = activeTab === 'all' 
     ? sortedActivities 
-    : sortedActivities.filter(activity => activity.type === activeTab);
+    : sortedActivities.filter(activity => {
+        if (activeTab === 'invitation') return activity.type === 'invitation';
+        if (activeTab === 'expense') return activity.activityType === 'expense';
+        if (activeTab === 'settlement') return activity.activityType === 'settlement';
+        if (activeTab === 'edit') return activity.type === 'edit';
+        if (activeTab === 'delete') return activity.type === 'delete';
+        return false;
+      });
 
   // Get status badge color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-gray-100 text-gray-800 border-gray-300';
+    
     switch (status.toLowerCase()) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
@@ -116,7 +178,9 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   };
 
   // Format payment method for display
-  const formatPaymentMethod = (method: string) => {
+  const formatPaymentMethod = (method?: string) => {
+    if (!method) return 'Unknown';
+    
     switch (method.toLowerCase()) {
       case 'cash':
         return 'Cash';
@@ -132,12 +196,15 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Activity</CardTitle>
+        <CardTitle className="text-xl">Activity Feed</CardTitle>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="invitation">Invitations</TabsTrigger>
-            <TabsTrigger value="settlement">Settlements</TabsTrigger>
+            <TabsTrigger value="invitation">Invites</TabsTrigger>
+            <TabsTrigger value="expense">Expenses</TabsTrigger>
+            <TabsTrigger value="settlement">Payments</TabsTrigger>
+            <TabsTrigger value="edit">Edits</TabsTrigger>
+            <TabsTrigger value="delete">Deleted</TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
@@ -148,28 +215,53 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredActivities.map((activity, index) => (
-              <div key={`${activity.type}-${activity.type === 'invitation' 
+            {filteredActivities.map((activity, index) => {
+              const key = `${activity.type}-${
+                activity.type === 'invitation' 
                   ? (activity.data as GroupInvitation).id 
-                  : (activity.data as Settlement).id}`}>
-                {index > 0 && <Separator className="my-3" />}
-                
-                {activity.type === 'invitation' && (
-                  <InvitationActivity 
-                    invitation={activity.data as GroupInvitation} 
-                    getStatusColor={getStatusColor}
-                  />
-                )}
-                
-                {activity.type === 'settlement' && (
-                  <SettlementActivity 
-                    settlement={activity.data as Settlement} 
-                    getStatusColor={getStatusColor}
-                    formatPaymentMethod={formatPaymentMethod}
-                  />
-                )}
-              </div>
-            ))}
+                  : (activity.data as Transaction).id
+              }-${activity.timestamp}`;
+              
+              return (
+                <div key={key}>
+                  {index > 0 && <Separator className="my-3" />}
+                  
+                  {activity.type === 'invitation' && (
+                    <InvitationActivity 
+                      invitation={activity.data as GroupInvitation} 
+                      getStatusColor={getStatusColor}
+                    />
+                  )}
+                  
+                  {activity.type === 'transaction' && activity.activityType === 'settlement' && (
+                    <SettlementActivity 
+                      transaction={activity.data as Transaction} 
+                      getStatusColor={getStatusColor}
+                      formatPaymentMethod={formatPaymentMethod}
+                    />
+                  )}
+                  
+                  {activity.type === 'transaction' && activity.activityType === 'expense' && (
+                    <ExpenseActivity 
+                      transaction={activity.data as Transaction} 
+                    />
+                  )}
+                  
+                  {activity.type === 'edit' && (
+                    <EditActivity 
+                      transaction={activity.data as Transaction}
+                      formatPaymentMethod={formatPaymentMethod}
+                    />
+                  )}
+                  
+                  {activity.type === 'delete' && (
+                    <DeleteActivity 
+                      transaction={activity.data as Transaction}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
@@ -210,43 +302,169 @@ function InvitationActivity({
   );
 }
 
-// Component for settlement activities
-function SettlementActivity({ 
-  settlement, 
-  getStatusColor,
-  formatPaymentMethod
+// Component for expense activities
+function ExpenseActivity({ 
+  transaction
 }: { 
-  settlement: Settlement, 
-  getStatusColor: (status: string) => string,
-  formatPaymentMethod: (method: string) => string
+  transaction: Transaction
 }) {
-  const amount = typeof settlement.amount === 'string' 
-    ? parseFloat(settlement.amount) 
-    : settlement.amount;
-
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
-        <span className="font-medium">Settlement</span>
-        <Badge className={`${getStatusColor(settlement.status)} font-normal`}>
-          {settlement.status}
+        <span className="font-medium">Expense Added</span>
+        <Badge variant="outline" className="font-normal">
+          {transaction.splitType || 'Split'}
         </Badge>
       </div>
       <p className="text-sm">
-        {settlement.fromUser ? `${settlement.fromUser.firstName} ${settlement.fromUser.lastName}` : 'Someone'} paid {settlement.toUser ? `${settlement.toUser.firstName} ${settlement.toUser.lastName}` : 'someone'} ${amount.toFixed(2)} via {formatPaymentMethod(settlement.paymentMethod)}
+        <span className="font-medium">{transaction.description}</span>: {transaction.createdByUser?.firstName || 'Someone'} added an expense of {formatCurrency(transaction.amount)} paid by {transaction.paidByUser?.firstName || 'Unknown'}
       </p>
-      {settlement.notes && (
-        <p className="text-xs italic">"{settlement.notes}"</p>
+      <div className="flex justify-between items-center mt-1">
+        <span className="text-xs text-muted-foreground">
+          {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Component for settlement activities
+function SettlementActivity({ 
+  transaction, 
+  getStatusColor,
+  formatPaymentMethod
+}: { 
+  transaction: Transaction,
+  getStatusColor: (status?: string) => string,
+  formatPaymentMethod: (method?: string) => string
+}) {
+  const payer = transaction.paidByUser?.firstName || 'Someone';
+  const receiver = transaction.toUser?.firstName || 'Someone';
+  
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Payment</span>
+        <Badge className={`${getStatusColor(transaction.status)} font-normal`}>
+          {transaction.status || TransactionStatus.PENDING}
+        </Badge>
+      </div>
+      <p className="text-sm">
+        {payer} paid {receiver} {formatCurrency(transaction.amount)} via {formatPaymentMethod(transaction.paymentMethod)}
+      </p>
+      {transaction.notes && (
+        <p className="text-xs italic">"{transaction.notes}"</p>
       )}
       <div className="flex justify-between items-center mt-1">
         <span className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(settlement.createdAt), { addSuffix: true })}
+          {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
         </span>
-        {settlement.completedAt && (
+        {transaction.completedAt && (
           <span className="text-xs text-muted-foreground">
-            Completed {formatDistanceToNow(new Date(settlement.completedAt), { addSuffix: true })}
+            Completed {formatDistanceToNow(new Date(transaction.completedAt), { addSuffix: true })}
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Component for edit activities
+function EditActivity({ 
+  transaction,
+  formatPaymentMethod
+}: { 
+  transaction: Transaction,
+  formatPaymentMethod: (method?: string) => string
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between">
+        <span className="font-medium flex items-center">
+          <FileEdit className="h-4 w-4 mr-1" />
+          {transaction.type === TransactionType.EXPENSE ? 'Expense Edited' : 'Payment Edited'}
+        </span>
+        <Badge variant="outline" className="font-normal bg-blue-50">
+          Edited
+        </Badge>
+      </div>
+      <p className="text-sm">
+        {transaction.updatedByUser?.firstName || 'Someone'} edited {' '}
+        {transaction.type === TransactionType.EXPENSE 
+          ? `expense "${transaction.description}"`
+          : `payment of ${formatCurrency(transaction.amount)} via ${formatPaymentMethod(transaction.paymentMethod)}`
+        }
+      </p>
+      <div className="flex justify-between items-center mt-1">
+        <span className="text-xs text-muted-foreground">
+          {transaction.updatedAt && formatDistanceToNow(new Date(transaction.updatedAt), { addSuffix: true })}
+        </span>
+      </div>
+      {transaction.previousValues && (
+        <div className="mt-1 text-xs text-muted-foreground border-l-2 border-muted pl-2">
+          {(() => {
+            try {
+              const prevValues = JSON.parse(transaction.previousValues);
+              return (
+                <div className="space-y-1">
+                  <p className="font-medium">Previous Values:</p>
+                  {transaction.type === TransactionType.EXPENSE ? (
+                    <>
+                      <p>Description: {prevValues.description}</p>
+                      <p>Amount: {formatCurrency(prevValues.amount)}</p>
+                      <p>Date: {new Date(prevValues.date).toLocaleDateString()}</p>
+                      {prevValues.splitType && <p>Split Type: {prevValues.splitType}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <p>Amount: {formatCurrency(prevValues.amount)}</p>
+                      <p>Date: {new Date(prevValues.date).toLocaleDateString()}</p>
+                      {prevValues.paymentMethod && <p>Payment Method: {formatPaymentMethod(prevValues.paymentMethod)}</p>}
+                      {prevValues.status && <p>Status: {prevValues.status}</p>}
+                      {prevValues.notes && <p>Notes: {prevValues.notes}</p>}
+                    </>
+                  )}
+                </div>
+              );
+            } catch (e) {
+              // If parsing fails, just show the raw string
+              return <p>Previous details: {transaction.previousValues}</p>;
+            }
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component for delete activities
+function DeleteActivity({ 
+  transaction
+}: { 
+  transaction: Transaction
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between">
+        <span className="font-medium flex items-center">
+          <Trash className="h-4 w-4 mr-1" />
+          {transaction.type === TransactionType.EXPENSE ? 'Expense Deleted' : 'Payment Deleted'}
+        </span>
+        <Badge variant="destructive" className="font-normal">
+          Deleted
+        </Badge>
+      </div>
+      <p className="text-sm">
+        {transaction.deletedByUser?.firstName || 'Someone'} deleted {' '}
+        {transaction.type === TransactionType.EXPENSE 
+          ? `expense "${transaction.description}"`
+          : `payment of ${formatCurrency(transaction.amount)}`
+        }
+      </p>
+      <div className="flex justify-between items-center mt-1">
+        <span className="text-xs text-muted-foreground">
+          {transaction.deletedAt && formatDistanceToNow(new Date(transaction.deletedAt), { addSuffix: true })}
+        </span>
       </div>
     </div>
   );
