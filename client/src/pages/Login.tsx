@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
 
 function Login() {
   const [location, setLocation] = useLocation();
@@ -24,48 +23,11 @@ function Login() {
   };
   
   // Function to redirect to Google OAuth
-  const handleGoogleLogin = (e: React.MouseEvent) => {
-    e.preventDefault();
-    
-    // Show a toast to inform the user about potential connection issues
-    toast({
-      title: "Google Sign-in Temporarily Unavailable",
-      description: "Google sign-in is experiencing connectivity issues. Please use email login for now.",
-      variant: "destructive",
-      duration: 5000
-    });
-    
-    // For debugging, let's log some information about the environment
-    console.log("Current environment:", {
-      hostname: window.location.hostname,
-      protocol: window.location.protocol,
-      host: window.location.host
-    });
-    
-    // Disable Google login for now since it's not working
-    return;
-    
-    // The code below is temporarily disabled
-    /* 
+  const handleGoogleLogin = () => {
+    // Add redirect parameter to Google OAuth URL if needed
     const redirectPath = getRedirectPath();
     const redirectParam = redirectPath !== "/" ? `?redirect=${encodeURIComponent(redirectPath)}` : "";
-    fetch(`/auth/google${redirectParam}`, { method: 'GET' })
-      .then(response => {
-        if (response.redirected) {
-          window.location.href = response.url;
-        } else {
-          window.location.href = `/auth/google${redirectParam}`;
-        }
-      })
-      .catch(error => {
-        console.error("Google login error:", error);
-        toast({
-          title: "Error",
-          description: "Unable to connect to Google authentication. Please try again later or use email login.",
-          variant: "destructive"
-        });
-      });
-    */
+    window.location.href = `/auth/google${redirectParam}`;
   };
 
   // Function to handle local login
