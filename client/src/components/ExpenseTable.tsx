@@ -265,8 +265,8 @@ function ExpenseTable({
                                     getUserAvatar(expense.paidByUserId)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="truncate max-w-[80px]">
-                                {getShortUserName(expense.paidByUserId)}
+                              <span className="truncate max-w-[120px]">
+                                {getUsernameById(expense.paidByUserId)}
                               </span>
                             </div>
                           </TooltipTrigger>
@@ -291,8 +291,8 @@ function ExpenseTable({
                                     getUserAvatar(expense.createdByUserId) : 'U'}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="truncate max-w-[80px]">
-                                {expense.createdByUserId ? getShortUserName(expense.createdByUserId) : 'Unknown'}
+                              <span className="truncate max-w-[120px]">
+                                {expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}
                               </span>
                             </div>
                           </TooltipTrigger>
