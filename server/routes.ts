@@ -1634,6 +1634,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Not authorized to view this settlement' });
       }
       
+      // Sanitize any user data in the settlement
+      // The settlement might have user details if it was loaded with joins
+      const settlementWithUsers = settlement as any;
+      if (settlementWithUsers.fromUserDetails) {
+        settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+      }
+      if (settlementWithUsers.toUserDetails) {
+        settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+      }
+      
       res.json(settlement);
     } catch (error) {
       console.error('Error getting settlement:', error);
@@ -1656,7 +1666,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const settlements = await storage.getUserSettlements(userId);
-      res.json(settlements);
+      
+      // Sanitize user details in settlements if they exist
+      const sanitizedSettlements = settlements.map(settlement => {
+        // Handle potentially extended settlement objects with user details
+        const settlementWithUsers = settlement as any;
+        if (settlementWithUsers.fromUserDetails) {
+          settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+        }
+        if (settlementWithUsers.toUserDetails) {
+          settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+        }
+        return settlement;
+      });
+      
+      res.json(sanitizedSettlements);
     } catch (error) {
       console.error('Error getting user settlements:', error);
       res.status(500).json({ message: (error as Error).message });
@@ -1686,7 +1710,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const settlements = await storage.getGroupSettlements(groupId);
-      res.json(settlements);
+      
+      // Sanitize user details in group settlements if they exist
+      const sanitizedSettlements = settlements.map(settlement => {
+        // Handle potentially extended settlement objects with user details
+        const settlementWithUsers = settlement as any;
+        if (settlementWithUsers.fromUserDetails) {
+          settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+        }
+        if (settlementWithUsers.toUserDetails) {
+          settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+        }
+        return settlement;
+      });
+      
+      res.json(sanitizedSettlements);
     } catch (error) {
       console.error('Error getting group settlements:', error);
       res.status(500).json({ message: (error as Error).message });
@@ -1737,6 +1775,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.markExpenseSplitsAsSettled(id);
       }
       
+      // Sanitize any user details in the updated settlement
+      const settlementWithUsers = updatedSettlement as any;
+      if (settlementWithUsers.fromUserDetails) {
+        settlementWithUsers.fromUserDetails = sanitizeUser(settlementWithUsers.fromUserDetails);
+      }
+      if (settlementWithUsers.toUserDetails) {
+        settlementWithUsers.toUserDetails = sanitizeUser(settlementWithUsers.toUserDetails);
+      }
+      
       res.json(updatedSettlement);
     } catch (error) {
       console.error('Error updating settlement:', error);
@@ -1779,6 +1826,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Helper function to broadcast updates to all clients subscribed to a group
   const broadcastToGroup = (groupId: number, data: any) => {
+    // Sanitize any user data before broadcasting
+    if (data.user) {
+      data.user = sanitizeUser(data.user);
+    }
+    if (data.users && Array.isArray(data.users)) {
+      data.users = sanitizeUsers(data.users);
+    }
+    if (data.members && Array.isArray(data.members)) {
+      data.members = sanitizeUsers(data.members);
+    }
+    if (data.creatorInfo) {
+      data.creatorInfo = sanitizeUser(data.creatorInfo);
+    }
+    
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN && clientGroups.get(client) === groupId) {
         client.send(JSON.stringify(data));
@@ -1798,7 +1859,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displayName: 'Test User'
       };
       
-      console.log('Using user for test email:', currentUser);
+      // Only log sanitized user data
+      console.log('Using user for test email:', sanitizeUser(currentUser));
       
       // Create a mock invitation
       const mockInvitation: GroupInvitation = {
@@ -1853,6 +1915,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: 'User',
         displayName: 'Test User'
       };
+      
+      // Only log sanitized user data
+      console.log('Using user for test email send:', sanitizeUser(currentUser));
       
       // Create a mock invitation
       const mockInvitation: GroupInvitation = {
@@ -1921,6 +1986,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: 'User',
         displayName: 'Test User'
       };
+      
+      // Only log sanitized user data
+      console.log('Using user for email preview:', sanitizeUser(currentUser));
       
       // Create a mock invitation
       const mockInvitation: GroupInvitation = {
