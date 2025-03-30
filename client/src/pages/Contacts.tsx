@@ -52,7 +52,8 @@ import {
   Search,
   Send,
   User as UserIcon,
-  Trash2
+  Trash2,
+  ArrowUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,6 +197,22 @@ function ContactsPage() {
     contact.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<string>('email');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Handle sorting click
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column with ascending direction
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+  
   // Get the initial letter for the avatar
   const getContactInitial = (email: string) => {
     return email.charAt(0).toUpperCase();
@@ -205,6 +222,16 @@ function ContactsPage() {
   const getContactBalance = (contactUserId: number): number | undefined => {
     if (!globalSummary?.balances) return undefined;
     return globalSummary.balances[contactUserId.toString()];
+  };
+  
+  // Format date or return a placeholder for invalid dates
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "No recent activity";
+    }
+    return date.toLocaleDateString();
   };
 
   return (
@@ -282,83 +309,125 @@ function ContactsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Frequency</TableHead>
-                    <TableHead>Balance</TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort('email')}
+                    >
+                      <div className="flex items-center">
+                        Contact
+                        {sortColumn === 'email' && (
+                          <ArrowUp className={`ml-1 h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort('frequency')}
+                    >
+                      <div className="flex items-center">
+                        Frequency
+                        {sortColumn === 'frequency' && (
+                          <ArrowUp className={`ml-1 h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort('balance')}
+                    >
+                      <div className="flex items-center">
+                        Balance
+                        {sortColumn === 'balance' && (
+                          <ArrowUp className={`ml-1 h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                        )}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredContacts?.map((contact) => {
-                    const balance = getContactBalance(contact.contactUserId);
-                    const hasBalance = balance !== undefined;
-                    
-                    return (
-                      <TableRow key={contact.contactUserId}>
-                        <TableCell className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary/10">
-                              {getContactInitial(contact.email)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{contact.email}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Last shared: {new Date(contact.lastInteractionAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {contact.frequency} {contact.frequency === 1 ? 'group' : 'groups'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {hasBalance ? (
-                            <Badge 
-                              variant={balance > 0 ? "default" : balance < 0 ? "destructive" : "outline"}
-                              className={balance === 0 ? "bg-muted" : balance > 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
-                            >
-                              {balance > 0 
-                                ? `Owes you $${Math.abs(balance).toFixed(2)}`
-                                : balance < 0
-                                  ? `You owe $${Math.abs(balance).toFixed(2)}`
-                                  : "Settled up"}
+                  {filteredContacts
+                    ?.map((contact) => {
+                      const balance = getContactBalance(contact.contactUserId) || 0;
+                      const hasBalance = balance !== undefined;
+                      
+                      return {
+                        ...contact,
+                        balanceValue: balance
+                      };
+                    })
+                    // Sort the contacts based on current column and direction
+                    .sort((a, b) => {
+                      if (sortColumn === 'email') {
+                        return sortDirection === 'asc' 
+                          ? a.email.localeCompare(b.email)
+                          : b.email.localeCompare(a.email);
+                      } else if (sortColumn === 'frequency') {
+                        return sortDirection === 'asc'
+                          ? a.frequency - b.frequency
+                          : b.frequency - a.frequency;
+                      } else if (sortColumn === 'balance') {
+                        return sortDirection === 'asc'
+                          ? a.balanceValue - b.balanceValue
+                          : b.balanceValue - a.balanceValue;
+                      }
+                      return 0;
+                    })
+                    .map((contact) => {
+                      const balance = contact.balanceValue;
+                      const hasBalance = balance !== undefined;
+                      
+                      return (
+                        <TableRow key={contact.contactUserId}>
+                          <TableCell className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-primary/10">
+                                {getContactInitial(contact.email)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{contact.email}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Last shared: {formatDate(contact.lastInteractionAt.toString())}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {contact.frequency} {contact.frequency === 1 ? 'group' : 'groups'}
                             </Badge>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">No balance</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {/* New Group button removed as requested */}
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              asChild
-                            >
-                              <a 
-                                href={`mailto:${contact.email}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
+                          </TableCell>
+                          <TableCell>
+                            {hasBalance ? (
+                              <Badge 
+                                variant={balance > 0 ? "default" : balance < 0 ? "destructive" : "outline"}
+                                className={balance === 0 ? "bg-muted" : balance > 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
                               >
-                                <Mail className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                              onClick={() => handleDeleteContact(contact.contactUserId)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                                {balance > 0 
+                                  ? `Owes you $${Math.abs(balance).toFixed(2)}`
+                                  : balance < 0
+                                    ? `You owe $${Math.abs(balance).toFixed(2)}`
+                                    : "Settled up"}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No balance</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                onClick={() => handleDeleteContact(contact.contactUserId)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                 </TableBody>
               </Table>
             </ScrollArea>
