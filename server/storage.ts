@@ -215,6 +215,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Ensure username is set (use email prefix if not provided)
+    if (!insertUser.username) {
+      insertUser.username = insertUser.email.split('@')[0];
+    }
+    
     const [user] = await db
       .insert(users)
       .values(insertUser)

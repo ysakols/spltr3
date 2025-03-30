@@ -6,6 +6,7 @@ import { relations } from "drizzle-orm";
 // Enhanced Users table with more profile information and Google auth
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  username: text("username").notNull(), // Legacy username field
   firstName: text("first_name"), // User's first name (nullable)
   lastName: text("last_name"), // User's last name (nullable)
   password: text("password").notNull(), // Can be empty for OAuth users
@@ -162,6 +163,7 @@ export const expenseSplitsRelations = relations(expenseSplits, ({ one }) => ({
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
   firstName: true,
   lastName: true,
   password: true,
@@ -172,6 +174,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   googleAccessToken: true,
   googleRefreshToken: true
 }).extend({
+  username: z.string().default(''),
   firstName: z.string().optional().nullable(),
   lastName: z.string().optional().nullable(),
   email: z.string().email({ message: "Invalid email address format" }).min(1, { message: "Email address is required" }),
