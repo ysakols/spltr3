@@ -1197,9 +1197,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get the user who paid for the expense and sanitize
         const paidByUser = expense.paidByUserId ? await storage.getUser(expense.paidByUserId) : null;
         
+        // Get the user who created the expense and sanitize
+        const createdByUser = expense.createdByUserId ? await storage.getUser(expense.createdByUserId) : null;
+        
         return {
           ...expense,
-          paidByUser: paidByUser ? sanitizeUser(paidByUser) : null
+          paidByUser: paidByUser ? sanitizeUser(paidByUser) : null,
+          createdByUser: createdByUser ? sanitizeUser(createdByUser) : null
         };
       }));
       
@@ -1225,9 +1229,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const memberIds = members.map(member => member.id);
       
       // If splitWithUserIds is not provided, use all group members
+      // Add current user ID as the createdByUserId
+      const currentUserId = (req.user as User).id;
       const expenseData = {
         ...req.body,
         groupId,
+        createdByUserId: currentUserId,
         splitWithUserIds: req.body.splitWithUserIds || memberIds
       };
       
@@ -1258,9 +1265,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const currentUserId = (req.user as User).id;
       
-      // Check if the current user is the one who paid for the expense (creator)
-      if (expense.paidByUserId !== currentUserId) {
-        return res.status(403).json({ message: 'Only the expense creator can delete this expense' });
+      // Check if the current user is the one who paid for the expense or created it
+      if (expense.paidByUserId !== currentUserId && expense.createdByUserId !== currentUserId) {
+        return res.status(403).json({ message: 'Only the expense creator or payer can delete this expense' });
       }
       
       await storage.deleteExpense(id);
@@ -1289,15 +1296,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const currentUserId = (req.user as User).id;
       
-      // Check if the current user is the one who paid for the expense (creator)
-      if (expense.paidByUserId !== currentUserId) {
-        return res.status(403).json({ message: 'Only the expense creator can update this expense' });
+      // Check if the current user is the one who paid for the expense or created it
+      if (expense.paidByUserId !== currentUserId && expense.createdByUserId !== currentUserId) {
+        return res.status(403).json({ message: 'Only the expense creator or payer can update this expense' });
       }
       
-      // Retain the original groupId
+      // Retain the original groupId and createdByUserId
+      // If the expense doesn't have a createdByUserId yet, set it to the current user
+      // Otherwise, keep the original createdByUserId
       const updatedData = {
         ...req.body,
-        groupId: expense.groupId
+        groupId: expense.groupId,
+        createdByUserId: expense.createdByUserId || currentUserId
       };
       
       const validatedData = insertExpenseSchema.safeParse(updatedData);

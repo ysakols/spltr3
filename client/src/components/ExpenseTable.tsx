@@ -114,6 +114,10 @@ function ExpenseTable({
           aValue = getUsernameById(a.paidByUserId).toLowerCase();
           bValue = getUsernameById(b.paidByUserId).toLowerCase();
           break;
+        case 'createdBy':
+          aValue = a.createdByUserId ? getUsernameById(a.createdByUserId).toLowerCase() : 'unknown';
+          bValue = b.createdByUserId ? getUsernameById(b.createdByUserId).toLowerCase() : 'unknown';
+          break;
         default:
           return 0;
       }
@@ -176,7 +180,12 @@ function ExpenseTable({
                   >
                     Paid By {renderSortIcon('paidBy')}
                   </TableHead>
-                  <TableHead className="py-1 px-2 text-xs font-medium">Split Type</TableHead>
+                  <TableHead 
+                    className="py-1 px-2 text-xs font-medium cursor-pointer"
+                    onClick={() => handleSort('createdBy')}
+                  >
+                    Created By {renderSortIcon('createdBy')}
+                  </TableHead>
                   <TableHead className="py-1 px-2 text-xs font-medium">Split With</TableHead>
                   <TableHead className="py-1 px-2 text-xs font-medium text-right">Actions</TableHead>
                 </TableRow>
@@ -201,20 +210,11 @@ function ExpenseTable({
                       ) : getUsernameById(expense.paidByUserId)}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
-                      <Badge variant={
-                        expense.splitType === SplitType.EQUAL 
-                          ? "default" 
-                          : expense.splitType === SplitType.PERCENTAGE 
-                            ? "secondary"
-                            : "outline"
-                      } className="text-[10px] py-0 px-1.5 h-4">
-                        {expense.splitType === SplitType.EQUAL 
-                          ? "Equal"
-                          : expense.splitType === SplitType.PERCENTAGE
-                            ? "Percentage"
-                            : "Dollar"
-                        }
-                      </Badge>
+                      {expense.createdByUser ? (
+                        expense.createdByUser.firstName && expense.createdByUser.lastName
+                          ? `${expense.createdByUser.firstName} ${expense.createdByUser.lastName}`
+                          : expense.createdByUser.displayName || expense.createdByUser.email
+                      ) : expense.createdByUserId ? getUsernameById(expense.createdByUserId) : 'Unknown'}
                     </TableCell>
                     <TableCell className="py-1 px-2 text-xs">
                       {/* Get split details from JSON string */}
