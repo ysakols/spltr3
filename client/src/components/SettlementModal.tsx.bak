@@ -185,19 +185,11 @@ export function SettlementModal() {
         description: 'Your Venmo payment has been marked as completed.',
       });
       
-      // Invalidate queries to refresh all affected components
-      // This ensures that all tables, summaries, and history are updated
+      // Invalidate queries to refresh data
       if (groupId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
       }
-      
-      // Invalidate global summary and settlements for the user
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'settlements'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${fromUserId}/global-summary`] });
       
       onDismiss();
     } catch (error) {
@@ -241,19 +233,11 @@ export function SettlementModal() {
         description: `You paid ${toUsername} ${formatCurrency(parseFloat(values.amount))}`,
       });
 
-      // Invalidate queries to refresh all affected components
-      // This ensures that all tables, summaries, and history are updated
+      // Invalidate queries to refresh data
       if (groupId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
       }
-      
-      // Invalidate global summary and settlements for the user
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'settlements'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${fromUserId}/global-summary`] });
       
       onDismiss();
     } catch (error) {

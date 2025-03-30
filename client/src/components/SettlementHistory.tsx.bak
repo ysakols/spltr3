@@ -89,22 +89,8 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
         completedAt: new Date()
       });
       
-      // Invalidate all relevant queries to refresh all UI components
-      // This ensures that all tables, summaries, and history are updated
-
-      // First invalidate the specific settlement list we're displaying
+      // Invalidate cached data to refresh the UI
       queryClient.invalidateQueries({ queryKey });
-      
-      // Invalidate all related queries to ensure every component updates
-      if (groupId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-      }
-      
-      // Invalidate user-specific queries
-      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
       
       toast({
         title: "Success!",
@@ -131,22 +117,8 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
         status: SettlementStatus.CANCELED
       });
       
-      // Invalidate all relevant queries to refresh all UI components
-      // This ensures that all tables, summaries, and history are updated
-
-      // First invalidate the specific settlement list we're displaying
+      // Invalidate cached data to refresh the UI
       queryClient.invalidateQueries({ queryKey });
-      
-      // Invalidate all related queries to ensure every component updates
-      if (groupId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-      }
-      
-      // Invalidate user-specific queries
-      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
       
       toast({
         title: "Success!",
@@ -164,32 +136,6 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
       setIsProcessing(false);
       setDeleteDialogOpen(false);
       setSettlementToUpdate(null);
-    }
-  };
-
-  // Get appropriate icon for settlement status
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case SettlementStatus.COMPLETED:
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case SettlementStatus.PENDING:
-        return <Clock className="h-4 w-4 text-amber-500" />;
-      case SettlementStatus.CANCELED:
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <HelpCircle className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  // Get appropriate icon for payment method
-  const getPaymentMethodIcon = (method: string) => {
-    switch(method) {
-      case PaymentMethod.CASH:
-        return <Banknote className="h-4 w-4" />;
-      case PaymentMethod.VENMO:
-        return <ArrowUpRight className="h-4 w-4" />;
-      default:
-        return <CreditCard className="h-4 w-4" />;
     }
   };
 
@@ -215,6 +161,46 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
       </Card>
     );
   }
+
+  // Method to render the appropriate icon based on payment method
+  const getMethodIcon = (method: string) => {
+    switch (method) {
+      case PaymentMethod.CASH:
+        return <Banknote className="h-4 w-4" />;
+      case PaymentMethod.VENMO:
+        return <ArrowUpRight className="h-4 w-4" />;
+      default:
+        return <HelpCircle className="h-4 w-4" />;
+    }
+  };
+
+  // Method to render the appropriate status icon
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case SettlementStatus.COMPLETED:
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case SettlementStatus.PENDING:
+        return <Clock className="h-4 w-4 text-amber-500" />;
+      case SettlementStatus.CANCELED:
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <HelpCircle className="h-4 w-4" />;
+    }
+  };
+
+  // Method to render a badge based on status
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case SettlementStatus.COMPLETED:
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>;
+      case SettlementStatus.PENDING:
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>;
+      case SettlementStatus.CANCELED:
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Canceled</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
 
   return (
     <>
@@ -250,78 +236,65 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
                         {settlement.createdAt && format(new Date(settlement.createdAt), 'MMM d, yyyy')}
                       </span>
                       {settlement.notes && (
-                        <span className="mt-1">{settlement.notes}</span>
+                        <span className="mt-1 italic">"{settlement.notes}"</span>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex items-center">
-                    <span className="font-semibold text-lg mr-3">
-                      {formatCurrency(settlement.amount)}
-                    </span>
+                  <div className="text-right">
+                    <div className="flex items-center">
+                      <div className="font-semibold text-lg">
+                        {formatCurrency(parseFloat(settlement.amount.toString()))}
+                      </div>
+                      
+                      {settlement.status === SettlementStatus.PENDING && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-green-600"
+                              onClick={() => markAsCompleted(settlement.id)}
+                              disabled={isProcessing}
+                            >
+                              <Check className="h-4 w-4 mr-2" />
+                              Mark as Completed
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                setSettlementToUpdate(settlement);
+                                setDeleteDialogOpen(true);
+                              }}
+                              disabled={isProcessing}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Cancel Settlement
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                     
-                    {/* Status-dependent actions */}
-                    {settlement.status === SettlementStatus.PENDING && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => markAsCompleted(settlement.id)}>
-                            <Check className="mr-2 h-4 w-4" />
-                            Mark as Completed
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => {
-                              setSettlementToUpdate(settlement);
-                              setDeleteDialogOpen(true);
-                            }}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Cancel Settlement
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                    <div className="flex items-center justify-end mt-1 space-x-2">
+                      <span className="flex items-center text-xs text-muted-foreground">
+                        {getMethodIcon(settlement.paymentMethod)}
+                        <span className="ml-1 capitalize">{settlement.paymentMethod}</span>
+                      </span>
+                      {getStatusBadge(settlement.status)}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center mt-2 space-x-2">
-                  <Badge variant="outline" className="text-xs flex items-center">
-                    {getPaymentMethodIcon(settlement.paymentMethod)}
-                    <span className="ml-1">{settlement.paymentMethod}</span>
-                  </Badge>
-                  
-                  <Badge 
-                    variant={
-                      settlement.status === SettlementStatus.COMPLETED 
-                        ? "default" 
-                        : settlement.status === SettlementStatus.CANCELED 
-                          ? "destructive" 
-                          : "outline"
-                    }
-                    className="text-xs"
-                  >
-                    {settlement.status}
-                  </Badge>
-                  
-                  {groupId ? null : (
-                    <Badge variant="outline" className="text-xs">
-                      {settlement.groupId ? `Group #${settlement.groupId}` : 'Personal'}
-                    </Badge>
-                  )}
                 </div>
               </div>
             );
           })}
         </CardContent>
       </Card>
-      
-      {/* Confirmation dialog for canceling a settlement */}
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
