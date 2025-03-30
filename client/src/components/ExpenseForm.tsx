@@ -537,19 +537,33 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
                         <td className="px-4 py-2 text-left">Total</td>
                         <td className="px-4 py-2 text-right">
                           {expenseData.splitType === SplitType.PERCENTAGE && (
-                            <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
-                              {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
-                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? ' (should be 100%)' : ''}
-                            </span>
+                            <div>
+                              <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 ? 'text-red-500' : 'text-green-500'} block`}>
+                                {Object.values(splitDetails).reduce((sum, val) => sum + val, 0).toFixed(2)}%
+                              </span>
+                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100) > 0.01 && (
+                                <span className="text-sm text-muted-foreground block mt-1">
+                                  {Object.values(splitDetails).reduce((sum, val) => sum + val, 0) > 100 
+                                    ? `${(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - 100).toFixed(2)}% over` 
+                                    : `${(100 - Object.values(splitDetails).reduce((sum, val) => sum + val, 0)).toFixed(2)}% under`}
+                                </span>
+                              )}
+                            </div>
                           )}
                           
                           {expenseData.splitType === SplitType.EXACT && expenseData.amount && (
-                            <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
-                              {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
-                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 
-                                ? ` (should be ${formatCurrency(parseFloat(expenseData.amount))})` 
-                                : ''}
-                            </span>
+                            <div>
+                              <span className={`${Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 ? 'text-red-500' : 'text-green-500'} block`}>
+                                {formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0))}
+                              </span>
+                              {Math.abs(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount)) > 0.01 && (
+                                <span className="text-sm text-muted-foreground block mt-1">
+                                  {Object.values(splitDetails).reduce((sum, val) => sum + val, 0) > parseFloat(expenseData.amount)
+                                    ? `${formatCurrency(Object.values(splitDetails).reduce((sum, val) => sum + val, 0) - parseFloat(expenseData.amount))} over` 
+                                    : `${formatCurrency(parseFloat(expenseData.amount) - Object.values(splitDetails).reduce((sum, val) => sum + val, 0))} under`}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
