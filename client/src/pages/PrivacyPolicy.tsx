@@ -51,7 +51,7 @@ function PrivacyPolicy() {
                   <li>Process transactions and send related information</li>
                   <li>Send you technical notices, updates, and administrative messages</li>
                   <li>Respond to your comments, questions, and requests</li>
-                  <li>Communicate with you about products, services, and events</li>
+                  <li>Communicate with you about products and services</li>
                   <li>Monitor and analyze trends, usage, and activities in connection with our Services</li>
                 </ul>
               </section>
