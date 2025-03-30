@@ -248,7 +248,18 @@ function ExpenseTable({
                       {new Date(expense.date).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="font-medium py-2 px-2 text-xs">
-                      {expense.description}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="truncate max-w-[150px] cursor-default">
+                              {expense.description}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="p-2 text-xs">
+                            <p>{expense.description}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-primary py-2 px-2 text-xs">
                       {formatCurrency(Number(expense.amount))}
