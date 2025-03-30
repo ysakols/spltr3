@@ -1764,17 +1764,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user is authorized to delete this transaction
       const currentUserId = (req.user as User).id;
-      if (transaction.createdByUserId !== currentUserId) {
+      // Allow deletion if the user created the transaction OR paid for it (for settlements)
+      if (transaction.createdByUserId !== currentUserId && transaction.paidByUserId !== currentUserId) {
         return res.status(403).json({ message: 'Not authorized to delete this transaction' });
       }
       
-      // Don't allow deletion of completed settlements
-      if (
-        transaction.type === TransactionType.SETTLEMENT &&
-        transaction.status === TransactionStatus.COMPLETED
-      ) {
-        return res.status(400).json({ message: 'Cannot delete a completed settlement' });
-      }
+      // We WILL allow deletion of completed settlements for now
+      // This can be restricted again in the future if needed
+      // if (
+      //   transaction.type === TransactionType.SETTLEMENT &&
+      //   transaction.status === TransactionStatus.COMPLETED
+      // ) {
+      //   return res.status(400).json({ message: 'Cannot delete a completed settlement' });
+      // }
       
       const deleted = await storage.deleteTransaction(id);
       if (deleted) {
