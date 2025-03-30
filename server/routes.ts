@@ -187,22 +187,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Google OAuth routes
   // Google OAuth login endpoint
-  app.get('/auth/google', passport.authenticate('google', {
-    scope: ['profile', 'email']
-  }));
+  app.get('/auth/google', (req: Request, res: Response, next: NextFunction) => {
+    console.log('Google auth route accessed with query params:', req.query);
+    const redirectParam = req.query.redirect ? `?redirect=${encodeURIComponent(req.query.redirect as string)}` : '';
+    
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      state: redirectParam // Store redirect URL in state parameter
+    })(req, res, next);
+  });
 
   // Google OAuth callback endpoint
   app.get('/auth/google/callback', 
-    passport.authenticate('google', { 
-      failureRedirect: '/login',
-      failureMessage: "Failed to authenticate with Google"
-    }),
+    (req: Request, res: Response, next: NextFunction) => {
+      console.log('Google callback route accessed with query params:', req.query);
+      console.log('State parameter:', req.query.state);
+      next();
+    },
+    (req: Request, res: Response, next: NextFunction) => {
+      passport.authenticate('google', { 
+        failureRedirect: '/login',
+        failureMessage: "Failed to authenticate with Google"
+      }, (err, user, info) => {
+        if (err) {
+          console.error('Error during Google authentication:', err);
+          return res.redirect('/login?error=' + encodeURIComponent('Authentication error: ' + err.message));
+        }
+        
+        if (!user) {
+          console.error('No user returned from Google authentication:', info);
+          return res.redirect('/login?error=' + encodeURIComponent('Authentication failed'));
+        }
+        
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error('Error during login after Google auth:', loginErr);
+            return res.redirect('/login?error=' + encodeURIComponent('Login error: ' + loginErr.message));
+          }
+          next();
+        });
+      })(req, res, next);
+    },
     (req: Request, res: Response) => {
-      // Authentication successful, get redirect path if any
-      const searchParams = new URLSearchParams(req.query as Record<string, string>);
-      const redirectPath = searchParams.get("redirect") || "/";
+      console.log('Google authentication successful');
+      // Authentication successful, extract redirect from state if present
+      let redirectPath = '/';
       
-      // Redirect to the app
+      try {
+        if (req.query.state) {
+          const stateParam = req.query.state as string;
+          if (stateParam.startsWith('?redirect=')) {
+            const redirectParam = new URLSearchParams(stateParam).get('redirect');
+            if (redirectParam) redirectPath = redirectParam;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing redirect state:', error);
+      }
+      
+      console.log('Redirecting to:', redirectPath);
       res.redirect(redirectPath);
     }
   );

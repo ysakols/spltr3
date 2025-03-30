@@ -1,7 +1,7 @@
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation, Link } from "wouter";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
@@ -15,6 +15,24 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Check for error message in URL (e.g., from failed Google auth)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const error = searchParams.get("error");
+    
+    if (error) {
+      toast({
+        title: "Authentication Error",
+        description: decodeURIComponent(error),
+        variant: "destructive"
+      });
+      
+      // Remove the error from the URL to prevent showing it again on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [toast]);
   
   // Parse redirect parameter from URL if it exists
   const getRedirectPath = () => {
@@ -165,6 +183,7 @@ function Login() {
                     // Get the redirect parameter
                     const redirectPath = getRedirectPath();
                     // Redirect to Google OAuth endpoint with the same redirect parameter
+                    console.log('Redirecting to Google auth with redirect path:', redirectPath);
                     window.location.href = `/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
                   }}
                 >

@@ -75,6 +75,7 @@ passport.use(new LocalStrategy(
 // Setup Google OAuth strategy
 // Only set up Google strategy if environment variables are set
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  console.log('Setting up Google OAuth strategy with callback URL:', process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback");
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
