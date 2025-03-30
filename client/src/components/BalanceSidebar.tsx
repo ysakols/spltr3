@@ -104,7 +104,7 @@ export function BalanceSidebar() {
     currentMembers.forEach(member => {
       userMap[member.id.toString()] = member.firstName && member.lastName 
         ? `${member.firstName} ${member.lastName}` 
-        : member.displayName || member.email;
+        : member.displayName || 'User';
     });
   }
   
@@ -112,7 +112,7 @@ export function BalanceSidebar() {
   allUsers.forEach(user => {
     userMap[user.id.toString()] = user.firstName && user.lastName 
       ? `${user.firstName} ${user.lastName}` 
-      : user.displayName || user.email;
+      : user.displayName || 'User';
   });
   
   // Get settlements that involve the current user

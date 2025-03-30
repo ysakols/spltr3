@@ -141,7 +141,7 @@ function GroupList() {
                               const creator = group.creatorInfo;
                               return creator.firstName && creator.lastName
                                 ? `${creator.firstName} ${creator.lastName}`
-                                : creator.displayName || creator.email || 'Unknown';
+                                : creator.displayName || 'User';
                             }
                             
                             // Fall back to users array if creatorInfo is not available
@@ -149,7 +149,7 @@ function GroupList() {
                             if (!creator) return 'Unknown';
                             return creator.firstName && creator.lastName
                               ? `${creator.firstName} ${creator.lastName}`
-                              : creator.displayName || creator.email || 'Unknown';
+                              : creator.displayName || 'User';
                           })()}
                         </span>
                         <span className="font-medium text-primary">(Admin)</span>

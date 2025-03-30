@@ -26,7 +26,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
   members.forEach(member => {
     userMap[member.id.toString()] = member.firstName && member.lastName 
       ? `${member.firstName} ${member.lastName}` 
-      : member.displayName || member.email;
+      : member.displayName || 'User';
   });
   
   // Get username from ID

@@ -485,7 +485,11 @@ function ContactsPage() {
                             </Avatar>
                             <div>
                               <div className="flex items-center gap-2">
-                                <p className="font-medium">{contact.email}</p>
+                                <p className="font-medium">
+                                  {extContact.firstName && extContact.lastName 
+                                    ? `${extContact.firstName} ${extContact.lastName}`
+                                    : contact.email}
+                                </p>
                                 {isPendingInvitation && (
                                   <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                                     Invited
@@ -497,6 +501,9 @@ function ContactsPage() {
                                   ? `Invited on: ${formatDate(contact.lastInteractionAt)}`
                                   : `Last interaction: ${formatDate(contact.lastInteractionAt)}`}
                               </p>
+                              {extContact.firstName && extContact.lastName && (
+                                <p className="text-xs text-muted-foreground">{contact.email}</p>
+                              )}
                             </div>
                           </TableCell>
 

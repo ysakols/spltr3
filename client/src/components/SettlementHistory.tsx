@@ -38,14 +38,16 @@ export function SettlementHistory({ userId, groupId }: SettlementHistoryProps) {
   });
 
   // Fetch all users to get usernames
-  const { data: users = [] } = useQuery<{ id: number; username: string }[]>({
+  const { data: users = [] } = useQuery<{ id: number; firstName: string; lastName: string; displayName: string; email: string }[]>({
     queryKey: ['/api/users'],
   });
 
   // Create a mapping of user IDs to usernames
   const userMap: Record<number, string> = {};
-  users.forEach((user: { id: number; username: string }) => {
-    userMap[user.id] = user.username;
+  users.forEach((user) => {
+    userMap[user.id] = user.firstName && user.lastName 
+      ? `${user.firstName} ${user.lastName}` 
+      : user.displayName || 'User';
   });
 
   if (isLoading) {

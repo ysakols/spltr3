@@ -110,7 +110,11 @@ export default function ContactDetail() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold">{data.contact.displayName}</h2>
+                  <h2 className="text-2xl font-bold">
+                    {data.contact.firstName && data.contact.lastName 
+                      ? `${data.contact.firstName} ${data.contact.lastName}` 
+                      : data.contact.displayName || 'User'}
+                  </h2>
                   <p className="text-muted-foreground">{data.contact.email}</p>
                   
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -239,7 +243,9 @@ export default function ContactDetail() {
                             <TableCell>${expense.amount.toFixed(2)}</TableCell>
                             <TableCell>
                               {expense.paidById === data.contact.id 
-                                ? data.contact.displayName 
+                                ? (data.contact.firstName && data.contact.lastName
+                                   ? `${data.contact.firstName} ${data.contact.lastName}`
+                                   : data.contact.displayName || 'User')
                                 : expense.paidById === userId 
                                   ? "You" 
                                   : "Other"}
