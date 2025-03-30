@@ -185,7 +185,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Google OAuth routes have been removed
+  // Google OAuth routes
+  // Google OAuth login endpoint
+  app.get('/auth/google', passport.authenticate('google', {
+    scope: ['profile', 'email']
+  }));
+
+  // Google OAuth callback endpoint
+  app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+      failureRedirect: '/login',
+      failureMessage: "Failed to authenticate with Google"
+    }),
+    (req: Request, res: Response) => {
+      // Authentication successful, get redirect path if any
+      const searchParams = new URLSearchParams(req.query as Record<string, string>);
+      const redirectPath = searchParams.get("redirect") || "/";
+      
+      // Redirect to the app
+      res.redirect(redirectPath);
+    }
+  );
   
   // Logout route
   app.get('/auth/logout', (req: Request, res: Response) => {

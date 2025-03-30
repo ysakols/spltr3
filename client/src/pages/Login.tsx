@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
+import { SiGoogle } from "react-icons/si";
 
 function Login() {
   const [location, setLocation] = useLocation();
@@ -142,6 +144,32 @@ function Login() {
                   }}
                 >
                   Create Account
+                </Button>
+              </div>
+              
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+              
+              <div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={() => {
+                    // Get the redirect parameter
+                    const redirectPath = getRedirectPath();
+                    // Redirect to Google OAuth endpoint with the same redirect parameter
+                    window.location.href = `/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
+                  }}
+                >
+                  <SiGoogle className="h-4 w-4" />
+                  <span>Sign in with Google</span>
                 </Button>
               </div>
             </CardContent>
