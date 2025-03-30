@@ -9,7 +9,7 @@ import {
   type GroupInvitation, type InsertGroupInvitation
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray, notInArray, asc, desc, isNull, sql, count } from "drizzle-orm";
+import { eq, and, inArray, notInArray, asc, desc, isNull, sql, count, not } from "drizzle-orm";
 
 // System limits
 export const LIMITS = {
@@ -40,7 +40,11 @@ export interface IStorage {
   updateGroup(id: number, group: Partial<InsertGroup>): Promise<Group | undefined>;
   deleteGroup(id: number): Promise<boolean>;
   addUserToGroup(groupId: number, userId: number): Promise<UserGroup>;
-  removeUserFromGroup(groupId: number, userId: number): Promise<void>;
+  removeUserFromGroup(groupId: number, userId: number): Promise<{
+    deletedExpensesCount: number;
+    affectedExpensesCount: number;
+    affectedExpenses: Array<{ id: number; description: string; amount: string }>;
+  }>;
   getGroupMembers(groupId: number): Promise<User[]>;
   
   // Expense methods
@@ -495,7 +499,11 @@ export class DatabaseStorage implements IStorage {
     return userGroup;
   }
 
-  async removeUserFromGroup(groupId: number, userId: number): Promise<void> {
+  async removeUserFromGroup(groupId: number, userId: number): Promise<{
+    deletedExpensesCount: number;
+    affectedExpensesCount: number;
+    affectedExpenses: Array<{ id: number; description: string; amount: string }>;
+  }> {
     // Mark the user as inactive in the group rather than deleting
     await db.update(userGroups)
       .set({ isActive: false })
@@ -513,15 +521,57 @@ export class DatabaseStorage implements IStorage {
       ));
     
     // Delete all expenses created by this user in the group
+    let deletedExpensesCount = 0;
     if (userExpenses.length > 0) {
       console.log(`Removing ${userExpenses.length} expense(s) created by user ${userId} from group ${groupId}`);
       
-      await db.delete(expenses)
+      const result = await db.delete(expenses)
         .where(and(
           eq(expenses.groupId, groupId),
           eq(expenses.createdByUserId, userId)
         ));
+      
+      deletedExpensesCount = result.rowCount || 0;
     }
+    
+    // Find expenses where the user is included in splits but doesn't own the expense
+    // These expenses will have orphaned splits and need to be re-split
+    const expenseSplitsQuery = await db.select({
+      expense: expenses
+    })
+    .from(expenses)
+    .where(eq(expenses.groupId, groupId))
+    .innerJoin(
+      expenseSplits,
+      and(
+        eq(expenseSplits.expenseId, expenses.id),
+        eq(expenseSplits.userId, userId),
+        not(eq(expenses.createdByUserId, userId)) // Exclude expenses already deleted
+      )
+    );
+    
+    // Extract unique expenses that have orphaned splits
+    const affectedExpenses: Array<{ id: number; description: string; amount: string }> = [];
+    const processedExpenseIds = new Set<number>();
+    
+    for (const { expense } of expenseSplitsQuery) {
+      if (!processedExpenseIds.has(expense.id)) {
+        processedExpenseIds.add(expense.id);
+        affectedExpenses.push({
+          id: expense.id,
+          description: expense.description,
+          amount: expense.amount.toString()
+        });
+      }
+    }
+    
+    console.log(`Found ${affectedExpenses.length} expense(s) with orphaned splits from user ${userId}`);
+    
+    return {
+      deletedExpensesCount,
+      affectedExpensesCount: affectedExpenses.length,
+      affectedExpenses
+    };
   }
 
   async getGroupMembers(groupId: number): Promise<User[]> {

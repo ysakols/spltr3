@@ -1153,15 +1153,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Removing user ${userId} from group ${groupId}`);
       
       try {
-        await storage.removeUserFromGroup(groupId, userId);
+        const result = await storage.removeUserFromGroup(groupId, userId);
         console.log(`Successfully removed user ${userId} from group ${groupId}`);
+        console.log(`Deleted ${result.deletedExpensesCount} expenses created by user`);
+        console.log(`Found ${result.affectedExpensesCount} expenses with orphaned splits`);
         
-        // If user is removing themselves, give a different message
+        // Construct a detailed response message
+        let responseMessage = '';
+        
         if (userId === currentUserId) {
-          res.json({ message: 'You have left the group successfully' });
+          responseMessage = 'You have left the group successfully.';
         } else {
-          res.json({ message: 'User removed from group successfully. Any expenses created by this user have been deleted.' });
+          responseMessage = 'User removed from group successfully.';
         }
+        
+        // Add details about deleted expenses if any
+        if (result.deletedExpensesCount > 0) {
+          responseMessage += ` ${result.deletedExpensesCount} expense(s) created by this user have been deleted.`;
+        }
+        
+        // Add details about affected expenses if any
+        if (result.affectedExpensesCount > 0) {
+          responseMessage += ` ${result.affectedExpensesCount} expense(s) need to be re-split because they included this user.`;
+          
+          // Return the response with additional details
+          return res.json({ 
+            message: responseMessage,
+            deletedExpensesCount: result.deletedExpensesCount,
+            affectedExpensesCount: result.affectedExpensesCount,
+            affectedExpenses: result.affectedExpenses,
+            needsResplit: result.affectedExpensesCount > 0
+          });
+        }
+        
+        // Return simple response if no affected expenses
+        res.json({ 
+          message: responseMessage,
+          deletedExpensesCount: result.deletedExpensesCount,
+          affectedExpensesCount: 0,
+          needsResplit: false
+        });
       } catch (error) {
         console.error('Error removing user from group:', error);
         res.status(500).json({ message: `Error removing user: ${(error as Error).message}` });
