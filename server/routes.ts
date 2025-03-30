@@ -2,8 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
-  insertGroupSchema, insertExpenseSchema, insertUserSchema, users, User,
-  Group, GroupInvitation, groupInvitations, InsertGroupInvitation
+  insertGroupSchema, insertExpenseSchema, insertUserSchema, insertSettlementSchema, users, User,
+  Group, GroupInvitation, groupInvitations, InsertGroupInvitation, Settlement,
+  PaymentMethod, SettlementStatus
 } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { WebSocketServer, WebSocket } from "ws";

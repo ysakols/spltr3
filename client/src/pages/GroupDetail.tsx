@@ -26,7 +26,7 @@ import ExpenseForm from '@/components/ExpenseForm';
 import ExpenseTable from '@/components/ExpenseTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
-import { PendingInvitations } from '@/components/PendingInvitations';
+import { ActivityFeed } from '@/components/ActivityFeed';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
@@ -291,8 +291,10 @@ function GroupDetail() {
                 members={members} // Pass members to ExpenseTable
               />
               
-              {/* Show pending invitations */}
-              <PendingInvitations groupId={groupId} />
+              {/* Show activity feed with invitations and settlements */}
+              <div className="mt-6">
+                <ActivityFeed groupId={groupId} />
+              </div>
             </div>
           )}
         </div>
