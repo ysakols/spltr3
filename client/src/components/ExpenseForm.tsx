@@ -247,6 +247,75 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         [userId]: numValue
       }));
     };
+    
+    // Function to handle the "Even Split" button click
+    const handleEvenSplit = () => {
+      if (!members || members.length === 0) return;
+      
+      const newSplitDetails: Record<string, number> = {};
+      
+      if (expenseData.splitType === SplitType.PERCENTAGE) {
+        // For percentage split, divide 100% equally
+        const equalPercentage = parseFloat((100 / members.length).toFixed(2));
+        let totalAssigned = 0;
+        
+        members.forEach((member, index) => {
+          if (index === members.length - 1) {
+            // Last person gets remaining percentage to avoid rounding errors
+            newSplitDetails[member.id] = parseFloat((100 - totalAssigned).toFixed(2));
+          } else {
+            newSplitDetails[member.id] = equalPercentage;
+            totalAssigned += equalPercentage;
+          }
+        });
+      } else if (expenseData.splitType === SplitType.EXACT) {
+        // For exact split, we need a valid amount
+        if (!expenseData.amount) {
+          toast({
+            title: "Missing Amount",
+            description: "Please enter a total amount first.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const totalAmount = parseFloat(expenseData.amount);
+        if (isNaN(totalAmount) || totalAmount <= 0) {
+          toast({
+            title: "Invalid Amount",
+            description: "Please enter a valid amount greater than zero.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Calculate equal shares
+        const perPersonAmount = parseFloat((totalAmount / members.length).toFixed(2));
+        let distributed = 0;
+        
+        members.forEach((member, index) => {
+          if (index === members.length - 1) {
+            // Last person gets remaining amount to avoid rounding errors
+            newSplitDetails[member.id] = parseFloat((totalAmount - distributed).toFixed(2));
+          } else {
+            newSplitDetails[member.id] = perPersonAmount;
+            distributed += perPersonAmount;
+          }
+        });
+      } else if (expenseData.splitType === SplitType.EQUAL) {
+        // For equal split, we just set placeholder values
+        members.forEach(member => {
+          newSplitDetails[member.id] = 0;
+        });
+      }
+      
+      setSplitDetails(newSplitDetails);
+      
+      toast({
+        title: "Even Split Applied",
+        description: `The expense has been split evenly among ${members.length} members.`
+      });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -487,9 +556,20 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
               
               {/* Split Details */}
               <div className="mt-4">
-                <Label className="block mb-3">
-                  {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Dollar Allocation'}
-                </Label>
+                <div className="flex justify-between items-center mb-3">
+                  <Label className="block">
+                    {expenseData.splitType === SplitType.PERCENTAGE ? 'Percentage Allocation' : 'Dollar Allocation'}
+                  </Label>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEvenSplit}
+                    className="text-xs px-2.5 py-1.5 h-auto"
+                  >
+                    Even Split
+                  </Button>
+                </div>
                 
                 <div className="border rounded-md overflow-hidden">
                   <table className="w-full">
