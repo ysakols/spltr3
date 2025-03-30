@@ -377,8 +377,13 @@ function ContactsPage() {
                       const balance = contact.balanceValue;
                       const hasBalance = balance !== undefined;
                       
+                      // Create a unique key for each contact, using email if contactUserId is not valid
+                      const uniqueKey = contact.contactUserId && contact.contactUserId > 0 
+                                      ? `contact-${contact.contactUserId}` 
+                                      : `contact-email-${contact.email}`;
+                      
                       return (
-                        <TableRow key={contact.contactUserId}>
+                        <TableRow key={uniqueKey}>
                           <TableCell className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
                               <AvatarFallback className="bg-primary/10">
