@@ -225,11 +225,15 @@ function ContactsPage() {
   };
   
   // Format date or return a placeholder for invalid dates
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date | null | undefined) => {
+    if (!dateString) {
+      return "No date available";
+    }
+    
     const date = new Date(dateString);
     // Check if date is valid
     if (isNaN(date.getTime())) {
-      return "No recent activity";
+      return "No date available";
     }
     return date.toLocaleDateString();
   };
@@ -320,17 +324,7 @@ function ContactsPage() {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead 
-                      className="cursor-pointer"
-                      onClick={() => handleSort('frequency')}
-                    >
-                      <div className="flex items-center">
-                        Frequency
-                        {sortColumn === 'frequency' && (
-                          <ArrowUp className={`ml-1 h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
-                        )}
-                      </div>
-                    </TableHead>
+
                     <TableHead 
                       className="cursor-pointer"
                       onClick={() => handleSort('balance')}
@@ -362,10 +356,6 @@ function ContactsPage() {
                         return sortDirection === 'asc' 
                           ? a.email.localeCompare(b.email)
                           : b.email.localeCompare(a.email);
-                      } else if (sortColumn === 'frequency') {
-                        return sortDirection === 'asc'
-                          ? a.frequency - b.frequency
-                          : b.frequency - a.frequency;
                       } else if (sortColumn === 'balance') {
                         return sortDirection === 'asc'
                           ? a.balanceValue - b.balanceValue
@@ -388,15 +378,11 @@ function ContactsPage() {
                             <div>
                               <p className="font-medium">{contact.email}</p>
                               <p className="text-xs text-muted-foreground">
-                                Last shared: {formatDate(contact.lastInteractionAt.toString())}
+                                Invited on: {formatDate(contact.lastInteractionAt)}
                               </p>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {contact.frequency} {contact.frequency === 1 ? 'group' : 'groups'}
-                            </Badge>
-                          </TableCell>
+
                           <TableCell>
                             {hasBalance ? (
                               <Badge 
