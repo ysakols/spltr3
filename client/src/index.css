@@ -27,29 +27,49 @@
 @layer components {
   /* Make all UI components more compact */
   .card {
-    @apply p-3;
+    @apply p-2 sm:p-3;
   }
   
   .btn, .button {
-    @apply py-1.5 px-3 text-sm;
+    @apply py-1.5 px-2 sm:px-3 text-sm;
   }
   
   /* Add more compact spacing */
   .container {
-    @apply px-3 py-3;
+    @apply px-2 sm:px-3 py-2 sm:py-3;
   }
   
   /* Make form inputs more compact */
   input, select, textarea {
-    @apply text-sm py-1 px-2;
+    @apply text-sm py-1 px-2 w-full;
   }
   
-  /* Tables more compact */
+  /* Tables more compact with horizontal scrolling on mobile */
   table {
-    @apply text-sm;
+    @apply text-sm w-full;
   }
   
   th, td {
-    @apply py-1.5 px-2;
+    @apply py-1.5 px-1 sm:px-2;
+  }
+  
+  /* Mobile-specific adjustments */
+  @media (max-width: 640px) {
+    .table-container {
+      @apply overflow-x-auto -mx-2 px-2;
+    }
+    
+    /* Ensure text doesn't get too small on mobile */
+    body {
+      @apply text-base;
+    }
+    
+    h1 {
+      @apply text-lg;
+    }
+    
+    h2 {
+      @apply text-base;
+    }
   }
 }

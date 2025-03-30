@@ -400,28 +400,32 @@ function TransactionsTable({
             No transactions found. Add an expense to get started.
           </div>
         ) : (
-          <div className="overflow-auto">
+          <div className="table-container overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead 
-                    className="cursor-pointer w-[140px]" 
+                    className="cursor-pointer w-[90px] sm:w-[140px]" 
                     onClick={() => handleSort('date')}
                   >
                     <div className="flex items-center">
-                      Date {renderSortIndicator('date')}
+                      <span className="hidden sm:inline">Date</span>
+                      <span className="sm:hidden">Date</span>
+                      {renderSortIndicator('date')}
                     </div>
                   </TableHead>
                   <TableHead 
-                    className="cursor-pointer" 
+                    className="cursor-pointer max-w-[80px] sm:max-w-none" 
                     onClick={() => handleSort('description')}
                   >
                     <div className="flex items-center">
-                      Description {renderSortIndicator('description')}
+                      <span className="hidden sm:inline">Description</span>
+                      <span className="sm:hidden">Desc</span>
+                      {renderSortIndicator('description')}
                     </div>
                   </TableHead>
                   <TableHead 
-                    className="cursor-pointer" 
+                    className="cursor-pointer hidden sm:table-cell" 
                     onClick={() => handleSort('type')}
                   >
                     <div className="flex items-center">
@@ -429,7 +433,7 @@ function TransactionsTable({
                     </div>
                   </TableHead>
                   <TableHead 
-                    className="cursor-pointer" 
+                    className="cursor-pointer hidden md:table-cell" 
                     onClick={() => handleSort('paidByUserId')}
                   >
                     <div className="flex items-center">
@@ -441,29 +445,46 @@ function TransactionsTable({
                     onClick={() => handleSort('amount')}
                   >
                     <div className="flex items-center justify-end">
-                      Amount {renderSortIndicator('amount')}
+                      <span className="hidden sm:inline">Amount</span>
+                      <span className="sm:hidden">Amt</span>
+                      {renderSortIndicator('amount')}
                     </div>
                   </TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead className="w-[60px] sm:w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedTransactions.map((transaction) => (
                   <TableRow key={`${transaction.type}-${transaction.id}`}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-xs sm:text-sm whitespace-nowrap">
                       {formatDate(transaction.date)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[80px] sm:max-w-none">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger className="text-left">
-                            <span>{truncateText(transaction.description)}</span>
+                            <span className="text-xs sm:text-sm">{truncateText(transaction.description, 12)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{transaction.description}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      
+                      {/* Show compact badge type on mobile inline */}
+                      <div className="sm:hidden mt-0.5">
+                        <Badge variant="outline" className="text-[10px] px-1 border-0">
+                          {transaction.type === 'expense' ? (
+                            <span className="text-amber-600">
+                              <CreditCard className="h-2.5 w-2.5 inline mr-0.5" />Exp
+                            </span>
+                          ) : (
+                            <span className="text-green-600">
+                              <Banknote className="h-2.5 w-2.5 inline mr-0.5" />Stl
+                            </span>
+                          )}
+                        </Badge>
+                      </div>
                       
                       {/* Show badges for additional details */}
                       <div className="flex mt-1 space-x-1">
@@ -485,7 +506,7 @@ function TransactionsTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge 
                         variant="outline" 
                         className={`${
@@ -497,21 +518,21 @@ function TransactionsTable({
                         {transaction.type === 'expense' ? 'Expense' : 'Settlement'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell text-xs sm:text-sm">
                       {transaction.type === 'expense' ? (
                         // For expenses, show paidBy
                         getUsernameById(transaction.paidByUserId)
                       ) : (
                         // For settlements, show from -> to
-                        <div className="flex items-center text-sm">
+                        <div className="flex items-center text-xs sm:text-sm">
                           <span>{getUsernameById(transaction.paidByUserId)}</span>
                           <span className="mx-1">→</span>
                           <span>{getUsernameById(transaction.toUserId)}</span>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <span className={`font-semibold ${
+                    <TableCell className="text-right whitespace-nowrap">
+                      <span className={`font-semibold text-xs sm:text-sm ${
                         transaction.type === 'settlement' ? 'text-green-600 flex items-center justify-end' : ''
                       }`}>
                         {transaction.type === 'settlement' && (
@@ -521,17 +542,17 @@ function TransactionsTable({
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-1">
+                      <div className="flex space-x-1 justify-end">
                         {/* Edit button */}
                         {/* For expenses, show if onEditExpense is available */}
                         {(transaction.type === 'expense' && onEditExpense) && (
                           <Button 
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-6 w-6 sm:h-8 sm:w-8"
                             onClick={() => handleEditTransaction(transaction)}
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         )}
                         
@@ -547,10 +568,10 @@ function TransactionsTable({
                           <Button 
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8 text-destructive"
+                            className="h-6 w-6 sm:h-8 sm:w-8 text-destructive"
                             onClick={() => handleDeleteTransaction(transaction)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         )}
                       </div>

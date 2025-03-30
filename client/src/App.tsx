@@ -33,7 +33,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         
         {/* Main content */}
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-3 pt-10 md:pt-3 pb-16">
+          <div className="container mx-auto px-2 sm:px-3 pt-10 md:pt-3 pb-16 max-w-full md:max-w-5xl">
             {children}
           </div>
         </main>
@@ -45,7 +45,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       <footer className="border-t py-1.5 absolute bottom-0 w-full bg-background">
-        <div className="container mx-auto px-3">
+        <div className="container mx-auto px-2 sm:px-3">
           <p className="text-center text-muted-foreground text-xs">
             &copy; {new Date().getFullYear()} spltr3. All rights reserved.
           </p>
