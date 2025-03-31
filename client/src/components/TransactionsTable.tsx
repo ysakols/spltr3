@@ -375,17 +375,17 @@ function TransactionsTable({
   }
   
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm rounded-none">
       <CardHeader className="pb-2 space-y-2 border-b">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <CardTitle className="text-lg font-medium text-gray-800">Transaction History</CardTitle>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-4 text-xs text-gray-500">
             <div className="flex items-center">
-              <div className="w-2.5 h-2.5 bg-indigo-400 mr-1.5"></div>
+              <div className="w-3 h-3 bg-indigo-400 mr-2"></div>
               <span>Expenses</span>
             </div>
             <div className="flex items-center">
-              <div className="w-2.5 h-2.5 bg-teal-400 mr-1.5"></div>
+              <div className="w-3 h-3 bg-teal-400 mr-2"></div>
               <span>Settlements</span>
             </div>
           </div>
@@ -425,7 +425,7 @@ function TransactionsTable({
               return (
                 <div 
                   key={`${transaction.type}-${transaction.id}`} 
-                  className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-sm ${
+                  className={`border overflow-hidden bg-card transition-all hover:shadow-sm ${
                     isExpense ? 'border-l-4 border-l-indigo-400' : 'border-l-4 border-l-teal-400'
                   }`}
                 >
@@ -528,7 +528,7 @@ function TransactionsTable({
                               </AlertDialogTitle>
                               <AlertDialogDescription>
                                 Are you sure you want to delete this {transaction.type}?
-                                <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                                <div className="mt-2 p-3 bg-muted/50">
                                   <p className="font-medium">{transaction.description}</p>
                                   <p className="text-xs text-primary mt-1">
                                     {formatCurrency(amount)}
