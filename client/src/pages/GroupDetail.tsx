@@ -234,25 +234,29 @@ function GroupDetail() {
 
           {!isEditing && (
             <div className="pt-2">
-              <div className="flex items-center justify-start gap-3 mb-4">
-                {summary && members && (
-                  <SettleUpButton
-                    groupId={groupId}
-                    summary={summary} 
-                    currentUser={currentUser!}
-                    members={members}
+              <div className="flex gap-3 mb-4">
+                <div className="inline-flex items-center">
+                  {summary && members && (
+                    <SettleUpButton
+                      groupId={groupId}
+                      summary={summary} 
+                      currentUser={currentUser!}
+                      members={members}
+                    />
+                  )}
+                </div>
+                <div className="inline-flex items-center">
+                  <ExpenseForm 
+                    ref={expenseFormRef}
+                    group={group} 
+                    members={members || []}
+                    onExpenseAdded={refreshData}
+                    expenseToEdit={expenseToEdit || undefined}
+                    isEditing={!!expenseToEdit}
+                    onExpenseEdited={handleExpenseEdited}
+                    onCancelEdit={handleCancelEdit}
                   />
-                )}
-                <ExpenseForm 
-                  ref={expenseFormRef}
-                  group={group} 
-                  members={members || []}
-                  onExpenseAdded={refreshData}
-                  expenseToEdit={expenseToEdit || undefined}
-                  isEditing={!!expenseToEdit}
-                  onExpenseEdited={handleExpenseEdited}
-                  onCancelEdit={handleCancelEdit}
-                />
+                </div>
               </div>
               
               <TransactionsTable 
