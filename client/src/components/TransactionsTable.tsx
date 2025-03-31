@@ -376,15 +376,25 @@ function TransactionsTable({
   
   return (
     <Card className="shadow-sm">
-      <CardHeader className="pb-2 space-y-2">
+      <CardHeader className="pb-2 space-y-2 border-b">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <CardTitle className="text-xl">Transactions</CardTitle>
+          <CardTitle className="text-lg font-medium text-gray-800">Transaction History</CardTitle>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="flex items-center">
+              <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 mr-1.5"></div>
+              <span>Expenses</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-2.5 h-2.5 rounded-full bg-teal-400 mr-1.5"></div>
+              <span>Settlements</span>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2 text-xs text-muted-foreground">
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs"
+            className="h-7 text-xs font-medium"
             onClick={() => handleSort('date')}
           >
             Date {renderSortIndicator('date')}
@@ -392,7 +402,7 @@ function TransactionsTable({
           <Button
             variant="ghost" 
             size="sm"
-            className="h-7 text-xs"
+            className="h-7 text-xs font-medium"
             onClick={() => handleSort('amount')}
           >
             Amount {renderSortIndicator('amount')}
@@ -401,8 +411,10 @@ function TransactionsTable({
       </CardHeader>
       <CardContent className="p-3 sm:p-5">
         {sortedTransactions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No transactions found. Add an expense to get started.
+          <div className="text-center py-10 border border-dashed rounded-lg">
+            <CreditCard className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+            <p className="text-muted-foreground mb-2">No transactions found</p>
+            <p className="text-xs text-muted-foreground">Add an expense to get started</p>
           </div>
         ) : (
           <div className="grid gap-3 md:gap-4">
