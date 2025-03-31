@@ -381,11 +381,11 @@ function TransactionsTable({
           <CardTitle className="text-lg font-medium text-gray-800">Transaction History</CardTitle>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <div className="flex items-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 mr-1.5"></div>
+              <div className="w-2.5 h-2.5 bg-indigo-400 mr-1.5"></div>
               <span>Expenses</span>
             </div>
             <div className="flex items-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-teal-400 mr-1.5"></div>
+              <div className="w-2.5 h-2.5 bg-teal-400 mr-1.5"></div>
               <span>Settlements</span>
             </div>
           </div>
@@ -411,7 +411,7 @@ function TransactionsTable({
       </CardHeader>
       <CardContent className="p-3 sm:p-5">
         {sortedTransactions.length === 0 ? (
-          <div className="text-center py-10 border border-dashed rounded-lg">
+          <div className="text-center py-10 border">
             <CreditCard className="h-10 w-10 mx-auto text-gray-300 mb-3" />
             <p className="text-muted-foreground mb-2">No transactions found</p>
             <p className="text-xs text-muted-foreground">Add an expense to get started</p>
