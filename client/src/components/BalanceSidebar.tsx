@@ -155,57 +155,45 @@ export function BalanceSidebar() {
   };
 
   return (
-    <div className="h-full p-3 flex flex-col text-xs">
-      <div className="flex items-center mb-3 flex-shrink-0">
-        <div className="w-0.5 h-4 bg-primary mr-1.5"></div>
-        <h2 className="font-medium">Balance Summary</h2>
-      </div>
+    <div className="h-full p-4 flex flex-col">
+      <h2 className="font-medium text-sm mb-3">Balance Summary</h2>
       
-      {/* Global Balance Section - Fixed portion */}
-      <div className="space-y-2 mb-4 flex-shrink-0">
-        {/* Overview Card */}
-        <Card className="shadow-sm border border-border/50 overflow-hidden">
-          <CardContent className="p-2 bg-muted/10">
-            <div className="flex items-center gap-2">
-              <div className="h-7 w-7 border border-primary/30 flex items-center justify-center">
-                <Users className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-xs font-medium">Total Across Groups</h3>
-                <div className="text-xs text-muted-foreground">
-                  {peopleWhoOweMe.length > 0 && (
-                    <p>
-                      {peopleWhoOweMe.length} {peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you
-                    </p>
-                  )}
-                  {peopleIOwe.length > 0 && (
-                    <p>
-                      You owe {peopleIOwe.length} {peopleIOwe.length === 1 ? 'person' : 'people'}
-                    </p>
-                  )}
-                  {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-                    <p>No pending balances</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Global Balance Section */}
+      <div className="space-y-3 mb-4">
+        {/* Overview Stats */}
+        <div className="bg-muted/10 p-3 text-sm">
+          <div className="flex items-center gap-3 mb-1">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="font-medium">Total Across Groups</span>
+          </div>
+          <div className="text-muted-foreground text-sm mt-1">
+            {peopleWhoOweMe.length > 0 && (
+              <p>
+                {peopleWhoOweMe.length} {peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you
+              </p>
+            )}
+            {peopleIOwe.length > 0 && (
+              <p>
+                You owe {peopleIOwe.length} {peopleIOwe.length === 1 ? 'person' : 'people'}
+              </p>
+            )}
+            {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
+              <p>No pending balances</p>
+            )}
+          </div>
+        </div>
         
         {/* People who owe you */}
         {peopleWhoOweMe.length > 0 && (
-          <div className="border border-border/50 bg-card shadow-sm p-2">
-            <h3 className="text-xs font-medium mb-1.5 flex items-center">
-              <div className="w-0.5 h-3 bg-green-500 mr-1"></div>
-              People who owe you
-            </h3>
-            <div className="divide-y divide-border/30">
+          <div>
+            <h3 className="text-sm font-medium mb-2 text-green-600">People who owe you</h3>
+            <div className="space-y-2">
               {[...peopleWhoOweMe]
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-1.5">
-                    <span className="font-medium text-xs truncate max-w-[60%]">{getUserName(settlement.from)}</span>
-                    <span className="text-green-600 font-medium text-xs bg-green-50 px-1.5 py-0.5 whitespace-nowrap ml-1">
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="text-sm truncate max-w-[60%]">{getUserName(settlement.from)}</span>
+                    <span className="text-green-600 font-medium text-sm whitespace-nowrap">
                       +{formatCurrency(settlement.amount)}
                     </span>
                   </div>
@@ -216,18 +204,15 @@ export function BalanceSidebar() {
         
         {/* People you owe */}
         {peopleIOwe.length > 0 && (
-          <div className="border border-border/50 bg-card shadow-sm p-2">
-            <h3 className="text-xs font-medium mb-1.5 flex items-center">
-              <div className="w-0.5 h-3 bg-red-500 mr-1"></div>
-              You owe
-            </h3>
-            <div className="divide-y divide-border/30">
+          <div>
+            <h3 className="text-sm font-medium mb-2 text-red-600">You owe</h3>
+            <div className="space-y-2">
               {[...peopleIOwe]
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-1.5">
-                    <span className="font-medium text-xs truncate max-w-[60%]">{getUserName(settlement.to)}</span>
-                    <span className="text-red-600 font-medium text-xs bg-red-50 px-1.5 py-0.5 whitespace-nowrap ml-1">
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="text-sm truncate max-w-[60%]">{getUserName(settlement.to)}</span>
+                    <span className="text-red-600 font-medium text-sm whitespace-nowrap">
                       -{formatCurrency(settlement.amount)}
                     </span>
                   </div>
@@ -238,12 +223,10 @@ export function BalanceSidebar() {
         
         {/* No settlements case */}
         {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-          <div className="border border-border/50 bg-card shadow-sm p-3">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">
-                No settlements to display
-              </p>
-            </div>
+          <div className="text-center py-2">
+            <p className="text-sm text-muted-foreground">
+              No settlements to display
+            </p>
           </div>
         )}
       </div>
@@ -252,11 +235,8 @@ export function BalanceSidebar() {
       {currentGroupId && currentGroup && currentSummary && currentMembers && (
         <div className="flex-grow flex flex-col min-h-0">
           {/* Simple divider between sections */}
-          <div className="border-t border-border/50 mb-3 pt-3">
-            <div className="flex items-center mb-2">
-              <div className="w-0.5 h-4 bg-primary mr-1.5"></div>
-              <h2 className="font-medium text-xs">{currentGroup.name}</h2>
-            </div>
+          <div className="border-t pt-3 mb-2">
+            <h2 className="font-medium text-sm mb-2">{currentGroup.name}</h2>
           </div>
           
           {/* Ensure this div takes remaining space and scrolls internally */}
