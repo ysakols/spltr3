@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { User, TransactionType, TransactionStatus } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
@@ -10,8 +9,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
 import { 
   FileEdit, 
-  Trash, 
-  RefreshCw 
+  Trash 
 } from 'lucide-react';
 
 type GroupInvitation = {
@@ -77,8 +75,6 @@ type Activity = {
 };
 
 export function ActivityFeed({ groupId }: { groupId: number }) {
-  const [activeTab, setActiveTab] = useState<string>('all');
-
   // Fetch invitations for this group
   const { data: invitations = [] } = useQuery({
     queryKey: ['/api/groups', groupId, 'invitations'],
@@ -145,17 +141,8 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
     );
   }, [invitations, transactions]);
 
-  // Filter activities based on active tab
-  const filteredActivities = activeTab === 'all' 
-    ? sortedActivities 
-    : sortedActivities.filter(activity => {
-        if (activeTab === 'invitation') return activity.type === 'invitation';
-        if (activeTab === 'expense') return activity.activityType === 'expense';
-        if (activeTab === 'settlement') return activity.activityType === 'settlement';
-        if (activeTab === 'edit') return activity.type === 'edit';
-        if (activeTab === 'delete') return activity.type === 'delete';
-        return false;
-      });
+  // Display all activities
+  const activities = sortedActivities;
 
   // Get status badge color
   const getStatusColor = (status?: string) => {
@@ -197,25 +184,15 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
     <Card className="w-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl">Activity Feed</CardTitle>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="invitation">Invites</TabsTrigger>
-            <TabsTrigger value="expense">Expenses</TabsTrigger>
-            <TabsTrigger value="settlement">Payments</TabsTrigger>
-            <TabsTrigger value="edit">Edits</TabsTrigger>
-            <TabsTrigger value="delete">Deleted</TabsTrigger>
-          </TabsList>
-        </Tabs>
       </CardHeader>
       <CardContent>
-        {filteredActivities.length === 0 ? (
+        {activities.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             No activity found
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredActivities.map((activity, index) => {
+            {activities.map((activity: Activity, index: number) => {
               const key = `${activity.type}-${
                 activity.type === 'invitation' 
                   ? (activity.data as GroupInvitation).id 
