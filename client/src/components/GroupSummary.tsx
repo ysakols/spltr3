@@ -91,12 +91,12 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
             >
               <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs flex items-center">
-                    {isCurrentUser && <div className="w-1 h-3 bg-primary mr-1.5 rounded-full"></div>}
-                    {getUserName(personId)}
-                    {isCurrentUser && <span className="ml-1.5 text-[10px] text-primary/70 bg-primary/10 px-1.5 rounded-full">You</span>}
+                  <CardTitle className="text-xs flex items-center min-w-0 max-w-[65%]">
+                    {isCurrentUser && <div className="w-1 h-3 bg-primary mr-1.5 rounded-full flex-shrink-0"></div>}
+                    <span className="truncate">{getUserName(personId)}</span>
+                    {isCurrentUser && <span className="ml-1.5 text-[10px] text-primary/70 bg-primary/10 px-1.5 rounded-full flex-shrink-0">You</span>}
                   </CardTitle>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${balanceColor}`}>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${balanceColor} whitespace-nowrap ml-1`}>
                     {formatCurrency(balance)}
                   </span>
                 </div>
@@ -140,14 +140,16 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                   >
                     <div className="flex items-center gap-x-1.5 w-full">
                       <CircleDollarSign className={`h-3.5 w-3.5 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
-                      <span className={`font-medium ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
-                        {getUserName(settlement.from)}
-                      </span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className={`font-medium ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
-                        {getUserName(settlement.to)}
-                      </span>
-                      <span className="font-semibold text-primary ml-auto px-1.5 py-0.5 bg-primary/10 rounded-full">
+                      <div className="flex flex-col sm:flex-row sm:items-center flex-1 min-w-0">
+                        <span className={`font-medium truncate ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
+                          {getUserName(settlement.from)}
+                        </span>
+                        <span className="text-muted-foreground mx-1">→</span>
+                        <span className={`font-medium truncate ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
+                          {getUserName(settlement.to)}
+                        </span>
+                      </div>
+                      <span className="font-semibold text-primary ml-auto px-1.5 py-0.5 bg-primary/10 rounded-full whitespace-nowrap">
                         {formatCurrency(settlement.amount)}
                       </span>
                     </div>

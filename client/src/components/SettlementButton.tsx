@@ -12,6 +12,7 @@ interface SettlementButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   buttonText?: string;
+  className?: string;
 }
 
 export function SettlementButton({
@@ -21,7 +22,8 @@ export function SettlementButton({
   groupId,
   variant = 'default',
   size = 'default',
-  buttonText = 'Settle Up'
+  buttonText = 'Settle Up',
+  className = ''
 }: SettlementButtonProps) {
   const { setSettlementDetails } = useSettlementModal();
 
@@ -46,7 +48,7 @@ export function SettlementButton({
       onClick={handleSettleUp}
       variant={variant}
       size={size}
-      className="flex items-center w-full sm:w-auto justify-center"
+      className={`flex items-center justify-center w-full sm:w-auto ${className}`}
     >
       <ArrowUpRight className="h-4 w-4 mr-1" />
       {buttonText}

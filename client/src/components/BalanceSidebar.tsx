@@ -174,14 +174,21 @@ export function BalanceSidebar() {
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-0.5">Total Across Groups</h3>
-                <p className="text-xs text-muted-foreground">
-                  {peopleWhoOweMe.length > 0 ? 
-                    `${peopleWhoOweMe.length} ${peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you` : 
-                    "Nobody owes you"}
-                  {peopleIOwe.length > 0 ? 
-                    `${peopleWhoOweMe.length > 0 ? '. ' : ' '}You owe ${peopleIOwe.length} ${peopleIOwe.length === 1 ? 'person' : 'people'}` : 
-                    peopleWhoOweMe.length === 0 ? " and you don't owe anyone" : ""}
-                </p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {peopleWhoOweMe.length > 0 && (
+                    <p>
+                      {peopleWhoOweMe.length} {peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you
+                    </p>
+                  )}
+                  {peopleIOwe.length > 0 && (
+                    <p>
+                      You owe {peopleIOwe.length} {peopleIOwe.length === 1 ? 'person' : 'people'}
+                    </p>
+                  )}
+                  {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
+                    <p>No pending balances</p>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -199,8 +206,8 @@ export function BalanceSidebar() {
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
                   <div key={idx} className="flex justify-between items-center p-1.5 rounded-md hover:bg-muted/50">
-                    <span className="font-medium text-xs">{getUserName(settlement.from)}</span>
-                    <span className="text-green-600 font-semibold text-xs bg-green-50 px-2 py-0.5 rounded-full">
+                    <span className="font-medium text-xs truncate max-w-[60%]">{getUserName(settlement.from)}</span>
+                    <span className="text-green-600 font-semibold text-xs bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap ml-1">
                       +{formatCurrency(settlement.amount)}
                     </span>
                   </div>
@@ -221,8 +228,8 @@ export function BalanceSidebar() {
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
                   <div key={idx} className="flex justify-between items-center p-1.5 rounded-md hover:bg-muted/50">
-                    <span className="font-medium text-xs">{getUserName(settlement.to)}</span>
-                    <span className="text-red-600 font-semibold text-xs bg-red-50 px-2 py-0.5 rounded-full">
+                    <span className="font-medium text-xs truncate max-w-[60%]">{getUserName(settlement.to)}</span>
+                    <span className="text-red-600 font-semibold text-xs bg-red-50 px-2 py-0.5 rounded-full whitespace-nowrap ml-1">
                       -{formatCurrency(settlement.amount)}
                     </span>
                   </div>
