@@ -414,7 +414,7 @@ function TransactionsTable({
                 <div 
                   key={`${transaction.type}-${transaction.id}`} 
                   className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-md ${
-                    isExpense ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-green-500'
+                    isExpense ? 'transaction-expense' : 'transaction-settlement'
                   }`}
                 >
                   <div className="p-3 sm:p-4">
@@ -423,9 +423,9 @@ function TransactionsTable({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-2">
                           {isExpense ? (
-                            <CreditCard className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                            <CreditCard className="h-4 w-4 text-gray-600 flex-shrink-0" />
                           ) : (
-                            <Banknote className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            <Banknote className="h-4 w-4 text-gray-600 flex-shrink-0" />
                           )}
                           <h3 className="font-medium text-xs truncate whitespace-nowrap">
                             {transaction.description}
@@ -453,7 +453,7 @@ function TransactionsTable({
                       
                       <div className="text-right flex-shrink-0">
                         <div className={`font-semibold ${
-                          isExpense ? 'text-gray-800' : 'text-green-600'
+                          isExpense ? 'text-normal' : 'money-positive'
                         }`}>
                           {!isExpense && <span className="mr-1">+</span>}
                           {formatCurrency(amount)}
@@ -518,7 +518,9 @@ function TransactionsTable({
                                 Are you sure you want to delete this {transaction.type}?
                                 <div className="mt-2 p-3 bg-muted/50 rounded-md">
                                   <p className="font-medium">{transaction.description}</p>
-                                  <p className="text-xs text-primary mt-1">
+                                  <p className={`text-xs mt-1 ${
+                                    isExpense ? 'text-normal' : 'money-positive'
+                                  }`}>
                                     {formatCurrency(amount)}
                                   </p>
                                 </div>
