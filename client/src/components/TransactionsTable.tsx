@@ -91,7 +91,6 @@ function TransactionsTable({
   // State for sorting
   const [sortField, setSortField] = useState<string | null>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [activeTab, setActiveTab] = useState<string>('all');
   
   // Fetch transactions for this group (combines both expenses and settlements)
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
@@ -110,18 +109,11 @@ function TransactionsTable({
   // Use members from props if available, otherwise use fetched members
   const members = propMembers || fetchedMembers || [];
   
-  // Filter transactions based on active tab
-  const filteredTransactions = activeTab === 'all' 
-    ? transactions 
-    : transactions.filter(transaction => 
-        transaction.type.toLowerCase() === activeTab.toLowerCase()
-      );
-  
   // Sort transactions
   const sortedTransactions = useMemo(() => {
-    if (!filteredTransactions) return [];
+    if (!transactions) return [];
     
-    let sorted = [...filteredTransactions];
+    let sorted = [...transactions];
     
     if (sortField) {
       sorted.sort((a: any, b: any) => {
@@ -150,7 +142,7 @@ function TransactionsTable({
     }
     
     return sorted;
-  }, [filteredTransactions, sortField, sortDirection]);
+  }, [transactions, sortField, sortDirection]);
   
   // Function to get username by user ID with full name preferred
   const getUsernameById = (userId?: number) => {
@@ -358,11 +350,6 @@ function TransactionsTable({
     }
   };
   
-  // Tab change handler
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-  
   // Format date for display
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM d, yyyy');
@@ -392,29 +379,6 @@ function TransactionsTable({
       <CardHeader className="pb-2 space-y-2">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <CardTitle className="text-xl">Transactions</CardTitle>
-          <div className="flex flex-wrap gap-1">
-            <Button
-              variant={activeTab === 'all' ? "secondary" : "ghost"}
-              className="h-8 px-3 text-sm"
-              onClick={() => handleTabChange('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={activeTab === 'expense' ? "secondary" : "ghost"}
-              className="h-8 px-3 text-sm"
-              onClick={() => handleTabChange('expense')}
-            >
-              Expenses
-            </Button>
-            <Button
-              variant={activeTab === 'settlement' ? "secondary" : "ghost"}
-              className="h-8 px-3 text-sm"
-              onClick={() => handleTabChange('settlement')}
-            >
-              Settlements
-            </Button>
-          </div>
         </div>
         <div className="flex gap-2 text-xs text-muted-foreground">
           <Button
