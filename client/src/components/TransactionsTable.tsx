@@ -413,8 +413,8 @@ function TransactionsTable({
               return (
                 <div 
                   key={`${transaction.type}-${transaction.id}`} 
-                  className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-md ${
-                    isExpense ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-green-500'
+                  className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-sm ${
+                    isExpense ? 'border-l-4 border-l-indigo-400' : 'border-l-4 border-l-teal-400'
                   }`}
                 >
                   <div className="p-3 sm:p-4">
@@ -423,9 +423,9 @@ function TransactionsTable({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-2">
                           {isExpense ? (
-                            <CreditCard className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                            <CreditCard className="h-4 w-4 text-indigo-500 flex-shrink-0" />
                           ) : (
-                            <Banknote className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            <Banknote className="h-4 w-4 text-teal-500 flex-shrink-0" />
                           )}
                           <h3 className="font-medium text-xs truncate whitespace-nowrap">
                             {transaction.description}
@@ -453,7 +453,7 @@ function TransactionsTable({
                       
                       <div className="text-right flex-shrink-0">
                         <div className={`font-semibold ${
-                          isExpense ? 'text-gray-800' : 'text-green-600'
+                          isExpense ? 'text-gray-800' : 'text-teal-600'
                         }`}>
                           {!isExpense && <span className="mr-1">+</span>}
                           {formatCurrency(amount)}
