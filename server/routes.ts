@@ -1498,11 +1498,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isPayer = expense.paidByUserId === currentUserId;
       const isExpenseCreator = expense.createdByUserId === currentUserId;
       
+      // Add detailed debug logs
+      console.log('DELETE EXPENSE DEBUG INFO:');
+      console.log(`Expense ID: ${id}`);
+      console.log(`Current user ID: ${currentUserId}`);
+      console.log(`Group creator ID: ${group.createdById}`);
+      console.log(`Expense payer ID: ${expense.paidByUserId}`);
+      console.log(`Expense creator ID: ${expense.createdByUserId}`);
+      console.log(`Is Group Admin: ${isGroupAdmin}`);
+      console.log(`Is Payer: ${isPayer}`);
+      console.log(`Is Expense Creator: ${isExpenseCreator}`);
+      
       if (!isGroupAdmin && !isPayer && !isExpenseCreator) {
+        console.log('Access denied: User is not authorized to delete this expense');
         return res.status(403).json({ 
           message: 'Only the expense creator, payer, or group admin can delete this expense' 
         });
       }
+      
+      console.log('Access granted: User is authorized to delete this expense');
       
       await storage.deleteExpense(id);
       res.json({ message: 'Expense deleted' });
