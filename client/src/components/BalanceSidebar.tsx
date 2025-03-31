@@ -199,7 +199,7 @@ export function BalanceSidebar() {
                   <div className="p-4">
                     <h3 className="text-sm font-bold mb-3 flex items-center">
                       <div className="w-1 h-4 bg-green-500 mr-2"></div>
-                      Incoming
+                      Money Owed To You
                     </h3>
                     <table className="w-full">
                       <thead>
@@ -231,7 +231,7 @@ export function BalanceSidebar() {
                   <div className="p-4">
                     <h3 className="text-sm font-bold mb-3 flex items-center">
                       <div className="w-1 h-4 bg-red-500 mr-2"></div>
-                      Outgoing
+                      Money You Owe
                     </h3>
                     <table className="w-full">
                       <thead>
