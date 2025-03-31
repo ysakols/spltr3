@@ -20,9 +20,29 @@ export function useExpenseFunctions() {
       
       onSuccess();
     } catch (error) {
+      // Extract the error message from the error object
+      let errorMessage = 'Failed to delete expense';
+      
+      if (error instanceof Error) {
+        // Try to extract the server error message
+        try {
+          // The error message format is likely to be "403: {"message":"Only the expense creator..."}"
+          const jsonPart = error.message.split(': ')[1];
+          if (jsonPart) {
+            const parsedError = JSON.parse(jsonPart);
+            if (parsedError.message) {
+              errorMessage = parsedError.message;
+            }
+          }
+        } catch (e) {
+          // If parsing fails, use the entire error message
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to delete expense',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
