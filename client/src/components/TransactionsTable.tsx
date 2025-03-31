@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Banknote, CreditCard, 
-  CheckCircle2, XCircle, Clock, CalendarIcon, DollarSign, User as UserIcon, Tag
+  CheckCircle2, XCircle, Clock, CalendarIcon, DollarSign, User as UserIcon, Tag, 
+  AlertTriangle, Loader2
 } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 
 import { format } from 'date-fns';
@@ -264,17 +276,24 @@ function TransactionsTable({
     }
   };
   
-  // Delete transaction handler
-  const handleDeleteTransaction = async (transaction: Transaction) => {
-    if (transaction.type === 'expense') {
-      handleDeleteExpense(transaction.id, () => {
+  // States for delete confirmation
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Delete transaction handler - to be called from confirmation dialog
+  const confirmDeleteTransaction = async (transaction: Transaction) => {
+    setIsDeleting(true);
+    
+    try {
+      if (transaction.type === 'expense') {
+        await apiRequest('DELETE', `/api/expenses/${transaction.id}`);
+        
         // Refresh data after deletion
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
         queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'global-summary'] });
         onTransactionDeleted();
-      });
-    } else if (transaction.type === 'settlement') {
-      try {
+      } else if (transaction.type === 'settlement') {
         // Use the transactions endpoint instead of the settlements endpoint
         await apiRequest('DELETE', `/api/transactions/${transaction.id}`);
         
@@ -287,15 +306,23 @@ function TransactionsTable({
         queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'settlements'] });
         
         onTransactionDeleted();
-      } catch (error) {
-        console.error('Error deleting settlement:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete settlement. Please try again.",
-          variant: "destructive"
-        });
       }
+    } catch (error) {
+      console.error(`Error deleting ${transaction.type}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to delete ${transaction.type}. Please try again.`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setTransactionToDelete(null);
     }
+  };
+  
+  // Set transaction to delete (this opens the dialog)
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    setTransactionToDelete(transaction);
   };
   
   // Function to handle edit transaction
@@ -511,14 +538,47 @@ function TransactionsTable({
                         (transaction.type === 'settlement' && 
                           (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)
                         )) && (
-                        <Button 
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6 text-destructive"
-                          onClick={() => handleDeleteTransaction(transaction)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger>
+                            <Button 
+                              variant="outline"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                Delete {transaction.type === 'expense' ? 'Expense' : 'Settlement'}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this {transaction.type}?
+                                <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                                  <p className="font-medium">{transaction.description}</p>
+                                  <p className="text-sm text-primary mt-1">
+                                    {formatCurrency(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount)}
+                                  </p>
+                                </div>
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => confirmDeleteTransaction(transaction)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {isDeleting && transactionToDelete?.id === transaction.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : <Trash2 className="h-4 w-4 mr-2" />}
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </div>

@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Users, Loader2, AlertTriangle } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Tooltip,
@@ -53,7 +54,9 @@ function ExpenseTable({
   onEditExpense,
   members: propMembers 
 }: ExpenseTableProps) {
-  const { handleDeleteExpense, formatCurrency } = useExpenseFunctions();
+  const { formatCurrency } = useExpenseFunctions();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // State for sorting
   const [sortField, setSortField] = useState<string | null>(null);
@@ -146,7 +149,34 @@ function ExpenseTable({
     setExpenseToDelete(id);
     setIsDeleting(true);
     try {
-      await handleDeleteExpense(id, onExpenseDeleted);
+      await apiRequest('DELETE', `/api/expenses/${id}`);
+      
+      // Invalidate all queries that might be affected by this deletion
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/expenses`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/transactions`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/groups/${groupId}/summary`] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/users/all-summaries'] });
+      
+      toast({
+        title: 'Success',
+        description: 'Expense deleted successfully',
+      });
+      
+      onExpenseDeleted();
+    } catch (error) {
+      let errorMessage = 'Failed to delete expense';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsDeleting(false);
       setExpenseToDelete(null);
