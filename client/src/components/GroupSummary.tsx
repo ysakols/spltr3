@@ -60,7 +60,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
               <div className="w-1.5 h-6 bg-primary/70 rounded-full"></div>
               <h3 className="text-xs font-medium">Total Group Expenses</h3>
             </div>
-            <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
               {formatCurrency(summary.totalExpenses)}
             </span>
           </div>

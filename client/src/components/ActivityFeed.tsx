@@ -187,7 +187,7 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   return (
     <Card className="w-full shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Activity Feed</CardTitle>
+        <CardTitle className="text-lg">Activity Feed</CardTitle>
       </CardHeader>
       <CardContent className="p-3 sm:p-5">
         {activities.length === 0 ? (
@@ -283,11 +283,11 @@ function InvitationActivity({
       
       <div className="bg-card border rounded-md p-2">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="font-medium text-sm">
+          <span className="font-medium text-xs">
             {invitation.group?.name ? `Group: ${invitation.group.name}` : 'Join group'}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {invitation.inviterUser?.firstName || invitation.inviterUser?.email || 'Someone'} invited {invitation.inviteeEmail}
         </p>
       </div>
@@ -327,10 +327,10 @@ function ExpenseActivity({
       
       <div className="bg-card border rounded-md p-2">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-sm">{transaction.description}</h4>
-          <span className="font-bold text-sm">{formatCurrency(transaction.amount)}</span>
+          <h4 className="font-medium text-xs">{transaction.description}</h4>
+          <span className="font-bold text-xs">{formatCurrency(transaction.amount)}</span>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Added by {transaction.createdByUser?.firstName || 'Someone'}, paid by {transaction.paidByUser?.firstName || 'Unknown'}
         </p>
       </div>
@@ -428,14 +428,14 @@ function EditActivity({
       
       <div className="bg-card border rounded-md p-2">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-sm">
+          <h4 className="font-medium text-xs">
             {isExpense ? transaction.description : 'Payment'}
           </h4>
-          <span className="font-bold text-sm">
+          <span className="font-bold text-xs">
             {formatCurrency(transaction.amount)}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Edited by {transaction.updatedByUser?.firstName || 'Someone'}
         </p>
       </div>
@@ -505,14 +505,14 @@ function DeleteActivity({
       
       <div className="bg-card border border-red-100 rounded-md p-2">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-sm line-through">
+          <h4 className="font-medium text-xs line-through">
             {isExpense ? transaction.description : 'Payment'}
           </h4>
-          <span className="font-bold text-sm line-through">
+          <span className="font-bold text-xs line-through">
             {formatCurrency(transaction.amount)}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Deleted by {transaction.deletedByUser?.firstName || 'Someone'}
         </p>
       </div>

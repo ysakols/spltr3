@@ -157,7 +157,7 @@ export function BalanceSidebar() {
   return (
     <div className="h-full p-3 flex flex-col text-xs">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h2 className="font-semibold text-sm inline-flex items-center">
+        <h2 className="font-semibold text-xs inline-flex items-center">
           <div className="w-1 h-5 bg-primary mr-2 rounded-full"></div>
           Balance Summary
         </h2>
@@ -173,7 +173,7 @@ export function BalanceSidebar() {
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-medium mb-0.5">Total Across Groups</h3>
+                <h3 className="text-xs font-medium mb-0.5">Total Across Groups</h3>
                 <div className="text-xs text-muted-foreground space-y-1">
                   {peopleWhoOweMe.length > 0 && (
                     <p>
@@ -243,7 +243,7 @@ export function BalanceSidebar() {
           <div className="border rounded-lg p-3 bg-card shadow-sm">
             <div className="flex items-center justify-center py-4 px-2">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">
+                <p className="text-xs text-muted-foreground mb-1">
                   No settlements to display
                 </p>
                 <p className="text-xs text-muted-foreground/80">
@@ -270,7 +270,7 @@ export function BalanceSidebar() {
             </div>
           </div>
           
-          <h2 className="font-semibold mb-3 text-sm flex items-center flex-shrink-0">
+          <h2 className="font-semibold mb-3 text-xs flex items-center flex-shrink-0">
             <div className="w-1 h-5 bg-primary mr-2 rounded-full"></div>
             {currentGroup.name} Summary
           </h2>
