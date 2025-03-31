@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* Import custom styles */
-@import './custom-styles.css';
+@import url('./custom-styles.css');
 
 @layer base {
   * {

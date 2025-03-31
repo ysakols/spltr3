@@ -470,7 +470,26 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         }}>
           {!isEditing && (
             <DialogTrigger asChild>
-              <Button className="add-expense-button">
+              <Button 
+                style={{
+                  backgroundColor: '#344054', 
+                  color: 'white',
+                  border: '1px solid #344054',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  height: '2.5rem',
+                  paddingLeft: '1rem',
+                  paddingRight: '1rem',
+                  fontSize: '0.875rem',
+                  whiteSpace: 'nowrap',
+                  lineHeight: '1.25rem',
+                  fontWeight: '500',
+                  borderRadius: '0.375rem',
+                  minWidth: '8rem',
+                }}
+                className="add-expense-button">
                 <Plus className="h-4 w-4" />
                 Add New Expense
               </Button>

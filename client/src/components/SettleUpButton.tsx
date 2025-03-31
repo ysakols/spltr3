@@ -71,7 +71,26 @@ export function SettleUpButton({ groupId, summary, currentUser, members }: Settl
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" className="settle-up-button">
+        <Button 
+          style={{
+            backgroundColor: '#FFFFFF',
+            color: '#344054',
+            border: '1px solid #D0D5DD',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            height: '2.5rem',
+            paddingLeft: '1rem',
+            paddingRight: '1rem',
+            fontSize: '0.875rem',
+            whiteSpace: 'nowrap',
+            lineHeight: '1.25rem',
+            fontWeight: '500',
+            borderRadius: '0.375rem',
+            minWidth: '8rem',
+          }}
+          className="settle-up-button">
           <ArrowUpRight className="h-4 w-4" />
           Settle Up
           {dropdownOpen ? 
