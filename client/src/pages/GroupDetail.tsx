@@ -27,6 +27,7 @@ import TransactionsTable from '@/components/TransactionsTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
 import { ActivityFeed } from '@/components/ActivityFeed';
+import { SettleUpButton } from '@/components/SettleUpButton';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
@@ -272,7 +273,17 @@ function GroupDetail() {
 
           {!isEditing && (
             <div className="pt-2">
-              <div className="flex justify-end mb-2">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex gap-2">
+                  {summary && members && (
+                    <SettleUpButton
+                      groupId={groupId}
+                      summary={summary} 
+                      currentUser={currentUser!}
+                      members={members}
+                    />
+                  )}
+                </div>
                 <ExpenseForm 
                   ref={expenseFormRef}
                   group={group} 
