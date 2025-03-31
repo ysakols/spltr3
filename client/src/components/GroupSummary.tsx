@@ -52,143 +52,168 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
 
   return (
     <div className="space-y-4">
-      {/* Total Group Expenses */}
+      {/* One unified card for group summary */}
       <Card className="shadow-md border-0 overflow-hidden">
-        <CardContent className="p-4 bg-gradient-to-br from-primary/5 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-1 h-6 bg-primary"></div>
-              <h3 className="text-sm font-bold">Total Group Expenses</h3>
+        <CardContent className="p-0">
+          {/* Group Total Header */}
+          <div className="p-4 bg-gradient-to-br from-primary/5 to-transparent border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-1 h-6 bg-primary"></div>
+                <h3 className="text-sm font-bold">Total Group Expenses</h3>
+              </div>
+              <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1">
+                {formatCurrency(summary.totalExpenses)}
+              </span>
             </div>
-            <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1">
-              {formatCurrency(summary.totalExpenses)}
-            </span>
           </div>
+          
+          {/* Member Balances Table */}
+          <div className="p-4 border-b">
+            <h3 className="text-sm font-bold mb-3 flex items-center">
+              <div className="w-1 h-4 bg-primary mr-2"></div>
+              Member Balances
+            </h3>
+            
+            <table className="w-full">
+              <thead>
+                <tr className="text-left border-b border-gray-200">
+                  <th className="pb-2 font-medium text-sm text-gray-500">Member</th>
+                  <th className="pb-2 font-medium text-sm text-gray-500 text-center">Paid</th>
+                  <th className="pb-2 font-medium text-sm text-gray-500 text-center">Owes</th>
+                  <th className="pb-2 font-medium text-sm text-gray-500 text-right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {memberIds.map(personId => {
+                  const isCurrentUser = currentUserId === Number(personId);
+                  const balance = summary.balances[personId] || 0;
+                  const isPaid = summary.paid[personId] || 0;
+                  const isOwed = summary.owes[personId] || 0;
+                  const balanceColor = 
+                    balance > 0 ? 'text-green-600 bg-green-50' : 
+                    balance < 0 ? 'text-red-600 bg-red-50' : 
+                    'text-gray-600 bg-gray-100';
+                  
+                  return (
+                    <tr 
+                      key={personId} 
+                      className={`border-b border-gray-100 last:border-0 ${isCurrentUser ? 'bg-primary/5' : ''}`}
+                    >
+                      <td className="py-3 pr-2">
+                        <div className="flex items-center">
+                          {isCurrentUser && <div className="w-1 h-4 bg-primary mr-2 flex-shrink-0"></div>}
+                          <span className="font-medium text-sm truncate">{getUserName(personId)}</span>
+                          {isCurrentUser && <span className="ml-2 text-xs text-primary/80 bg-primary/10 px-2 py-0.5 flex-shrink-0">You</span>}
+                        </div>
+                      </td>
+                      <td className="py-3 text-center font-medium text-sm">{formatCurrency(isPaid)}</td>
+                      <td className="py-3 text-center font-medium text-sm">{formatCurrency(isOwed)}</td>
+                      <td className="py-3 text-right">
+                        <span className={`text-sm font-bold px-3 py-1 ${balanceColor}`}>
+                          {formatCurrency(balance)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Settlement Plan Section */}
+          {summary.settlements && summary.settlements.length > 0 && (
+            <div className="p-4">
+              <h3 className="text-sm font-bold mb-3 flex items-center">
+                <div className="w-1 h-4 bg-primary mr-2"></div>
+                Settlement Plan
+              </h3>
+              
+              <table className="w-full mb-2">
+                <thead>
+                  <tr className="text-left border-b border-gray-200">
+                    <th className="pb-2 font-medium text-sm text-gray-500">From</th>
+                    <th className="pb-2 font-medium text-sm text-gray-500 text-center">To</th>
+                    <th className="pb-2 font-medium text-sm text-gray-500 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.settlements.map((settlement, index) => {
+                    const isUserInvolved = currentUserId && (Number(settlement.from) === currentUserId || Number(settlement.to) === currentUserId);
+                    const isUserPaying = currentUserId && Number(settlement.from) === currentUserId;
+                    
+                    return (
+                      <tr 
+                        key={index} 
+                        className={`border-b border-gray-100 last:border-0 ${isUserInvolved ? 'bg-primary/5' : ''}`}
+                      >
+                        <td className="py-3 pr-2">
+                          <div className="flex items-center">
+                            <CircleDollarSign className={`h-4 w-4 mr-2 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
+                            <span className={`font-medium text-sm truncate ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
+                              {getUserName(settlement.from)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-center">
+                          <span className={`font-medium text-sm ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
+                            {getUserName(settlement.to)}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className="font-bold text-sm text-primary px-3 py-1 bg-primary/10">
+                            {formatCurrency(settlement.amount)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              
+              {/* Settlement buttons for current user */}
+              {summary.settlements.some(s => currentUserId && Number(s.from) === currentUserId) && (
+                <div className="mt-4 border-t pt-3 border-gray-100">
+                  <h4 className="text-sm font-medium mb-2">Your pending payments:</h4>
+                  <div className="space-y-2">
+                    {summary.settlements
+                      .filter(s => currentUserId && Number(s.from) === currentUserId)
+                      .map((settlement, index) => (
+                        <div key={index} className="flex items-center justify-between gap-2 bg-gray-50 p-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">Pay {getUserName(settlement.to)}</span>
+                            <span className="font-medium text-sm">{formatCurrency(settlement.amount)}</span>
+                          </div>
+                          <SettlementButton 
+                            settlement={settlement}
+                            currentUserId={currentUserId}
+                            userMap={userMap}
+                            groupId={group.id}
+                            variant="outline"
+                            size="sm"
+                            className="border-primary/50 hover:bg-primary/5 text-sm h-8"
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* No settlements case */}
+          {(!summary.settlements || summary.settlements.length === 0) && (
+            <div className="p-5 text-center">
+              <p className="text-sm text-gray-700">
+                No settlements needed in this group.
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Everyone is either balanced or close to it.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
-      
-      {/* Individual Summaries */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold flex items-center">
-          <div className="w-1 h-5 bg-primary mr-2"></div>
-          Member Balances
-        </h3>
-        
-        {memberIds.map(personId => {
-          const isCurrentUser = currentUserId === Number(personId);
-          const balance = summary.balances[personId] || 0;
-          const isPaid = summary.paid[personId] || 0;
-          const isOwed = summary.owes[personId] || 0;
-          const balanceColor = 
-            balance > 0 ? 'text-green-600 bg-green-50' : 
-            balance < 0 ? 'text-red-600 bg-red-50' : 
-            'text-gray-600 bg-gray-100';
-            
-          return (
-            <Card 
-              key={personId} 
-              className={`overflow-hidden shadow-md border-0 transition-shadow hover:shadow-lg ${isCurrentUser ? 'ring-1 ring-primary/30' : ''}`}
-            >
-              <CardHeader className="py-3 px-4 bg-gradient-to-r from-primary/5 to-transparent border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center min-w-0 max-w-[65%]">
-                    {isCurrentUser && <div className="w-1 h-4 bg-primary mr-2 flex-shrink-0"></div>}
-                    <span className="truncate">{getUserName(personId)}</span>
-                    {isCurrentUser && <span className="ml-2 text-xs text-primary/80 bg-primary/10 px-2 py-0.5 flex-shrink-0">You</span>}
-                  </CardTitle>
-                  <span className={`text-sm font-bold px-3 py-1 ${balanceColor} whitespace-nowrap ml-1`}>
-                    {formatCurrency(balance)}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 text-sm">
-                <div className="flex justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 mb-1">Paid</span>
-                    <span className="font-medium">{formatCurrency(isPaid)}</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-gray-500 mb-1">Owes</span>
-                    <span className="font-medium">{formatCurrency(isOwed)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-      
-      {/* Settlement Plan */}
-      {summary.settlements && summary.settlements.length > 0 && (
-        <Card className="shadow-md border-0 overflow-hidden">
-          <CardHeader className="py-3 px-4 bg-gradient-to-r from-primary/5 to-transparent border-b">
-            <CardTitle className="text-sm font-bold flex items-center">
-              <div className="w-1 h-4 bg-primary mr-2"></div>
-              Settlement Plan
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <ul className="space-y-4">
-              {summary.settlements.map((settlement, index) => {
-                const isUserInvolved = currentUserId && (Number(settlement.from) === currentUserId || Number(settlement.to) === currentUserId);
-                const isUserPaying = currentUserId && Number(settlement.from) === currentUserId;
-                
-                return (
-                  <li 
-                    key={index} 
-                    className={`text-sm flex flex-col gap-y-3 p-3 ${isUserInvolved ? 'bg-primary/5' : ''} border-b border-gray-100 last:border-b-0 last:pb-0`}
-                  >
-                    <div className="flex items-center gap-x-2 w-full">
-                      <CircleDollarSign className={`h-4 w-4 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
-                      <div className="flex flex-col sm:flex-row sm:items-center flex-1 min-w-0">
-                        <span className={`font-medium truncate ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
-                          {getUserName(settlement.from)}
-                        </span>
-                        <span className="text-gray-500 mx-1">→</span>
-                        <span className={`font-medium truncate ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
-                          {getUserName(settlement.to)}
-                        </span>
-                      </div>
-                      <span className="font-bold text-primary ml-auto px-3 py-1 bg-primary/10 whitespace-nowrap">
-                        {formatCurrency(settlement.amount)}
-                      </span>
-                    </div>
-                    
-                    {/* Settlement button */}
-                    {isUserPaying && (
-                      <div className="mt-1">
-                        <SettlementButton 
-                          settlement={settlement}
-                          currentUserId={currentUserId}
-                          userMap={userMap}
-                          groupId={group.id}
-                          variant="outline"
-                          size="sm"
-                          className="w-full bg-white border-primary/50 hover:bg-primary/5 text-sm h-8"
-                        />
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* No settlements case */}
-      {(!summary.settlements || summary.settlements.length === 0) && (
-        <Card className="shadow-md border-0">
-          <CardContent className="p-5 text-center">
-            <p className="text-sm text-gray-700">
-              No settlements needed in this group.
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Everyone is either balanced or close to it.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

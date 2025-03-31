@@ -164,101 +164,115 @@ export function BalanceSidebar() {
       </div>
       
       {/* Global Balance Section - Fixed portion */}
-      <div className="space-y-4 mb-6 flex-shrink-0">
-        {/* Overview Card */}
-        <Card className="shadow-md border-0 overflow-hidden">
-          <CardContent className="p-4 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="flex items-center space-x-4">
-              <div className="h-10 w-10 bg-primary/10 flex items-center justify-center shadow-sm">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold mb-1">Total Across Groups</h3>
-                <div className="text-sm text-gray-700 space-y-1">
-                  {peopleWhoOweMe.length > 0 && (
-                    <p>
-                      {peopleWhoOweMe.length} {peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you
-                    </p>
-                  )}
-                  {peopleIOwe.length > 0 && (
-                    <p>
-                      You owe {peopleIOwe.length} {peopleIOwe.length === 1 ? 'person' : 'people'}
-                    </p>
-                  )}
-                  {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-                    <p>No pending balances</p>
-                  )}
+      <div className="mb-6 flex-shrink-0">
+        {/* Single Unified Card for Global Balance */}
+        <Card className="border-0 shadow-md overflow-hidden">
+          <CardContent className="p-0">
+            {/* Header section */}
+            <div className="p-4 bg-gradient-to-br from-primary/5 to-transparent border-b">
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 bg-primary/10 flex items-center justify-center shadow-sm">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Overall Balance</h3>
+                  <div className="text-sm text-gray-700">
+                    {peopleWhoOweMe.length > 0 && peopleIOwe.length > 0 ? (
+                      <p>You have both incoming and outgoing balances</p>
+                    ) : peopleWhoOweMe.length > 0 ? (
+                      <p>{peopleWhoOweMe.length} {peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you</p>
+                    ) : peopleIOwe.length > 0 ? (
+                      <p>You owe {peopleIOwe.length} {peopleIOwe.length === 1 ? 'person' : 'people'}</p>
+                    ) : (
+                      <p>No pending balances</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
+            
+            {/* Table-like sections */}
+            {(peopleWhoOweMe.length > 0 || peopleIOwe.length > 0) && (
+              <div className="divide-y">
+                {/* People who owe you */}
+                {peopleWhoOweMe.length > 0 && (
+                  <div className="p-4">
+                    <h3 className="text-sm font-bold mb-3 flex items-center">
+                      <div className="w-1 h-4 bg-green-500 mr-2"></div>
+                      Incoming
+                    </h3>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left border-b border-gray-200">
+                          <th className="pb-2 font-medium text-sm text-gray-500">Person</th>
+                          <th className="pb-2 font-medium text-sm text-gray-500 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...peopleWhoOweMe]
+                          .sort((a, b) => b.amount - a.amount)
+                          .map((settlement, idx) => (
+                            <tr key={idx} className="border-b border-gray-100 last:border-0">
+                              <td className="py-2.5 font-medium text-sm">{getUserName(settlement.from)}</td>
+                              <td className="py-2.5 text-right">
+                                <span className="text-green-600 font-bold text-sm bg-green-50 px-3 py-1">
+                                  +{formatCurrency(settlement.amount)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                
+                {/* People you owe */}
+                {peopleIOwe.length > 0 && (
+                  <div className="p-4">
+                    <h3 className="text-sm font-bold mb-3 flex items-center">
+                      <div className="w-1 h-4 bg-red-500 mr-2"></div>
+                      Outgoing
+                    </h3>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left border-b border-gray-200">
+                          <th className="pb-2 font-medium text-sm text-gray-500">Person</th>
+                          <th className="pb-2 font-medium text-sm text-gray-500 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...peopleIOwe]
+                          .sort((a, b) => b.amount - a.amount)
+                          .map((settlement, idx) => (
+                            <tr key={idx} className="border-b border-gray-100 last:border-0">
+                              <td className="py-2.5 font-medium text-sm">{getUserName(settlement.to)}</td>
+                              <td className="py-2.5 text-right">
+                                <span className="text-red-600 font-bold text-sm bg-red-50 px-3 py-1">
+                                  -{formatCurrency(settlement.amount)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* No settlements case */}
+            {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
+              <div className="p-5 text-center">
+                <p className="text-sm text-gray-700 mb-1">
+                  No settlements to display
+                </p>
+                <p className="text-sm text-gray-500">
+                  Add expenses to see who owes you money
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
-        
-        {/* People who owe you */}
-        {peopleWhoOweMe.length > 0 && (
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-bold mb-3 flex items-center">
-                <div className="w-1 h-4 bg-green-500 mr-2"></div>
-                People who owe you
-              </h3>
-              <div className="space-y-3">
-                {[...peopleWhoOweMe]
-                  .sort((a, b) => b.amount - a.amount)
-                  .map((settlement, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                      <span className="font-medium text-sm truncate max-w-[65%]">{getUserName(settlement.from)}</span>
-                      <span className="text-green-600 font-bold text-sm bg-green-50 px-3 py-1 whitespace-nowrap ml-1">
-                        +{formatCurrency(settlement.amount)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* People you owe */}
-        {peopleIOwe.length > 0 && (
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-bold mb-3 flex items-center">
-                <div className="w-1 h-4 bg-red-500 mr-2"></div>
-                You owe
-              </h3>
-              <div className="space-y-3">
-                {[...peopleIOwe]
-                  .sort((a, b) => b.amount - a.amount)
-                  .map((settlement, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                      <span className="font-medium text-sm truncate max-w-[65%]">{getUserName(settlement.to)}</span>
-                      <span className="text-red-600 font-bold text-sm bg-red-50 px-3 py-1 whitespace-nowrap ml-1">
-                        -{formatCurrency(settlement.amount)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* No settlements case */}
-        {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-center py-4 px-2">
-                <div className="text-center">
-                  <p className="text-sm text-gray-700 mb-1">
-                    No settlements to display
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Add expenses to see who owes you money
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
       
       {/* Current Group Details Section - Scrollable portion */}
