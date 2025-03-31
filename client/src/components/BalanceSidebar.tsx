@@ -140,6 +140,9 @@ export function BalanceSidebar() {
       : user.displayName || 'User';
   });
   
+  // Log the summary data to see what we're working with
+  console.log("Summary data:", summary);
+  
   // Get settlements that involve the current user
   const peopleWhoOweMe = summary.settlements.filter(
     s => s.to === userId.toString()
@@ -148,6 +151,9 @@ export function BalanceSidebar() {
   const peopleIOwe = summary.settlements.filter(
     s => s.from === userId.toString()
   );
+  
+  console.log("People who owe me:", peopleWhoOweMe);
+  console.log("People I owe:", peopleIOwe);
   
   // Function to get username from ID
   const getUserName = (userId: string) => {
