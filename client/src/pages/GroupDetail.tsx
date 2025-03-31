@@ -234,20 +234,8 @@ function GroupDetail() {
 
           {!isEditing && (
             <div className="pt-2">
-              <div 
-                style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  marginBottom: '1rem',
-                  alignItems: 'center'
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '2.5rem',
-                  justifyContent: 'flex-start'
-                }}>
+              <div className="flex gap-3 mb-4 equal-width-buttons">
+                <div className="button-container">
                   {summary && members && (
                     <SettleUpButton
                       groupId={groupId}
@@ -257,12 +245,7 @@ function GroupDetail() {
                     />
                   )}
                 </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '2.5rem',
-                  justifyContent: 'flex-start'
-                }}>
+                <div className="button-container">
                   <ExpenseForm 
                     ref={expenseFormRef}
                     group={group} 

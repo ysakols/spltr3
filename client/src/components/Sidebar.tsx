@@ -141,11 +141,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
       <div className="pb-1">
         <Link href="/">
           <Button 
-            style={{
-              backgroundColor: isActive('/') ? '#F0F2F5' : 'transparent',
-              color: isActive('/') ? '#344054' : '#64748B',
-              fontWeight: isActive('/') ? '500' : '400'
-            }}
+            variant={isActive('/') ? "secondary" : "ghost"} 
             size="sm" 
             className={cn(
               "w-full justify-start text-xs py-1.5 rounded-md",
@@ -156,7 +152,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
             <List className={cn(
               "h-3.5 w-3.5", 
               !isCollapsed && "mr-2",
-              isActive('/') ? "#344054" : "#64748B"
+              isActive('/') ? "text-primary" : "text-muted-foreground"
             )} />
             {!isCollapsed && <span>Groups</span>}
           </Button>
@@ -169,11 +165,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
         {isAuthenticated && (
           <Link href="/profile">
             <Button 
-              style={{
-                backgroundColor: isActive('/profile') ? '#F0F2F5' : 'transparent',
-                color: isActive('/profile') ? '#344054' : '#64748B',
-                fontWeight: isActive('/profile') ? '500' : '400'
-              }}
+              variant={isActive('/profile') ? "secondary" : "ghost"} 
               size="sm" 
               className={cn(
                 "w-full justify-start text-xs py-1.5 rounded-md",
@@ -184,7 +176,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
               <User className={cn(
                 "h-3.5 w-3.5", 
                 !isCollapsed && "mr-2",
-                isActive('/profile') ? "#344054" : "#64748B"
+                isActive('/profile') ? "text-primary" : "text-muted-foreground"
               )} />
               {!isCollapsed && <span>Profile</span>}
             </Button>
@@ -199,7 +191,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
             className={cn(
               "w-full justify-start text-xs py-1.5 mt-1 rounded-md",
               isCollapsed ? "justify-center px-1.5" : "pl-2.5 pr-3",
-              "text-gray-600 hover:text-gray-700 hover:bg-gray-100/30"
+              "text-red-600 hover:text-red-700 hover:bg-red-100/30"
             )}
           >
             <LogOut className={cn("h-3.5 w-3.5", !isCollapsed && "mr-2")} />
@@ -213,7 +205,7 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
             className={cn(
               "w-full justify-start text-xs py-1.5 mt-1 rounded-md",
               isCollapsed ? "justify-center px-1.5" : "pl-2.5 pr-3",
-              "text-gray-600 hover:text-gray-700 hover:bg-gray-100/30"
+              "text-green-600 hover:text-green-700 hover:bg-green-100/30"
             )}
           >
             <LogOut className={cn("h-3.5 w-3.5 rotate-180", !isCollapsed && "mr-2")} />
