@@ -1,6 +1,31 @@
-/* Custom CSS styles for fixing button alignment */
+/* Custom CSS styles for a more sophisticated, mature design */
 
-/* Ensure both buttons have identical base styling */
+/* Typography enhancements */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: -0.011em !important;
+  color: #1a202c !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: -0.021em !important;
+  font-weight: 600 !important;
+  color: #1a202c !important;
+}
+
+/* Card styling refinements */
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Muted colors for secondary text */
+.text-muted-foreground {
+  color: #4a5568 !important;
+}
+
+/* Ensure both buttons have identical base styling with sophisticated look */
 .settle-up-button,
 .add-expense-button {
   display: inline-flex !important;
@@ -13,6 +38,30 @@
   font-size: 0.875rem !important; /* text-sm */
   white-space: nowrap !important;
   line-height: 1.25rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Updated button styles */
+.settle-up-button {
+  background-color: #2d3748 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.settle-up-button:hover {
+  background-color: #1a202c !important;
+}
+
+.add-expense-button {
+  background-color: #c53030 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.add-expense-button:hover {
+  background-color: #9b2c2c !important;
 }
 
 /* Fix container alignment */
@@ -26,7 +75,7 @@
 /* Make buttons identical width if desired */
 .equal-width-buttons .settle-up-button,
 .equal-width-buttons .add-expense-button {
-  min-width: 8rem !important; /* 128px - adjust as needed */
+  min-width: 8.5rem !important; /* 136px - adjust as needed */
 }
 
 /* Make sure icons are properly sized and aligned */
@@ -37,32 +86,47 @@
   flex-shrink: 0 !important;
 }
 
-/* More professional money colors */
-.money-positive {
-  color: #2e7d32 !important; /* More muted, professional green */
+/* Table refinements */
+table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
 }
 
-.money-negative {
-  color: #c62828 !important; /* More muted, professional red */
+th {
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #2d3748 !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
-/* Normal text that shouldn't be colorized */
-.text-normal {
-  color: inherit !important; 
+td {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  color: #4a5568 !important;
+  border-bottom: 1px solid #edf2f7 !important;
 }
 
-/* Transaction type styling */
-.transaction-expense {
-  background-color: #f5f5f5 !important;
-  border-left: 3px solid #546e7a !important;
+/* Form element refinements */
+input, select, textarea {
+  border-color: #e2e8f0 !important;
+  background-color: #fff !important;
+  color: #2d3748 !important;
+  font-size: 0.875rem !important;
+  transition: border-color 0.15s ease-in-out !important;
 }
 
-.transaction-settlement {
-  background-color: #fafafa !important;
-  border-left: 3px solid #5c6bc0 !important;
+input:focus, select:focus, textarea:focus {
+  border-color: #2c5282 !important;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.1) !important;
 }
 
-/* Make sure all normal text uses regular text color */
-p, span, div:not(.money-positive):not(.money-negative) {
-  color: inherit;
+/* Label text */
+label {
+  font-weight: 500 !important;
+  color: #2d3748 !important;
+  font-size: 0.875rem !important;
 }
