@@ -1,0 +1,101 @@
+/* 
+CUSTOM COLOR CONFIGURATION
+--------------------------
+Update these variables to change colors throughout the application.
+After saving your changes, the application will refresh automatically.
+*/
+
+:root {
+  /* Primary brand color (used for main UI elements, buttons, etc.) */
+  --primary-color: #2c5282;
+  --primary-color-light: #3182ce;
+  --primary-color-dark: #1a365d;
+  
+  /* Text colors */
+  --text-color: #1a202c;
+  --text-color-secondary: #4a5568;
+  --text-color-muted: #718096;
+  
+  /* Background colors */
+  --background-color: #ffffff;
+  --background-color-subtle: #f7fafc;
+  --card-background: #ffffff;
+  
+  /* Button colors */
+  --button-settle-up-color: #2d3748;
+  --button-settle-up-hover: #1a202c;
+  --button-add-expense-color: #c53030;
+  --button-add-expense-hover: #9b2c2c;
+  
+  /* Transaction colors */
+  --expense-indicator-color: #4c51bf; /* Indigo */
+  --expense-icon-color: #5a67d8;      /* Indigo 500 */
+  --settlement-indicator-color: #38b2ac; /* Teal */
+  --settlement-icon-color: #319795;      /* Teal 500 */
+  --settlement-text-color: #2c7a7b;      /* Teal 600 */
+  
+  /* Border and shadow colors */
+  --border-color: #e2e8f0;
+  --shadow-color: rgba(0, 0, 0, 0.05);
+  
+  /* Status colors */
+  --success-color: #48bb78;
+  --warning-color: #ed8936;
+  --error-color: #e53e3e;
+  --info-color: #4299e1;
+}
+
+/* Apply colors to specific elements - DO NOT MODIFY BELOW THIS LINE */
+
+/* Apply button colors */
+.settle-up-button {
+  background-color: var(--button-settle-up-color) !important;
+}
+
+.settle-up-button:hover {
+  background-color: var(--button-settle-up-hover) !important;
+}
+
+.add-expense-button {
+  background-color: var(--button-add-expense-color) !important;
+}
+
+.add-expense-button:hover {
+  background-color: var(--button-add-expense-hover) !important;
+}
+
+/* Apply transaction colors */
+[class*="border-l-indigo-400"] {
+  border-left-color: var(--expense-indicator-color) !important;
+}
+
+[class*="border-l-teal-400"] {
+  border-left-color: var(--settlement-indicator-color) !important;
+}
+
+[class*="text-indigo-500"] {
+  color: var(--expense-icon-color) !important;
+}
+
+[class*="text-teal-500"], [class*="text-teal-600"] {
+  color: var(--settlement-icon-color) !important;
+}
+
+/* Background colors */
+body {
+  background-color: var(--background-color) !important;
+  color: var(--text-color) !important;
+}
+
+.bg-card, .card {
+  background-color: var(--card-background) !important;
+}
+
+/* Text colors */
+.text-muted-foreground {
+  color: var(--text-color-secondary) !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-color) !important;
+}

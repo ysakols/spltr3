@@ -6,6 +6,7 @@
 
 /* Import custom styles */
 @import './custom-styles.css';
+@import './colors.css';
 
 @layer base {
   * {
