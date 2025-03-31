@@ -14,19 +14,19 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground text-sm;
+    @apply font-sans antialiased bg-background text-foreground text-base;
   }
   
   h1 {
-    @apply text-xl font-bold;
+    @apply text-2xl font-bold;
   }
   
   h2 {
-    @apply text-lg font-semibold;
+    @apply text-xl font-semibold;
   }
   
   h3 {
-    @apply text-base font-medium;
+    @apply text-lg font-medium;
   }
 }
 
@@ -71,11 +71,11 @@
     }
     
     h1 {
-      @apply text-lg;
+      @apply text-xl;
     }
     
     h2 {
-      @apply text-base;
+      @apply text-lg;
     }
   }
 }

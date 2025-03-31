@@ -273,32 +273,32 @@ function InvitationActivity({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
-          <UserIcon className="h-4 w-4 text-blue-600" />
+          <UserIcon className="h-5 w-5 text-blue-600" />
           <span className="font-medium">Invitation</span>
         </div>
-        <Badge className={`${getStatusColor(invitation.status)} font-normal text-xs`}>
+        <Badge className={`${getStatusColor(invitation.status)} font-normal text-sm py-0.5 h-6`}>
           {invitation.status}
         </Badge>
       </div>
       
       <div className="bg-card border !rounded-none p-2">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="font-medium text-xs">
+          <span className="font-medium text-sm">
             {invitation.group?.name ? `Group: ${invitation.group.name}` : 'Join group'}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {invitation.inviterUser?.firstName || invitation.inviterUser?.email || 'Someone'} invited {invitation.inviteeEmail}
         </p>
       </div>
       
-      <div className="flex flex-wrap justify-between items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap justify-between items-center gap-2 text-sm text-muted-foreground">
         <span>
           {formatDistanceToNow(new Date(invitation.invitedAt), { addSuffix: true })}
         </span>
         {invitation.acceptedAt && (
           <span className="flex items-center">
-            <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
             Accepted {formatDistanceToNow(new Date(invitation.acceptedAt), { addSuffix: true })}
           </span>
         )}
@@ -317,26 +317,26 @@ function ExpenseActivity({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
-          <CreditCard className="h-4 w-4 text-amber-600" />
+          <CreditCard className="h-5 w-5 text-amber-600" />
           <span className="font-medium">Expense Added</span>
         </div>
-        <Badge variant="outline" className="font-normal text-xs">
+        <Badge variant="outline" className="font-normal text-sm py-0.5 h-6">
           {transaction.splitType || 'Split'}
         </Badge>
       </div>
       
       <div className="bg-card border !rounded-none p-2">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-xs">{transaction.description}</h4>
-          <span className="font-bold text-xs">{formatCurrency(transaction.amount)}</span>
+          <h4 className="font-medium text-sm">{transaction.description}</h4>
+          <span className="font-bold text-sm">{formatCurrency(transaction.amount)}</span>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Added by {transaction.createdByUser?.firstName || 'Someone'}, paid by {transaction.paidByUser?.firstName || 'Unknown'}
         </p>
       </div>
       
       <div className="flex justify-between items-center">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
         </span>
       </div>
@@ -361,10 +361,10 @@ function SettlementActivity({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
-          <Banknote className="h-4 w-4 text-green-600" />
+          <Banknote className="h-5 w-5 text-green-600" />
           <span className="font-medium">Payment</span>
         </div>
-        <Badge className={`${getStatusColor(transaction.status)} font-normal text-xs`}>
+        <Badge className={`${getStatusColor(transaction.status)} font-normal text-sm py-0.5 h-6`}>
           {transaction.status || TransactionStatus.PENDING}
         </Badge>
       </div>
@@ -379,23 +379,23 @@ function SettlementActivity({
           <span className="font-bold text-green-600 flex-shrink-0">{formatCurrency(transaction.amount)}</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="text-xs py-0 h-5 flex items-center">
+          <Badge variant="outline" className="text-sm py-0.5 h-6 flex items-center">
             {formatPaymentMethod(transaction.paymentMethod)}
           </Badge>
         </div>
       </div>
       
       {transaction.notes && (
-        <p className="text-xs italic bg-muted/30 p-2 !rounded-none">"{transaction.notes}"</p>
+        <p className="text-sm italic bg-muted/30 p-2 !rounded-none">"{transaction.notes}"</p>
       )}
       
-      <div className="flex flex-wrap justify-between items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap justify-between items-center gap-2 text-sm text-muted-foreground">
         <span>
           {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
         </span>
         {transaction.completedAt && (
           <span className="flex items-center">
-            <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
             Completed {formatDistanceToNow(new Date(transaction.completedAt), { addSuffix: true })}
           </span>
         )}
@@ -418,30 +418,30 @@ function EditActivity({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
-          <FileEdit className="h-4 w-4 text-purple-600" />
+          <FileEdit className="h-5 w-5 text-purple-600" />
           <span className="font-medium">{isExpense ? 'Expense Edited' : 'Payment Edited'}</span>
         </div>
-        <Badge variant="outline" className="font-normal text-xs bg-purple-50">
+        <Badge variant="outline" className="font-normal text-sm py-0.5 h-6 bg-purple-50">
           Edited
         </Badge>
       </div>
       
       <div className="bg-card border !rounded-none p-2">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-xs">
+          <h4 className="font-medium text-sm">
             {isExpense ? transaction.description : 'Payment'}
           </h4>
-          <span className="font-bold text-xs">
+          <span className="font-bold text-sm">
             {formatCurrency(transaction.amount)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Edited by {transaction.updatedByUser?.firstName || 'Someone'}
         </p>
       </div>
       
       {transaction.previousValues && (
-        <div className="bg-muted/20 !rounded-none p-2 text-xs text-muted-foreground space-y-1.5">
+        <div className="bg-muted/20 !rounded-none p-2 text-sm text-muted-foreground space-y-1.5">
           <p className="font-medium">Previous Values:</p>
           {(() => {
             try {
@@ -475,7 +475,7 @@ function EditActivity({
       )}
       
       <div className="flex justify-between items-center">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {transaction.updatedAt && formatDistanceToNow(new Date(transaction.updatedAt), { addSuffix: true })}
         </span>
       </div>
@@ -495,30 +495,30 @@ function DeleteActivity({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-1.5">
-          <Trash className="h-4 w-4 text-red-600" />
+          <Trash className="h-5 w-5 text-red-600" />
           <span className="font-medium">{isExpense ? 'Expense Deleted' : 'Payment Deleted'}</span>
         </div>
-        <Badge variant="destructive" className="font-normal text-xs">
+        <Badge variant="destructive" className="font-normal text-sm py-0.5 h-6">
           Deleted
         </Badge>
       </div>
       
       <div className="bg-card border border-red-100 !rounded-none p-2">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-xs line-through">
+          <h4 className="font-medium text-sm line-through">
             {isExpense ? transaction.description : 'Payment'}
           </h4>
-          <span className="font-bold text-xs line-through">
+          <span className="font-bold text-sm line-through">
             {formatCurrency(transaction.amount)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Deleted by {transaction.deletedByUser?.firstName || 'Someone'}
         </p>
       </div>
       
       <div className="flex justify-between items-center">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {transaction.deletedAt && formatDistanceToNow(new Date(transaction.deletedAt), { addSuffix: true })}
         </span>
       </div>

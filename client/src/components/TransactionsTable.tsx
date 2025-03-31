@@ -427,17 +427,17 @@ function TransactionsTable({
                           ) : (
                             <Banknote className="h-4 w-4 text-teal-500 flex-shrink-0" />
                           )}
-                          <h3 className="font-medium text-xs truncate whitespace-nowrap">
+                          <h3 className="font-medium text-sm truncate whitespace-nowrap">
                             {transaction.description}
                           </h3>
                         </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
                           <div className="flex items-center whitespace-nowrap">
-                            <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
                             {formatDate(transaction.date)}
                           </div>
                           <div className="flex items-center whitespace-nowrap">
-                            <UserIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <UserIcon className="h-4 w-4 mr-1 flex-shrink-0" />
                             {isExpense ? (
                               <span className="truncate max-w-[120px] inline-block">Paid by {getUsernameById(transaction.paidByUserId)}</span>
                             ) : (
@@ -452,7 +452,7 @@ function TransactionsTable({
                       </div>
                       
                       <div className="text-right flex-shrink-0">
-                        <div className={`font-semibold ${
+                        <div className={`font-semibold text-lg ${
                           isExpense ? 'text-gray-800' : 'text-teal-600'
                         }`}>
                           {!isExpense && <span className="mr-1">+</span>}
@@ -465,12 +465,12 @@ function TransactionsTable({
                     {!isExpense && transaction.status && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {transaction.paymentMethod && (
-                          <Badge variant="outline" className="text-xs py-0 h-5 flex items-center">
+                          <Badge variant="outline" className="text-sm py-0.5 h-6 flex items-center">
                             {getPaymentMethodIcon(transaction.paymentMethod)}
                             <span>{getPaymentMethodLabel(transaction.paymentMethod)}</span>
                           </Badge>
                         )}
-                        <Badge className={`text-xs py-0 h-5 flex items-center ${getStatusBadgeStyle(transaction.status)}`}>
+                        <Badge className={`text-sm py-0.5 h-6 flex items-center ${getStatusBadgeStyle(transaction.status)}`}>
                           {getStatusIcon(transaction.status)}
                           <span>{transaction.status}</span>
                         </Badge>
@@ -488,10 +488,10 @@ function TransactionsTable({
                           <Button 
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2.5 text-xs"
+                            className="h-8 px-3 text-sm"
                             onClick={() => handleEditTransaction(transaction)}
                           >
-                            <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                            <Edit2 className="h-4 w-4 mr-1.5" />
                             Edit
                           </Button>
                         )}
@@ -502,9 +502,9 @@ function TransactionsTable({
                             <Button 
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="h-8 px-3 text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
-                              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                              <Trash2 className="h-4 w-4 mr-1.5" />
                               Delete
                             </Button>
                           </AlertDialogTrigger>
