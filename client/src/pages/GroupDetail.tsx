@@ -27,7 +27,7 @@ import TransactionsTable from '@/components/TransactionsTable';
 import GroupSummary from '@/components/GroupSummary';
 import EditGroupForm from '@/components/EditGroupForm';
 import { ActivityFeed } from '@/components/ActivityFeed';
-import { SettleUpButton } from '@/components/SettleUpButton';
+import { SettleUpButton } from '../components/SettleUpButton';
 
 import type { Group, Expense, Balance, User } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
