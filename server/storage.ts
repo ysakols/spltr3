@@ -1580,10 +1580,29 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Create the expense
+      // Create the expense in the legacy expenses table
       const [newExpense] = await tx.insert(expenses)
         .values(completeExpenseData)
         .returning();
+      
+      // Create a matching transaction in the new unified transactions table
+      const [newTransaction] = await tx.insert(transactions)
+        .values({
+          type: TransactionType.EXPENSE,
+          description: newExpense.description,
+          amount: newExpense.amount,
+          paidByUserId: newExpense.paidByUserId,
+          createdByUserId: newExpense.createdByUserId,
+          groupId: newExpense.groupId,
+          splitType: newExpense.splitType,
+          splitDetails: newExpense.splitDetails,
+          date: newExpense.date,
+          createdAt: new Date(),
+          isDeleted: false
+        })
+        .returning();
+        
+      console.log(`Created expense #${newExpense.id} and corresponding transaction #${newTransaction.id}`);
       
       // Create expense splits for each involved user
       if (splitWithUserIds && splitWithUserIds.length > 0) {
@@ -1601,6 +1620,10 @@ export class DatabaseStorage implements IStorage {
           splitDetails = {};
         }
         
+        // Arrays to hold split entries for both legacy and new tables
+        const legacySplits = [];
+        const transactionSplitEntries = [];
+        
         // Create splits based on the split type
         for (const userId of splitWithUserIds) {
           let userAmount = 0;
@@ -1627,14 +1650,33 @@ export class DatabaseStorage implements IStorage {
             }
           }
           
-          // Insert the split record with proper fields matching the schema
-          await tx.insert(expenseSplits).values({
+          // Prepare legacy split entry
+          legacySplits.push({
             userId: userId,
             amount: userAmount.toString(),
             percentage: userPercentage ? userPercentage.toString() : undefined,
             isSettled: false,
             expenseId: newExpense.id
           });
+          
+          // Prepare transaction split entry
+          transactionSplitEntries.push({
+            userId: userId,
+            amount: userAmount.toString(),
+            percentage: userPercentage ? userPercentage.toString() : undefined,
+            isSettled: false,
+            transactionId: newTransaction.id
+          });
+        }
+        
+        // Insert all legacy expense splits in one batch
+        if (legacySplits.length > 0) {
+          await tx.insert(expenseSplits).values(legacySplits);
+        }
+        
+        // Insert all transaction splits in one batch
+        if (transactionSplitEntries.length > 0) {
+          await tx.insert(transactionSplits).values(transactionSplitEntries);
         }
       }
       
@@ -1648,7 +1690,7 @@ export class DatabaseStorage implements IStorage {
     
     // Start a transaction to update the expense and its splits
     return await db.transaction(async (tx) => {
-      // Update the expense
+      // Update the expense in the legacy table
       const [updatedExpense] = await tx.update(expenses)
         .set(expenseData)
         .where(eq(expenses.id, id))
@@ -1658,10 +1700,71 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Expense with ID ${id} not found`);
       }
       
-      // Delete existing splits
+      // Look for corresponding transaction in the unified system
+      // We need to find the matching transaction by expense details
+      const matchingTransactions = await tx
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.type, TransactionType.EXPENSE),
+            eq(transactions.description, updatedExpense.description),
+            eq(transactions.groupId, updatedExpense.groupId),
+            eq(transactions.paidByUserId, updatedExpense.paidByUserId)
+          )
+        );
+      
+      // Check if we found a matching transaction
+      let transactionId: number | null = null;
+      if (matchingTransactions.length > 0) {
+        // Update the existing transaction in the unified system
+        const [updatedTransaction] = await tx.update(transactions)
+          .set({
+            description: updatedExpense.description,
+            amount: updatedExpense.amount,
+            paidByUserId: updatedExpense.paidByUserId,
+            splitType: updatedExpense.splitType,
+            splitDetails: updatedExpense.splitDetails,
+            date: updatedExpense.date,
+            updatedAt: new Date(),
+            isEdited: true
+          })
+          .where(eq(transactions.id, matchingTransactions[0].id))
+          .returning();
+          
+        transactionId = updatedTransaction.id;
+        
+        // Delete existing transaction splits
+        await tx.delete(transactionSplits)
+          .where(eq(transactionSplits.transactionId, transactionId));
+          
+        console.log(`Updated transaction #${transactionId} to match expense #${id}`);
+      } else {
+        // Create a new transaction in the unified system
+        const [newTransaction] = await tx.insert(transactions)
+          .values({
+            type: TransactionType.EXPENSE,
+            description: updatedExpense.description,
+            amount: updatedExpense.amount,
+            paidByUserId: updatedExpense.paidByUserId,
+            createdByUserId: updatedExpense.createdByUserId,
+            groupId: updatedExpense.groupId,
+            splitType: updatedExpense.splitType,
+            splitDetails: updatedExpense.splitDetails,
+            date: updatedExpense.date,
+            createdAt: new Date(),
+            isDeleted: false
+          })
+          .returning();
+          
+        transactionId = newTransaction.id;
+        console.log(`Created new transaction #${transactionId} for updated expense #${id}`);
+      }
+      
+      // Delete existing expense splits from legacy table
       await tx.delete(expenseSplits).where(eq(expenseSplits.expenseId, id));
       
-      // Create new expense splits
+      // Create new expense splits and transaction splits
       if (splitWithUserIds && splitWithUserIds.length > 0) {
         const amount = parseFloat(updatedExpense.amount.toString());
         const splitType = updatedExpense.splitType;
@@ -1677,6 +1780,10 @@ export class DatabaseStorage implements IStorage {
           splitDetails = {};
         }
         
+        // Arrays to collect all splits for batch insertion
+        const legacySplits = [];
+        const transactionSplitEntries = [];
+        
         // Create splits based on the split type
         for (const userId of splitWithUserIds) {
           let userAmount = 0;
@@ -1703,14 +1810,35 @@ export class DatabaseStorage implements IStorage {
             }
           }
           
-          // Insert the split record with proper fields matching the schema
-          await tx.insert(expenseSplits).values({
+          // Prepare legacy split entry
+          legacySplits.push({
             userId: userId,
             amount: userAmount.toString(),
             percentage: userPercentage ? userPercentage.toString() : undefined,
             isSettled: false,
             expenseId: updatedExpense.id
           });
+          
+          // Only create transaction splits if we have a valid transaction ID
+          if (transactionId) {
+            transactionSplitEntries.push({
+              userId: userId,
+              amount: userAmount.toString(),
+              percentage: userPercentage ? userPercentage.toString() : undefined,
+              isSettled: false,
+              transactionId: transactionId
+            });
+          }
+        }
+        
+        // Insert all legacy expense splits in batch
+        if (legacySplits.length > 0) {
+          await tx.insert(expenseSplits).values(legacySplits);
+        }
+        
+        // Insert all transaction splits in batch
+        if (transactionSplitEntries.length > 0) {
+          await tx.insert(transactionSplits).values(transactionSplitEntries);
         }
       }
       
@@ -1721,11 +1849,48 @@ export class DatabaseStorage implements IStorage {
   async deleteExpense(id: number): Promise<boolean> {
     // Start a transaction to delete the expense and its splits
     return await db.transaction(async (tx) => {
+      // Get the expense to find matching transaction
+      const [expense] = await tx.select().from(expenses).where(eq(expenses.id, id));
+      
+      if (!expense) {
+        return false;
+      }
+      
       // Delete expense splits first (foreign key constraint)
       await tx.delete(expenseSplits).where(eq(expenseSplits.expenseId, id));
       
       // Delete the expense
       const result = await tx.delete(expenses).where(eq(expenses.id, id));
+      
+      // Find any matching transaction to mark as deleted (soft delete)
+      if (expense) {
+        // Look for corresponding transaction in the unified system by matching key fields
+        const matchingTransactions = await tx
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.type, TransactionType.EXPENSE),
+              eq(transactions.description, expense.description),
+              eq(transactions.groupId, expense.groupId),
+              eq(transactions.paidByUserId, expense.paidByUserId)
+            )
+          );
+        
+        if (matchingTransactions.length > 0) {
+          // Soft delete the transaction
+          const [updatedTransaction] = await tx.update(transactions)
+            .set({
+              isDeleted: true,
+              updatedAt: new Date(),
+              deletedAt: new Date()
+            })
+            .where(eq(transactions.id, matchingTransactions[0].id))
+            .returning();
+            
+          console.log(`Marked transaction #${updatedTransaction.id} as deleted to match expense #${id} deletion`);
+        }
+      }
       
       return result.rowCount !== null && result.rowCount > 0;
     });
