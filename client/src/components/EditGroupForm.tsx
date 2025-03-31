@@ -5,12 +5,13 @@ import { z } from 'zod';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X, Plus, Mail, User as UserIcon, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, Plus, Mail, User as UserIcon, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -50,8 +51,10 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const [membersChanged, setMembersChanged] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<User | null>(null);
   const [removingMember, setRemovingMember] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   // Fetch members of the group
   const { data: members = [] } = useQuery<User[]>({
@@ -202,6 +205,31 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
     }
   };
   
+  // Handle group deletion
+  const handleDeleteGroup = async () => {
+    try {
+      setIsDeleting(true);
+      await apiRequest('DELETE', `/api/groups/${group.id}`);
+      toast({
+        title: "Group deleted",
+        description: "The group has been successfully deleted.",
+      });
+      // Redirect to the groups list page
+      setLocation('/');
+      // Invalidate the groups list cache
+      queryClient.invalidateQueries({ queryKey: ['/api/groups'] });
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Error deleting group",
+        description: "There was a problem deleting the group. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Check if there are any changes to enable the save button
   const hasChanges = 
     nameInput !== group.name || 
@@ -326,21 +354,64 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              disabled={loading || !hasChanges}
-              onClick={handleSaveChanges}
-            >
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
+          <div className="flex justify-between items-center pt-4">
+            {/* Danger Zone */}
+            <div className="flex items-center">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="flex items-center gap-1 h-8 py-0 px-2"
+                  >
+                    <Trash2 className="h-4 w-4" /> 
+                    Delete Group
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      Delete Group
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this group? This will permanently remove 
+                      <strong> {group.name}</strong> and all its expenses. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteGroup}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : <Trash2 className="h-4 w-4 mr-2" />}
+                      Delete Group
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                disabled={loading || !hasChanges}
+                onClick={handleSaveChanges}
+              >
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
