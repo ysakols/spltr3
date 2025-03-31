@@ -1475,36 +1475,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid expense ID' });
       }
       
-      const expense = await storage.getExpense(id);
-      if (!expense) return res.status(404).json({ message: 'Expense not found' });
+      // First, try to get the expense as a transaction (new system)
+      const transaction = await storage.getTransaction(id);
+      
+      // If not found in transactions or not an expense type, try the legacy expenses table
+      if (!transaction || transaction.type !== TransactionType.EXPENSE) {
+        const legacyExpense = await storage.getExpense(id);
+        if (!legacyExpense) {
+          console.error('Expense not found in either transactions or expenses table:', id);
+          return res.status(404).json({ message: 'Expense not found' });
+        }
+        
+        // We found it in the legacy system - handle it there
+        console.log('Found expense in legacy system, id:', id);
+        // Rest of legacy expense deletion handling...
+        // This code is unlikely to be reached in practice, but kept for backward compatibility
+        
+        const currentUserId = (req.user as User).id;
+        
+        // Get the group to check if the current user is the admin (group creator)
+        const groupId = legacyExpense.groupId;
+        if (typeof groupId !== 'number') {
+          console.error('Invalid group ID for expense:', legacyExpense.id);
+          return res.status(400).json({ message: 'Invalid group ID for this expense' });
+        }
+        
+        const group = await storage.getGroup(groupId);
+        if (!group) {
+          console.error('Group not found for expense:', groupId);
+          return res.status(404).json({ message: 'Group not found for this expense' });
+        }
+        
+        // Check if the current user is the expense creator, payer, or the group admin (creator)
+        const isGroupAdmin = group.createdById === currentUserId;
+        const isPayer = legacyExpense.paidByUserId === currentUserId;
+        const isExpenseCreator = legacyExpense.createdByUserId === currentUserId;
+        
+        console.log('Legacy DELETE EXPENSE DEBUG INFO:');
+        console.log(`Expense ID: ${id}`);
+        console.log(`Current user ID: ${currentUserId}`);
+        console.log(`Group creator ID: ${group.createdById}`);
+        console.log(`Expense payer ID: ${legacyExpense.paidByUserId}`);
+        console.log(`Expense creator ID: ${legacyExpense.createdByUserId}`);
+        console.log(`Is Group Admin: ${isGroupAdmin}`);
+        console.log(`Is Payer: ${isPayer}`);
+        console.log(`Is Expense Creator: ${isExpenseCreator}`);
+        
+        if (!isGroupAdmin && !isPayer && !isExpenseCreator) {
+          console.log('Access denied: User is not authorized to delete this expense');
+          return res.status(403).json({ 
+            message: 'Only the expense creator, payer, or group admin can delete this expense' 
+          });
+        }
+        
+        console.log('Access granted: User is authorized to delete this expense');
+        
+        await storage.deleteExpense(id);
+        return res.json({ message: 'Legacy expense deleted' });
+      }
+      
+      // We found the expense in the transaction system - handle it there
+      console.log('Found expense in transaction system, id:', id);
       
       const currentUserId = (req.user as User).id;
       
       // Get the group to check if the current user is the admin (group creator)
-      const groupId = expense.groupId;
+      const groupId = transaction.groupId;
       if (typeof groupId !== 'number') {
-        console.error('Invalid group ID for expense:', expense.id);
+        console.error('Invalid group ID for transaction expense:', transaction.id);
         return res.status(400).json({ message: 'Invalid group ID for this expense' });
       }
       
       const group = await storage.getGroup(groupId);
       if (!group) {
-        console.error('Group not found for expense:', groupId);
+        console.error('Group not found for transaction expense:', groupId);
         return res.status(404).json({ message: 'Group not found for this expense' });
       }
       
       // Check if the current user is the expense creator, payer, or the group admin (creator)
-      const isGroupAdmin = group.createdById === currentUserId;
-      const isPayer = expense.paidByUserId === currentUserId;
-      const isExpenseCreator = expense.createdByUserId === currentUserId;
+      // Always parse these values to ensure consistent type comparison
+      const isGroupAdmin = Number(group.createdById) === Number(currentUserId);
+      const isPayer = Number(transaction.paidByUserId) === Number(currentUserId);
+      const isExpenseCreator = Number(transaction.createdByUserId) === Number(currentUserId);
       
       // Add detailed debug logs
-      console.log('DELETE EXPENSE DEBUG INFO:');
-      console.log(`Expense ID: ${id}`);
-      console.log(`Current user ID: ${currentUserId}`);
-      console.log(`Group creator ID: ${group.createdById}`);
-      console.log(`Expense payer ID: ${expense.paidByUserId}`);
-      console.log(`Expense creator ID: ${expense.createdByUserId}`);
+      console.log('DELETE TRANSACTION EXPENSE DEBUG INFO:');
+      console.log(`Transaction ID: ${id}`);
+      console.log(`Current user ID: ${currentUserId} (${typeof currentUserId})`);
+      console.log(`Group creator ID: ${group.createdById} (${typeof group.createdById})`);
+      console.log(`Expense payer ID: ${transaction.paidByUserId} (${typeof transaction.paidByUserId})`);
+      console.log(`Expense creator ID: ${transaction.createdByUserId} (${typeof transaction.createdByUserId})`);
       console.log(`Is Group Admin: ${isGroupAdmin}`);
       console.log(`Is Payer: ${isPayer}`);
       console.log(`Is Expense Creator: ${isExpenseCreator}`);
@@ -1516,11 +1576,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log('Access granted: User is authorized to delete this expense');
+      console.log('Access granted: User is authorized to delete this transaction expense');
       
-      await storage.deleteExpense(id);
-      res.json({ message: 'Expense deleted' });
+      // Use the transaction system to delete the expense
+      const updatedTransaction = await storage.deleteTransaction(id, currentUserId);
+      if (updatedTransaction) {
+        // Return the updated transaction with the soft delete flags
+        return res.json(updatedTransaction);
+      } else {
+        return res.status(500).json({ message: 'Failed to delete expense transaction' });
+      }
     } catch (err) {
+      console.error('Error in delete expense route:', err);
       res.status(500).json({ message: (err as Error).message });
     }
   });
@@ -1561,9 +1628,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if the current user is the expense creator, payer, or the group admin (creator)
-      const isGroupAdmin = group.createdById === currentUserId;
-      const isPayer = transaction.paidByUserId === currentUserId;
-      const isExpenseCreator = transaction.createdByUserId === currentUserId;
+      // Always parse these values to ensure consistent type comparison
+      const isGroupAdmin = Number(group.createdById) === Number(currentUserId);
+      const isPayer = Number(transaction.paidByUserId) === Number(currentUserId);
+      const isExpenseCreator = Number(transaction.createdByUserId) === Number(currentUserId);
       
       if (!isGroupAdmin && !isPayer && !isExpenseCreator) {
         return res.status(403).json({ 
@@ -1820,9 +1888,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user is authorized to delete this transaction
       const currentUserId = (req.user as User).id;
       // Allow deletion if the user created the transaction OR paid for it (for settlements)
-      if (transaction.createdByUserId !== currentUserId && transaction.paidByUserId !== currentUserId) {
+      const isCreator = Number(transaction.createdByUserId) === Number(currentUserId);
+      const isPayer = Number(transaction.paidByUserId) === Number(currentUserId);
+      
+      if (!isCreator && !isPayer) {
+        console.log('Access denied: User is not authorized to delete this transaction');
+        console.log(`Transaction creator ID: ${transaction.createdByUserId} (${typeof transaction.createdByUserId})`);
+        console.log(`Transaction payer ID: ${transaction.paidByUserId} (${typeof transaction.paidByUserId})`);
+        console.log(`Current user ID: ${currentUserId} (${typeof currentUserId})`);
+        console.log(`Is Creator: ${isCreator}, Is Payer: ${isPayer}`);
         return res.status(403).json({ message: 'Not authorized to delete this transaction' });
       }
+      
+      console.log('Access granted: User is authorized to delete this transaction');
       
       // We WILL allow deletion of completed settlements for now
       // This can be restricted again in the future if needed
