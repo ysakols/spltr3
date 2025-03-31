@@ -427,7 +427,7 @@ function TransactionsTable({
                           ) : (
                             <Banknote className="h-4 w-4 text-green-600 flex-shrink-0" />
                           )}
-                          <h3 className="font-medium text-sm truncate whitespace-nowrap">
+                          <h3 className="font-medium text-xs truncate whitespace-nowrap">
                             {transaction.description}
                           </h3>
                         </div>
@@ -518,7 +518,7 @@ function TransactionsTable({
                                 Are you sure you want to delete this {transaction.type}?
                                 <div className="mt-2 p-3 bg-muted/50 rounded-md">
                                   <p className="font-medium">{transaction.description}</p>
-                                  <p className="text-sm text-primary mt-1">
+                                  <p className="text-xs text-primary mt-1">
                                     {formatCurrency(amount)}
                                   </p>
                                 </div>

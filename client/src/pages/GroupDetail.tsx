@@ -178,11 +178,11 @@ function GroupDetail() {
               />
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3">
-              <h2 className="text-xl font-bold text-gray-900 mb-1 sm:mb-0">{group.name}</h2>
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  {/* Created by info */}
+            <div className="flex flex-col space-y-3 mb-3">
+              {/* Top row with group name and admin info */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 mb-1 sm:mb-0">{group.name}</h2>
+                <div className="flex items-center gap-2">
                   <div className="flex items-center text-xs text-gray-500">
                     <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
                     <span className="mr-1">Created by:</span>
@@ -197,49 +197,45 @@ function GroupDetail() {
                     </span>
                     <span className="font-medium text-primary">(Admin)</span>
                   </div>
-                  
-                  {/* Members list */}
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
-                    <span>
-                      {members ? (
-                        <>
-                          {`${members.length} members: `}
-                          {members.map((m, index) => (
-                            <span key={m.id}>
-                              {m.firstName && m.lastName 
-                                ? `${m.firstName} ${m.lastName}` 
-                                : m.displayName || m.email}
-                              {index < members.length - 1 ? ', ' : ''}
-                            </span>
-                          ))}
-                        </>
-                      ) : 'Loading members...'}
-                    </span>
+                  <div className="flex gap-2">
+                    {/* Show edit button for all group members */}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit className="h-3 w-3" /> 
+                      Edit Group
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  {/* Show edit button for all group members */}
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="flex items-center gap-1 h-6 text-xs py-0 px-1.5"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="h-3 w-3" /> 
-                    Edit Group
-                  </Button>
-                  
-                  {/* Delete button removed from here and moved to EditGroupForm */}
-                </div>
               </div>
+              
+              {/* Members list - moved to below top information */}
+              {members && members.length > 0 && (
+                <div className="flex items-center text-xs text-gray-500 border-t pt-2">
+                  <Users className="flex-shrink-0 mr-1 h-3.5 w-3.5 text-gray-400" />
+                  <span className="mr-1 font-medium">Members:</span>
+                  <span className="overflow-hidden">
+                    {members.map((m, index) => (
+                      <span key={m.id} className="inline-block">
+                        {m.firstName && m.lastName 
+                          ? `${m.firstName} ${m.lastName}` 
+                          : m.displayName || m.email}
+                        {index < members.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
           {!isEditing && (
             <div className="pt-2">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex gap-2">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col gap-2">
                   {summary && members && (
                     <SettleUpButton
                       groupId={groupId}
