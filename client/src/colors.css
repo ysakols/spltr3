@@ -214,8 +214,33 @@ li[data-sidebar],
   border-radius: 0 !important;
 }
 
-/* Global overrides for specific rounded components */
-.rounded-lg {
+/* Force square corners on Card components */
+.card,
+div[data-card],
+div.shadow-sm,
+[data-radix-card],
+[data-radix-card-header],
+[data-radix-card-content],
+[role="dialog"],
+.card-header,
+.card-content,
+.card-footer,
+.shadow-sm,
+.shadow-md,
+.shadow-lg {
+  border-radius: var(--transaction-card-radius) !important;
+}
+
+/* Specific additional overrides for Shadcn card components */
+.rounded-lg.border {
+  border-radius: var(--transaction-card-radius) !important; 
+}
+
+/* Explicitly target Card and its sub-components */
+div[class*="Card"],
+div[class*="CardHeader"],
+div[class*="CardContent"],
+div[class*="CardFooter"] {
   border-radius: var(--transaction-card-radius) !important;
 }
 

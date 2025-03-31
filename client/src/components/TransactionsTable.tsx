@@ -375,8 +375,8 @@ function TransactionsTable({
   }
   
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-2 space-y-2">
+    <Card className="shadow-sm !rounded-none">
+      <CardHeader className="pb-2 space-y-2 !rounded-none">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <CardTitle className="text-xl">Transactions</CardTitle>
         </div>
@@ -399,7 +399,7 @@ function TransactionsTable({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-3 sm:p-5">
+      <CardContent className="p-3 sm:p-5 !rounded-none">
         {sortedTransactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No transactions found. Add an expense to get started.
