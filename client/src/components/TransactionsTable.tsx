@@ -399,13 +399,13 @@ function TransactionsTable({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-3 sm:p-5 !rounded-none">
+      <CardContent className="p-2 sm:p-3 !rounded-none">
         {sortedTransactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No transactions found. Add an expense to get started.
           </div>
         ) : (
-          <div className="grid gap-3 md:gap-4">
+          <div className="grid gap-2 md:gap-3">
             {sortedTransactions.map((transaction) => {
               const isExpense = transaction.type === 'expense';
               const amount = typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount;
@@ -417,11 +417,11 @@ function TransactionsTable({
                     isExpense ? 'border-l-4 border-l-indigo-400' : 'border-l-4 border-l-teal-400'
                   }`}
                 >
-                  <div className="p-3 sm:p-4">
+                  <div className="p-2 sm:p-3">
                     {/* Transaction header */}
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-2">
+                        <div className="flex items-center gap-1 mb-1">
                           {isExpense ? (
                             <CreditCard className="h-4 w-4 text-indigo-500 flex-shrink-0" />
                           ) : (
@@ -463,7 +463,7 @@ function TransactionsTable({
                     
                     {/* Settlement specific elements */}
                     {!isExpense && transaction.status && (
-                      <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      <div className="flex flex-wrap gap-1 mt-1.5">
                         {transaction.paymentMethod && (
                           <Badge variant="outline" className="text-xs py-0 h-5 flex items-center">
                             {getPaymentMethodIcon(transaction.paymentMethod)}
@@ -482,7 +482,7 @@ function TransactionsTable({
                       (!isExpense && 
                       (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)
                     )) && (
-                      <div className="flex justify-end mt-3 gap-2 border-t pt-2 border-gray-100">
+                      <div className="flex justify-end mt-2 gap-1 border-t pt-1.5 border-gray-100">
                         {/* Edit button - only for expenses */}
                         {(isExpense && onEditExpense) && (
                           <Button 
