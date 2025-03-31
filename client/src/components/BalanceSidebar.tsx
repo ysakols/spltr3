@@ -155,26 +155,24 @@ export function BalanceSidebar() {
   };
 
   return (
-    <div className="h-full p-4 flex flex-col text-sm">
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <h2 className="font-bold text-base inline-flex items-center">
-          <div className="w-1 h-6 bg-primary mr-2"></div>
-          Balance Summary
-        </h2>
+    <div className="h-full p-3 flex flex-col text-xs">
+      <div className="flex items-center mb-3 flex-shrink-0">
+        <div className="w-0.5 h-4 bg-primary mr-1.5"></div>
+        <h2 className="font-medium">Balance Summary</h2>
       </div>
       
       {/* Global Balance Section - Fixed portion */}
-      <div className="space-y-4 mb-6 flex-shrink-0">
+      <div className="space-y-2 mb-4 flex-shrink-0">
         {/* Overview Card */}
-        <Card className="shadow-md border-0 overflow-hidden">
-          <CardContent className="p-4 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="flex items-center space-x-4">
-              <div className="h-10 w-10 bg-primary/10 flex items-center justify-center shadow-sm">
-                <Users className="h-5 w-5 text-primary" />
+        <Card className="shadow-sm border border-border/50 overflow-hidden">
+          <CardContent className="p-2 bg-muted/10">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 border border-primary/30 flex items-center justify-center">
+                <Users className="h-3.5 w-3.5 text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-bold mb-1">Total Across Groups</h3>
-                <div className="text-sm text-gray-700 space-y-1">
+                <h3 className="text-xs font-medium">Total Across Groups</h3>
+                <div className="text-xs text-muted-foreground">
                   {peopleWhoOweMe.length > 0 && (
                     <p>
                       {peopleWhoOweMe.length} {peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you
@@ -196,90 +194,70 @@ export function BalanceSidebar() {
         
         {/* People who owe you */}
         {peopleWhoOweMe.length > 0 && (
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-bold mb-3 flex items-center">
-                <div className="w-1 h-4 bg-green-500 mr-2"></div>
-                People who owe you
-              </h3>
-              <div className="space-y-3">
-                {[...peopleWhoOweMe]
-                  .sort((a, b) => b.amount - a.amount)
-                  .map((settlement, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                      <span className="font-medium text-sm truncate max-w-[65%]">{getUserName(settlement.from)}</span>
-                      <span className="text-green-600 font-bold text-sm bg-green-50 px-3 py-1 whitespace-nowrap ml-1">
-                        +{formatCurrency(settlement.amount)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="border border-border/50 bg-card shadow-sm p-2">
+            <h3 className="text-xs font-medium mb-1.5 flex items-center">
+              <div className="w-0.5 h-3 bg-green-500 mr-1"></div>
+              People who owe you
+            </h3>
+            <div className="divide-y divide-border/30">
+              {[...peopleWhoOweMe]
+                .sort((a, b) => b.amount - a.amount)
+                .map((settlement, idx) => (
+                  <div key={idx} className="flex justify-between items-center py-1.5">
+                    <span className="font-medium text-xs truncate max-w-[60%]">{getUserName(settlement.from)}</span>
+                    <span className="text-green-600 font-medium text-xs bg-green-50 px-1.5 py-0.5 whitespace-nowrap ml-1">
+                      +{formatCurrency(settlement.amount)}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
         )}
         
         {/* People you owe */}
         {peopleIOwe.length > 0 && (
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-bold mb-3 flex items-center">
-                <div className="w-1 h-4 bg-red-500 mr-2"></div>
-                You owe
-              </h3>
-              <div className="space-y-3">
-                {[...peopleIOwe]
-                  .sort((a, b) => b.amount - a.amount)
-                  .map((settlement, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                      <span className="font-medium text-sm truncate max-w-[65%]">{getUserName(settlement.to)}</span>
-                      <span className="text-red-600 font-bold text-sm bg-red-50 px-3 py-1 whitespace-nowrap ml-1">
-                        -{formatCurrency(settlement.amount)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="border border-border/50 bg-card shadow-sm p-2">
+            <h3 className="text-xs font-medium mb-1.5 flex items-center">
+              <div className="w-0.5 h-3 bg-red-500 mr-1"></div>
+              You owe
+            </h3>
+            <div className="divide-y divide-border/30">
+              {[...peopleIOwe]
+                .sort((a, b) => b.amount - a.amount)
+                .map((settlement, idx) => (
+                  <div key={idx} className="flex justify-between items-center py-1.5">
+                    <span className="font-medium text-xs truncate max-w-[60%]">{getUserName(settlement.to)}</span>
+                    <span className="text-red-600 font-medium text-xs bg-red-50 px-1.5 py-0.5 whitespace-nowrap ml-1">
+                      -{formatCurrency(settlement.amount)}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
         )}
         
         {/* No settlements case */}
         {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-center py-4 px-2">
-                <div className="text-center">
-                  <p className="text-sm text-gray-700 mb-1">
-                    No settlements to display
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Add expenses to see who owes you money
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="border border-border/50 bg-card shadow-sm p-3">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                No settlements to display
+              </p>
+            </div>
+          </div>
         )}
       </div>
       
       {/* Current Group Details Section - Scrollable portion */}
       {currentGroupId && currentGroup && currentSummary && currentMembers && (
         <div className="flex-grow flex flex-col min-h-0">
-          {/* Prominent divider between sections */}
-          <div className="relative py-3 flex-shrink-0 mb-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-background px-4 py-1 text-sm font-medium text-gray-700 border border-gray-200">
-                Current Group
-              </span>
+          {/* Simple divider between sections */}
+          <div className="border-t border-border/50 mb-3 pt-3">
+            <div className="flex items-center mb-2">
+              <div className="w-0.5 h-4 bg-primary mr-1.5"></div>
+              <h2 className="font-medium text-xs">{currentGroup.name}</h2>
             </div>
           </div>
-          
-          <h2 className="font-bold text-base mb-4 flex items-center flex-shrink-0">
-            <div className="w-1 h-6 bg-primary mr-2"></div>
-            {currentGroup.name} Summary
-          </h2>
           
           {/* Ensure this div takes remaining space and scrolls internally */}
           <div className="overflow-y-auto pr-1 flex-grow">
