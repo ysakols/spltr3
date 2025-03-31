@@ -413,7 +413,7 @@ function TransactionsTable({
               return (
                 <div 
                   key={`${transaction.type}-${transaction.id}`} 
-                  className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-sm ${
+                  className={`transaction-card border overflow-hidden bg-card transition-all hover:shadow-sm ${
                     isExpense ? 'border-l-4 border-l-indigo-400' : 'border-l-4 border-l-teal-400'
                   }`}
                 >

@@ -6,6 +6,16 @@ After saving your changes, the application will refresh automatically.
 */
 
 :root {
+  /* 
+  Control border radius throughout the application
+  Change this single value to adjust all rounded corners:
+  --border-radius: 0rem;     /* No rounded corners at all (square) */
+  --border-radius: 0.125rem; /* Very subtle rounding */
+  --border-radius: 0.25rem;  /* Slight rounding */
+  --border-radius: 0.5rem;   /* Medium rounding */
+  --border-radius: 0.75rem;  /* More pronounced rounding */
+  */
+  --border-radius: 0.125rem; /* CURRENT SETTING: Minimal rounding */
   /* Primary brand color (used for main UI elements, buttons, etc.) */
   --primary-color: #2c5282;
   --primary-color-light: #3182ce;
@@ -98,4 +108,45 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-color) !important;
+}
+
+/* Fix border-radius for all rounded elements */
+.rounded, .rounded-md, .rounded-lg, .rounded-xl, 
+.card, [class*="rounded-lg"],
+.button, button, .btn,
+input, select, textarea,
+.dialog, .dropdown-menu, .popover {
+  border-radius: var(--border-radius) !important;
+}
+
+/* Override shadcn component specific border-radius */
+[class*="rounded-lg"], div[class*="rounded-lg"] {
+  border-radius: var(--border-radius) !important;
+}
+
+.card div, .card button, .card a {
+  border-radius: var(--border-radius) !important;
+}
+
+/* TransactionsTable card specifics */
+.transaction-card {
+  border-radius: var(--border-radius) !important;
+  overflow: hidden;
+}
+
+/* Fix for dialog and other floating UI elements */
+[role="dialog"] {
+  border-radius: var(--border-radius) !important;
+}
+
+/* Specific component fixes */
+.dropdown-content,
+.dialog-content, 
+.popover-content,
+.alert-dialog-content,
+[class*="dialog"],
+[class*="dropdown"],
+[class*="popover"],
+[data-radix-popper-content-wrapper] > div {
+  border-radius: var(--border-radius) !important;
 }
