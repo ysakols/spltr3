@@ -54,13 +54,16 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
   if (isLoading) {
     return (
       <div className={cn(
-        "flex items-center gap-2 px-2 py-2 mb-3 border-b border-gray-100 pb-3",
+        "flex items-center gap-2 px-2 py-2 mb-3 border-b border-border/50 pb-3",
         isCollapsed && "justify-center"
       )}>
-        <Avatar className="h-7 w-7">
-          <AvatarFallback className="text-xs bg-primary/20">...</AvatarFallback>
-        </Avatar>
-        {!isCollapsed && <div className="h-3.5 w-16 bg-gray-200 rounded animate-pulse"></div>}
+        <div className="relative">
+          <Avatar className="h-8 w-8 ring-2 ring-primary/10 ring-offset-1">
+            <AvatarFallback className="text-xs bg-primary/10 text-primary/70">...</AvatarFallback>
+          </Avatar>
+          <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
+        </div>
+        {!isCollapsed && <div className="h-3.5 w-16 bg-muted rounded animate-pulse"></div>}
       </div>
     );
   }
@@ -75,12 +78,15 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
 
   return (
     <div className={cn(
-      "flex items-center gap-2 px-2 py-2 mb-3 border-b border-gray-100 pb-3",
+      "flex items-center gap-2 px-2 py-2 mb-3 border-b border-border/50 pb-3",
       isCollapsed && "justify-center"
     )}>
-      <Avatar className="h-7 w-7">
-        <AvatarFallback className="text-xs bg-primary/20">{userInitial}</AvatarFallback>
-      </Avatar>
+      <div className="relative">
+        <Avatar className="h-8 w-8 ring-2 ring-primary/10 ring-offset-1">
+          <AvatarFallback className="text-xs bg-primary/10 text-primary/70">{userInitial}</AvatarFallback>
+        </Avatar>
+        <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
+      </div>
       {!isCollapsed && (
         <span className="text-sm font-medium truncate" title={displayName}>
           {displayName}
@@ -92,7 +98,7 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
 
 // Navigation Links Component
 function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   
   // Check if user is authenticated
   const { data: currentUser, isLoading } = useQuery<UserType | null>({
@@ -123,65 +129,90 @@ function NavLinks({ isCollapsed = false }: { isCollapsed?: boolean }) {
     window.location.href = '/login';
   };
 
+  // Check if a route is active
+  const isActive = (path: string) => {
+    if (path === '/' && location === '/') return true;
+    if (path !== '/' && location.startsWith(path)) return true;
+    return false;
+  };
+
   return (
-    <div className="space-y-0.5">
-      <Link href="/">
-        <Button variant="ghost" size="sm" className={cn(
-          "w-full justify-start text-xs py-1",
-          isCollapsed && "justify-center px-1"
-        )}>
-          <List className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-          {!isCollapsed && <span>Groups</span>}
-        </Button>
-      </Link>
-      {/* Contacts link removed - users can only connect through group invitations now */}
-      {/* Create Group link removed as requested */}
+    <div className="space-y-1">
+      <div className="pb-1">
+        <Link href="/">
+          <Button 
+            variant={isActive('/') ? "secondary" : "ghost"} 
+            size="sm" 
+            className={cn(
+              "w-full justify-start text-xs py-1.5 rounded-md",
+              isCollapsed ? "justify-center px-1.5" : "pl-2.5 pr-3",
+              isActive('/') && "font-medium"
+            )}
+          >
+            <List className={cn(
+              "h-3.5 w-3.5", 
+              !isCollapsed && "mr-2",
+              isActive('/') ? "text-primary" : "text-muted-foreground"
+            )} />
+            {!isCollapsed && <span>Groups</span>}
+          </Button>
+        </Link>
+      </div>
       
       <Separator className="my-2" />
       
-      {isAuthenticated && (
-        <Link href="/profile">
+      <div className="pt-1">
+        {isAuthenticated && (
+          <Link href="/profile">
+            <Button 
+              variant={isActive('/profile') ? "secondary" : "ghost"} 
+              size="sm" 
+              className={cn(
+                "w-full justify-start text-xs py-1.5 rounded-md",
+                isCollapsed ? "justify-center px-1.5" : "pl-2.5 pr-3",
+                isActive('/profile') && "font-medium"
+              )}
+            >
+              <User className={cn(
+                "h-3.5 w-3.5", 
+                !isCollapsed && "mr-2",
+                isActive('/profile') ? "text-primary" : "text-muted-foreground"
+              )} />
+              {!isCollapsed && <span>Profile</span>}
+            </Button>
+          </Link>
+        )}
+        
+        {isAuthenticated ? (
           <Button 
             variant="ghost" 
             size="sm" 
+            onClick={handleLogout}
             className={cn(
-              "w-full justify-start text-xs py-1",
-              isCollapsed && "justify-center px-1"
+              "w-full justify-start text-xs py-1.5 mt-1 rounded-md",
+              isCollapsed ? "justify-center px-1.5" : "pl-2.5 pr-3",
+              "text-red-600 hover:text-red-700 hover:bg-red-100/30"
             )}
           >
-            <User className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-            {!isCollapsed && <span>Profile</span>}
+            <LogOut className={cn("h-3.5 w-3.5", !isCollapsed && "mr-2")} />
+            {!isCollapsed && <span>Sign Out</span>}
           </Button>
-        </Link>
-      )}
-      
-      {isAuthenticated ? (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleLogout}
-          className={cn(
-            "w-full justify-start text-xs py-1 text-red-600 hover:text-red-700 hover:bg-red-100/30",
-            isCollapsed && "justify-center px-1"
-          )}
-        >
-          <LogOut className={cn("h-3.5 w-3.5", !isCollapsed && "mr-1")} />
-          {!isCollapsed && <span>Sign Out</span>}
-        </Button>
-      ) : (
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleLogin}
-          className={cn(
-            "w-full justify-start text-xs py-1 text-green-600 hover:text-green-700 hover:bg-green-100/30",
-            isCollapsed && "justify-center px-1"
-          )}
-        >
-          <LogOut className={cn("h-3.5 w-3.5 rotate-180", !isCollapsed && "mr-1")} />
-          {!isCollapsed && <span>Sign In</span>}
-        </Button>
-      )}
+        ) : (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogin}
+            className={cn(
+              "w-full justify-start text-xs py-1.5 mt-1 rounded-md",
+              isCollapsed ? "justify-center px-1.5" : "pl-2.5 pr-3",
+              "text-green-600 hover:text-green-700 hover:bg-green-100/30"
+            )}
+          >
+            <LogOut className={cn("h-3.5 w-3.5 rotate-180", !isCollapsed && "mr-2")} />
+            {!isCollapsed && <span>Sign In</span>}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
@@ -192,23 +223,34 @@ export function MobileSidebarTrigger() {
     <Sheet>
       <SheetTrigger asChild>
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm"
-          className="block md:hidden h-7 w-7 p-1"
+          className="block md:hidden h-8 w-8 p-1 rounded-full bg-primary/5 hover:bg-primary/10 border border-border/50"
           aria-label="Open menu"
         >
           <Menu className="h-4 w-4 text-primary" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[160px] sm:w-[180px] p-0">
-        <nav className="h-full flex flex-col bg-muted/40">
-          <div className="px-2 py-3">
-            <div className="flex items-center mb-4">
-              <Logo />
-              <h1 className="ml-1.5 font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
+      <SheetContent side="left" className="w-[240px] p-0 border-r-primary/10">
+        <nav className="h-full flex flex-col bg-background">
+          <div className="px-3 py-4">
+            <div className="flex items-center mb-5">
+              <div className="p-1.5 rounded-md bg-primary/5 mr-2">
+                <Logo />
+              </div>
+              <h1 className="font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>
             </div>
             <UserProfile />
             <NavLinks />
+            
+            <div className="mt-8 pt-4 border-t border-border/40">
+              <div className="p-3 rounded-md bg-muted/50">
+                <h3 className="text-xs font-medium text-foreground mb-1.5">Need help?</h3>
+                <p className="text-xs text-muted-foreground">
+                  Visit our help center or contact support for assistance with your account.
+                </p>
+              </div>
+            </div>
           </div>
         </nav>
       </SheetContent>
@@ -223,35 +265,61 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   
   return (
     <div 
       className={cn(
-        "hidden md:flex flex-col h-screen bg-muted/40 border-r transition-all duration-300",
-        isCollapsed ? "w-[40px]" : "w-[160px]",
+        "hidden md:flex flex-col h-screen bg-muted/20 border-r border-border/60 transition-all duration-300 relative",
+        isCollapsed ? "w-[50px]" : "w-[200px]",
         className
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="px-1.5 py-3 flex-1">
+      <div className="px-2 py-4 flex-1">
         <div className={cn(
-          "flex items-center mb-4",
+          "flex items-center mb-6",
           isCollapsed && "justify-center"
         )}>
-          <Logo />
-          {!isCollapsed && <h1 className="ml-1.5 font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">spltr3</h1>}
+          <div className={cn(
+            "flex items-center justify-center",
+            !isCollapsed && "mr-1.5",
+            "p-1 rounded-md",
+            isHovered && "bg-primary/5"
+          )}>
+            <Logo />
+          </div>
+          {!isCollapsed && 
+            <h1 className="font-bold text-base bg-gradient-to-r from-primary to-primary/70 text-transparent bg-clip-text">
+              spltr3
+            </h1>
+          }
         </div>
         
         <UserProfile isCollapsed={isCollapsed} />
         <NavLinks isCollapsed={isCollapsed} />
+        
+        {!isCollapsed && (
+          <div className="mt-8 pt-4 border-t border-border/40">
+            <div className="p-2.5 rounded-md bg-primary/5 text-xs text-muted-foreground">
+              <p className="mb-1">Need help with your expenses?</p>
+              <p className="text-primary/70 font-medium">Visit our help center</p>
+            </div>
+          </div>
+        )}
       </div>
       
-      <Separator />
+      <Separator className="bg-border/40" />
       
-      <div className="p-1.5 flex justify-end">
+      <div className="p-2 flex justify-end">
         <Button 
           variant="ghost" 
           size="sm" 
-          className="h-6 w-6 p-0.5"
+          className={cn(
+            "h-6 w-6 p-0.5 rounded-full",
+            isHovered && "bg-muted hover:bg-muted/80"
+          )}
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >

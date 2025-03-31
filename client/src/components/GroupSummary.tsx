@@ -51,88 +51,142 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
   }, []);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Total Group Expenses */}
-      <Card className="shadow-sm border-muted/60">
-        <CardContent className="p-3">
+      <Card className="shadow-sm border-border/50 overflow-hidden">
+        <CardContent className="p-3 bg-gradient-to-br from-primary/5 to-transparent">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium text-gray-900">Total Group Expenses</h3>
-            <span className="text-sm font-bold text-primary">{formatCurrency(summary.totalExpenses)}</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-1.5 h-6 bg-primary/70 rounded-full"></div>
+              <h3 className="text-xs font-medium">Total Group Expenses</h3>
+            </div>
+            <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              {formatCurrency(summary.totalExpenses)}
+            </span>
           </div>
         </CardContent>
       </Card>
       
-      {/* Individual Summaries - Now in a more compact layout */}
-      <div className="space-y-2.5">
-        <h3 className="text-xs font-medium text-gray-900">Member Balances</h3>
+      {/* Individual Summaries */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-medium flex items-center">
+          <div className="w-1 h-3 bg-primary/70 mr-1.5 rounded-full"></div>
+          Member Balances
+        </h3>
         
-        {memberIds.map(personId => (
-          <Card key={personId} className="overflow-hidden shadow-sm border-muted/60">
-            <CardHeader className="py-1.5 px-3 bg-primary/5 border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs">{getUserName(personId)}</CardTitle>
-                <span className={`text-xs font-semibold ${(summary.balances[personId] || 0) > 0 ? 'text-green-600' : (summary.balances[personId] || 0) < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                  {formatCurrency(summary.balances[personId] || 0)}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 text-xs">
-              <div className="flex justify-between">
-                <div>
-                  <span className="text-gray-500">Paid:</span>
-                  <span className="font-medium ml-2">{formatCurrency(summary.paid[personId] || 0)}</span>
+        {memberIds.map(personId => {
+          const isCurrentUser = currentUserId === Number(personId);
+          const balance = summary.balances[personId] || 0;
+          const isPaid = summary.paid[personId] || 0;
+          const isOwed = summary.owes[personId] || 0;
+          const balanceColor = 
+            balance > 0 ? 'text-green-600 bg-green-50' : 
+            balance < 0 ? 'text-red-600 bg-red-50' : 
+            'text-gray-600 bg-gray-100';
+            
+          return (
+            <Card 
+              key={personId} 
+              className={`overflow-hidden shadow-sm border-border/50 transition-shadow hover:shadow-md ${isCurrentUser ? 'ring-1 ring-primary/20' : ''}`}
+            >
+              <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xs flex items-center">
+                    {isCurrentUser && <div className="w-1 h-3 bg-primary mr-1.5 rounded-full"></div>}
+                    {getUserName(personId)}
+                    {isCurrentUser && <span className="ml-1.5 text-[10px] text-primary/70 bg-primary/10 px-1.5 rounded-full">You</span>}
+                  </CardTitle>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${balanceColor}`}>
+                    {formatCurrency(balance)}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-gray-500">Owes:</span>
-                  <span className="font-medium ml-2">{formatCurrency(summary.owes[personId] || 0)}</span>
+              </CardHeader>
+              <CardContent className="p-3 text-xs">
+                <div className="flex justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground mb-0.5">Paid</span>
+                    <span className="font-medium">{formatCurrency(isPaid)}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-muted-foreground mb-0.5">Owes</span>
+                    <span className="font-medium">{formatCurrency(isOwed)}</span>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
       
-      {/* Settlement Plan - More Compact */}
+      {/* Settlement Plan */}
       {summary.settlements && summary.settlements.length > 0 && (
-        <Card className="shadow-sm border-muted/60">
-          <CardHeader className="py-1.5 px-3 bg-primary/5 border-b">
-            <CardTitle className="text-xs">Settlement Plan</CardTitle>
+        <Card className="shadow-sm border-border/50 overflow-hidden">
+          <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
+            <CardTitle className="text-xs flex items-center">
+              <div className="w-1 h-3 bg-primary/70 mr-1.5 rounded-full"></div>
+              Settlement Plan
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-3">
             <ul className="space-y-3">
-              {summary.settlements.map((settlement, index) => (
-                <li key={index} className="text-xs flex flex-col gap-y-2 pb-2 border-b border-gray-100 last:border-b-0 last:pb-0">
-                  <div className="flex items-center gap-x-1.5 w-full">
-                    <CircleDollarSign className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                    <span className="font-medium">{getUserName(settlement.from)}</span>
-                    <span className="text-muted-foreground">pays</span>
-                    <span className="font-medium">{getUserName(settlement.to)}</span>
-                    <span className="font-semibold text-primary ml-auto">
-                      {formatCurrency(settlement.amount)}
-                    </span>
-                  </div>
-                  
-                  {/* Settlement button */}
-                  {currentUserId && Number(settlement.from) === currentUserId && (
-                    <div className="mt-1.5">
-                      <SettlementButton 
-                        settlement={settlement}
-                        currentUserId={currentUserId}
-                        userMap={userMap}
-                        groupId={group.id}
-                        variant="outline"
-                        size="sm"
-                      />
+              {summary.settlements.map((settlement, index) => {
+                const isUserInvolved = currentUserId && (Number(settlement.from) === currentUserId || Number(settlement.to) === currentUserId);
+                const isUserPaying = currentUserId && Number(settlement.from) === currentUserId;
+                
+                return (
+                  <li 
+                    key={index} 
+                    className={`text-xs flex flex-col gap-y-2 p-2 rounded-md ${isUserInvolved ? 'bg-primary/5' : ''} border-b border-border/30 last:border-b-0 last:pb-0`}
+                  >
+                    <div className="flex items-center gap-x-1.5 w-full">
+                      <CircleDollarSign className={`h-3.5 w-3.5 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
+                      <span className={`font-medium ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
+                        {getUserName(settlement.from)}
+                      </span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className={`font-medium ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
+                        {getUserName(settlement.to)}
+                      </span>
+                      <span className="font-semibold text-primary ml-auto px-1.5 py-0.5 bg-primary/10 rounded-full">
+                        {formatCurrency(settlement.amount)}
+                      </span>
                     </div>
-                  )}
-                </li>
-              ))}
+                    
+                    {/* Settlement button */}
+                    {isUserPaying && (
+                      <div className="mt-1">
+                        <SettlementButton 
+                          settlement={settlement}
+                          currentUserId={currentUserId}
+                          userMap={userMap}
+                          groupId={group.id}
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-white border-primary/30 hover:bg-primary/5 text-xs h-7"
+                        />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>
       )}
       
-      {/* Settlement history has been moved to the unified financial history */}
+      {/* No settlements case */}
+      {(!summary.settlements || summary.settlements.length === 0) && (
+        <Card className="shadow-sm border-border/50">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              No settlements needed in this group.
+            </p>
+            <p className="text-xs text-muted-foreground/80 mt-1">
+              Everyone is either balanced or close to it.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

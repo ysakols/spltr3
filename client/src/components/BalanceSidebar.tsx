@@ -80,10 +80,31 @@ export function BalanceSidebar() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="p-4">
-        <div className="h-16 bg-muted animate-pulse rounded-lg mb-3" />
-        <div className="h-12 bg-muted animate-pulse rounded-lg" />
-        <div className="h-12 bg-muted animate-pulse rounded-lg mt-2" />
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
+          <div className="space-y-2 flex-1">
+            <div className="h-4 bg-muted animate-pulse rounded-md w-2/3"></div>
+            <div className="h-3 bg-muted animate-pulse rounded-md w-1/2"></div>
+          </div>
+        </div>
+        
+        <div className="border rounded-lg p-4 bg-card/50">
+          <div className="h-4 bg-muted animate-pulse rounded-md w-3/4 mb-3"></div>
+          <div className="space-y-2">
+            <div className="h-3 bg-muted animate-pulse rounded-md w-full"></div>
+            <div className="h-3 bg-muted animate-pulse rounded-md w-5/6"></div>
+            <div className="h-3 bg-muted animate-pulse rounded-md w-4/5"></div>
+          </div>
+        </div>
+        
+        <div className="border rounded-lg p-4 bg-card/50">
+          <div className="h-4 bg-muted animate-pulse rounded-md w-1/2 mb-3"></div>
+          <div className="space-y-2">
+            <div className="h-3 bg-muted animate-pulse rounded-md w-full"></div>
+            <div className="h-3 bg-muted animate-pulse rounded-md w-3/4"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -91,8 +112,11 @@ export function BalanceSidebar() {
   // No data state
   if (!summary) {
     return (
-      <div className="h-full p-2.5 overflow-y-auto text-xs">
-        <p className="text-muted-foreground">Could not load summary data.</p>
+      <div className="h-full p-4 overflow-y-auto">
+        <div className="rounded-lg border border-border p-4 text-center bg-muted/20">
+          <p className="text-sm text-muted-foreground">Could not load summary data.</p>
+          <p className="text-xs mt-1 text-muted-foreground/80">Please check your connection and try again.</p>
+        </div>
       </div>
     );
   }
@@ -131,23 +155,25 @@ export function BalanceSidebar() {
   };
 
   return (
-    <div className="h-full p-2 flex flex-col text-xs">
-      <h2 className="font-semibold mb-2.5 text-sm flex items-center flex-shrink-0">
-        <span className="inline-block w-2 h-6 bg-primary mr-2 rounded"></span>
-        Balance Summary
-      </h2>
+    <div className="h-full p-3 flex flex-col text-xs">
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <h2 className="font-semibold text-sm inline-flex items-center">
+          <div className="w-1 h-5 bg-primary mr-2 rounded-full"></div>
+          Balance Summary
+        </h2>
+      </div>
       
       {/* Global Balance Section - Fixed portion */}
-      <div className="space-y-2.5 mb-4 flex-shrink-0">
+      <div className="space-y-3 mb-5 flex-shrink-0">
         {/* Overview Card */}
-        <Card className="shadow-sm border-muted/60">
-          <CardContent className="p-2.5">
-            <div className="flex items-center space-x-2">
-              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="h-3.5 w-3.5 text-primary" />
+        <Card className="shadow-sm border-border/40 overflow-hidden">
+          <CardContent className="p-3 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="flex items-center space-x-3">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shadow-sm">
+                <Users className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-xs font-medium">Total Across All Groups</h3>
+                <h3 className="text-sm font-medium mb-0.5">Total Across Groups</h3>
                 <p className="text-xs text-muted-foreground">
                   {peopleWhoOweMe.length > 0 ? 
                     `${peopleWhoOweMe.length} ${peopleWhoOweMe.length === 1 ? 'person owes' : 'people owe'} you` : 
@@ -163,16 +189,19 @@ export function BalanceSidebar() {
         
         {/* People who owe you */}
         {peopleWhoOweMe.length > 0 && (
-          <div className="border rounded-lg p-2 bg-card">
-            <h3 className="text-xs font-medium text-muted-foreground mb-1">People who owe you</h3>
-            <div className="space-y-1">
+          <div className="border rounded-lg p-3 bg-card shadow-sm">
+            <h3 className="text-xs font-medium mb-2 flex items-center">
+              <div className="w-1 h-3 bg-green-500 mr-1.5 rounded-full"></div>
+              People who owe you
+            </h3>
+            <div className="space-y-2">
               {[...peopleWhoOweMe]
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
-                  <div key={idx} className="flex justify-between items-center">
+                  <div key={idx} className="flex justify-between items-center p-1.5 rounded-md hover:bg-muted/50">
                     <span className="font-medium text-xs">{getUserName(settlement.from)}</span>
-                    <span className="text-green-600 font-semibold text-xs">
-                      {formatCurrency(settlement.amount)}
+                    <span className="text-green-600 font-semibold text-xs bg-green-50 px-2 py-0.5 rounded-full">
+                      +{formatCurrency(settlement.amount)}
                     </span>
                   </div>
                 ))}
@@ -182,16 +211,19 @@ export function BalanceSidebar() {
         
         {/* People you owe */}
         {peopleIOwe.length > 0 && (
-          <div className="border rounded-lg p-2 bg-card">
-            <h3 className="text-xs font-medium text-muted-foreground mb-1">You owe</h3>
-            <div className="space-y-1">
+          <div className="border rounded-lg p-3 bg-card shadow-sm">
+            <h3 className="text-xs font-medium mb-2 flex items-center">
+              <div className="w-1 h-3 bg-red-500 mr-1.5 rounded-full"></div>
+              You owe
+            </h3>
+            <div className="space-y-2">
               {[...peopleIOwe]
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
-                  <div key={idx} className="flex justify-between items-center">
+                  <div key={idx} className="flex justify-between items-center p-1.5 rounded-md hover:bg-muted/50">
                     <span className="font-medium text-xs">{getUserName(settlement.to)}</span>
-                    <span className="text-red-600 font-semibold text-xs">
-                      {formatCurrency(settlement.amount)}
+                    <span className="text-red-600 font-semibold text-xs bg-red-50 px-2 py-0.5 rounded-full">
+                      -{formatCurrency(settlement.amount)}
                     </span>
                   </div>
                 ))}
@@ -201,30 +233,39 @@ export function BalanceSidebar() {
         
         {/* No settlements case */}
         {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-          <div className="border rounded-lg p-2 bg-card">
-            <p className="text-xs text-muted-foreground">
-              No settlements to display. Add expenses to see who owes you money.
-            </p>
+          <div className="border rounded-lg p-3 bg-card shadow-sm">
+            <div className="flex items-center justify-center py-4 px-2">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">
+                  No settlements to display
+                </p>
+                <p className="text-xs text-muted-foreground/80">
+                  Add expenses to see who owes you money
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
       
       {/* Current Group Details Section - Scrollable portion */}
       {currentGroupId && currentGroup && currentSummary && currentMembers && (
-        <div className="mt-2 flex-grow flex flex-col min-h-0">
+        <div className="mt-1 flex-grow flex flex-col min-h-0">
           {/* Prominent divider between sections */}
           <div className="relative py-2 flex-shrink-0">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-primary/30"></div>
+              <div className="w-full border-t border-primary/20"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-4 text-sm font-medium text-primary/80">Details</span>
+              <span className="bg-background px-3 text-xs font-medium text-primary/70 rounded-full border border-primary/20">
+                Current Group
+              </span>
             </div>
           </div>
           
-          <h2 className="font-semibold mb-2 text-sm flex items-center flex-shrink-0">
-            <span className="inline-block w-2 h-6 bg-primary mr-2 rounded"></span>
-            Group Summary
+          <h2 className="font-semibold mb-3 text-sm flex items-center flex-shrink-0">
+            <div className="w-1 h-5 bg-primary mr-2 rounded-full"></div>
+            {currentGroup.name} Summary
           </h2>
           
           {/* Ensure this div takes remaining space and scrolls internally */}
