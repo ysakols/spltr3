@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from '@/components/ui/card';
 import { Users } from 'lucide-react';
 import GroupSummary from './GroupSummary';
-import { SettlementButton } from '@/components/SettlementButton';
+import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { getQueryFn } from '@/lib/queryClient';
 import { displayToNumericId } from '@/lib/id-utils';
@@ -169,13 +169,13 @@ export function BalanceSidebar() {
         <Card className="border-0 shadow-md overflow-hidden">
           <CardContent className="p-0">
             {/* Header section */}
-            <div className="p-4 bg-gradient-to-br from-primary/5 to-transparent border-b">
-              <div className="flex items-center space-x-4">
-                <div className="h-10 w-10 bg-primary/10 flex items-center justify-center shadow-sm">
-                  <Users className="h-5 w-5 text-primary" />
+            <div className="p-5 bg-gradient-to-br from-primary/5 to-transparent border-b">
+              <div className="flex items-center space-x-5">
+                <div className="h-12 w-12 bg-primary/10 flex items-center justify-center shadow-sm">
+                  <Users className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold">Overall Balance</h3>
+                  <h3 className="text-base font-bold">Overall Balance</h3>
                   <div className="text-sm text-gray-700">
                     {peopleWhoOweMe.length > 0 && peopleIOwe.length > 0 ? (
                       <p>You have both incoming and outgoing balances</p>
@@ -196,16 +196,17 @@ export function BalanceSidebar() {
               <div className="divide-y">
                 {/* People who owe you */}
                 {peopleWhoOweMe.length > 0 && (
-                  <div className="p-4">
-                    <h3 className="text-sm font-bold mb-3 flex items-center">
-                      <div className="w-1 h-4 bg-green-500 mr-2"></div>
+                  <div className="p-5">
+                    <h3 className="text-base font-bold mb-4 flex items-center">
+                      <div className="w-1.5 h-5 bg-green-500 mr-2"></div>
                       Money Owed To You
                     </h3>
                     <table className="w-full">
                       <thead>
                         <tr className="text-left border-b border-gray-200">
-                          <th className="pb-2 font-medium text-sm text-gray-500">Person</th>
-                          <th className="pb-2 font-medium text-sm text-gray-500 text-right">Amount</th>
+                          <th className="pb-3 font-medium text-sm text-gray-600">Person</th>
+                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Amount</th>
+                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -213,11 +214,21 @@ export function BalanceSidebar() {
                           .sort((a, b) => b.amount - a.amount)
                           .map((settlement, idx) => (
                             <tr key={idx} className="border-b border-gray-100 last:border-0">
-                              <td className="py-2.5 font-medium text-sm">{getUserName(settlement.from)}</td>
-                              <td className="py-2.5 text-right">
-                                <span className="text-green-600 font-bold text-sm bg-green-50 px-3 py-1">
+                              <td className="py-3 font-medium text-base">{getUserName(settlement.from)}</td>
+                              <td className="py-3 text-right">
+                                <span className="text-green-600 font-bold text-base bg-green-50 px-4 py-1.5">
                                   +{formatCurrency(settlement.amount)}
                                 </span>
+                              </td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-xs px-3 py-1.5"
+                                  onClick={() => {}}
+                                >
+                                  Record
+                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -228,16 +239,17 @@ export function BalanceSidebar() {
                 
                 {/* People you owe */}
                 {peopleIOwe.length > 0 && (
-                  <div className="p-4">
-                    <h3 className="text-sm font-bold mb-3 flex items-center">
-                      <div className="w-1 h-4 bg-red-500 mr-2"></div>
+                  <div className="p-5">
+                    <h3 className="text-base font-bold mb-4 flex items-center">
+                      <div className="w-1.5 h-5 bg-red-500 mr-2"></div>
                       Money You Owe
                     </h3>
                     <table className="w-full">
                       <thead>
                         <tr className="text-left border-b border-gray-200">
-                          <th className="pb-2 font-medium text-sm text-gray-500">Person</th>
-                          <th className="pb-2 font-medium text-sm text-gray-500 text-right">Amount</th>
+                          <th className="pb-3 font-medium text-sm text-gray-600">Person</th>
+                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Amount</th>
+                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -245,11 +257,21 @@ export function BalanceSidebar() {
                           .sort((a, b) => b.amount - a.amount)
                           .map((settlement, idx) => (
                             <tr key={idx} className="border-b border-gray-100 last:border-0">
-                              <td className="py-2.5 font-medium text-sm">{getUserName(settlement.to)}</td>
-                              <td className="py-2.5 text-right">
-                                <span className="text-red-600 font-bold text-sm bg-red-50 px-3 py-1">
+                              <td className="py-3 font-medium text-base">{getUserName(settlement.to)}</td>
+                              <td className="py-3 text-right">
+                                <span className="text-red-600 font-bold text-base bg-red-50 px-4 py-1.5">
                                   -{formatCurrency(settlement.amount)}
                                 </span>
+                              </td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-xs px-3 py-1.5"
+                                  onClick={() => {}}
+                                >
+                                  Pay
+                                </Button>
                               </td>
                             </tr>
                           ))}
