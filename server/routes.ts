@@ -1480,9 +1480,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const currentUserId = (req.user as User).id;
       
-      // Check if the current user is the one who paid for the expense or created it
-      if (expense.paidByUserId !== currentUserId && expense.createdByUserId !== currentUserId) {
-        return res.status(403).json({ message: 'Only the expense creator or payer can delete this expense' });
+      // Get the group to check if the current user is the admin (group creator)
+      const groupId = expense.groupId;
+      if (typeof groupId !== 'number') {
+        console.error('Invalid group ID for expense:', expense.id);
+        return res.status(400).json({ message: 'Invalid group ID for this expense' });
+      }
+      
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        console.error('Group not found for expense:', groupId);
+        return res.status(404).json({ message: 'Group not found for this expense' });
+      }
+      
+      // Check if the current user is the expense creator, payer, or the group admin (creator)
+      const isGroupAdmin = group.createdById === currentUserId;
+      const isPayer = expense.paidByUserId === currentUserId;
+      const isExpenseCreator = expense.createdByUserId === currentUserId;
+      
+      if (!isGroupAdmin && !isPayer && !isExpenseCreator) {
+        return res.status(403).json({ 
+          message: 'Only the expense creator, payer, or group admin can delete this expense' 
+        });
       }
       
       await storage.deleteExpense(id);
@@ -1512,9 +1531,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const currentUserId = (req.user as User).id;
       
-      // Check if the current user is the one who paid for the expense or created it
-      if (transaction.paidByUserId !== currentUserId && transaction.createdByUserId !== currentUserId) {
-        return res.status(403).json({ message: 'Only the expense creator or payer can update this expense' });
+      // Get the group to check if the current user is the admin (group creator)
+      const groupId = transaction.groupId;
+      
+      // Ensure groupId is a number and exists
+      if (typeof groupId !== 'number') {
+        console.error('Invalid group ID for transaction:', transaction.id);
+        return res.status(400).json({ message: 'Invalid group ID for this expense' });
+      }
+      
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        console.error('Group not found for expense:', groupId);
+        return res.status(404).json({ message: 'Group not found for this expense' });
+      }
+      
+      // Check if the current user is the expense creator, payer, or the group admin (creator)
+      const isGroupAdmin = group.createdById === currentUserId;
+      const isPayer = transaction.paidByUserId === currentUserId;
+      const isExpenseCreator = transaction.createdByUserId === currentUserId;
+      
+      if (!isGroupAdmin && !isPayer && !isExpenseCreator) {
+        return res.status(403).json({ 
+          message: 'Only the expense creator, payer, or group admin can update this expense' 
+        });
       }
       
       // Retain the original groupId and createdByUserId
