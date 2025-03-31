@@ -249,16 +249,18 @@ function GroupDetail() {
                     />
                   )}
                 </div>
-                <ExpenseForm 
-                  ref={expenseFormRef}
-                  group={group} 
-                  members={members || []}
-                  onExpenseAdded={refreshData}
-                  expenseToEdit={expenseToEdit || undefined}
-                  isEditing={!!expenseToEdit}
-                  onExpenseEdited={handleExpenseEdited}
-                  onCancelEdit={handleCancelEdit}
-                />
+                <div>
+                  <ExpenseForm 
+                    ref={expenseFormRef}
+                    group={group} 
+                    members={members || []}
+                    onExpenseAdded={refreshData}
+                    expenseToEdit={expenseToEdit || undefined}
+                    isEditing={!!expenseToEdit}
+                    onExpenseEdited={handleExpenseEdited}
+                    onCancelEdit={handleCancelEdit}
+                  />
+                </div>
               </div>
               
               <TransactionsTable 

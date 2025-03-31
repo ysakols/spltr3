@@ -73,12 +73,12 @@ export function SettleUpButton({ groupId, summary, currentUser, members }: Settl
       {/* Always show the dropdown to allow settling up with any member */}
       <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="default" className="flex items-center">
-            <ArrowUpRight className="h-4 w-4 mr-2" />
+          <Button variant="default" className="flex items-center gap-2">
+            <ArrowUpRight className="h-4 w-4" />
             Settle Up
             {dropdownOpen ? 
-              <ChevronUp className="h-4 w-4 ml-2" /> : 
-              <ChevronDown className="h-4 w-4 ml-2" />
+              <ChevronUp className="h-4 w-4" /> : 
+              <ChevronDown className="h-4 w-4" />
             }
           </Button>
         </DropdownMenuTrigger>
