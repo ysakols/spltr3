@@ -216,7 +216,7 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
               return (
                 <div 
                   key={key}
-                  className={`relative rounded-lg border p-3 sm:p-4 transition-all hover:shadow-sm border-l-4 ${activityColor}`}
+                  className={`relative border p-3 sm:p-4 transition-all hover:shadow-sm border-l-4 ${activityColor}`}
                 >
                   {activity.type === 'invitation' && (
                     <InvitationActivity 

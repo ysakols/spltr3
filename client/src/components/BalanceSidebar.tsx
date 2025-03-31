@@ -196,7 +196,7 @@ export function BalanceSidebar() {
         
         {/* People who owe you */}
         {peopleWhoOweMe.length > 0 && (
-          <div className="border rounded-lg p-3 bg-card shadow-sm">
+          <div className="border p-3 bg-card shadow-sm">
             <h3 className="text-xs font-medium mb-2 flex items-center">
               <div className="w-1 h-3 bg-green-500 mr-1.5 rounded-full"></div>
               People who owe you
@@ -218,7 +218,7 @@ export function BalanceSidebar() {
         
         {/* People you owe */}
         {peopleIOwe.length > 0 && (
-          <div className="border rounded-lg p-3 bg-card shadow-sm">
+          <div className="border p-3 bg-card shadow-sm">
             <h3 className="text-xs font-medium mb-2 flex items-center">
               <div className="w-1 h-3 bg-red-500 mr-1.5 rounded-full"></div>
               You owe
@@ -240,7 +240,7 @@ export function BalanceSidebar() {
         
         {/* No settlements case */}
         {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-          <div className="border rounded-lg p-3 bg-card shadow-sm">
+          <div className="border p-3 bg-card shadow-sm">
             <div className="flex items-center justify-center py-4 px-2">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">

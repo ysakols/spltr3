@@ -118,7 +118,7 @@ function GroupList() {
           {groups.map(group => (
             <div 
               key={group.id} 
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer" 
+              className="bg-white shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer" 
               onClick={() => setLocation(`/groups/${numericToDisplayId(group.id)}`)}
             >
               <div className="p-4 sm:p-5">
@@ -168,7 +168,7 @@ function GroupList() {
           ))}
         </div>
       ) : (
-        <div className="empty-state bg-white p-8 rounded-lg shadow text-center">
+        <div className="empty-state bg-white p-8 shadow text-center">
           <p className="text-gray-600 mb-4">You don't have any expense groups yet.</p>
           <Button asChild>
             <Link href="/create">Create Your First Group</Link>

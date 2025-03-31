@@ -199,6 +199,26 @@ li[data-sidebar],
   border-radius: 0 !important;
 }
 
+/* ActivityFeed cards should be square */
+.rounded-lg.border {
+  border-radius: 0 !important;
+}
+
+/* Balance sidebar items should be square */
+.border.rounded-lg.p-3.bg-card {
+  border-radius: 0 !important;
+}
+
+/* Group list page cards should be square */
+.bg-white.rounded-lg {
+  border-radius: 0 !important;
+}
+
+/* Global overrides for specific rounded components */
+.rounded-lg {
+  border-radius: var(--transaction-card-radius) !important;
+}
+
 /* Global sidebar overrides */
 .sidebar *,
 .sidebar div,
