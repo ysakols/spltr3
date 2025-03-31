@@ -68,13 +68,13 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
     );
   }
 
-  const userInitial = currentUser?.firstName 
-    ? currentUser.firstName.charAt(0) 
-    : (currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'G');
+  const userInitial = currentUser?.name 
+    ? currentUser.name.charAt(0) 
+    : (currentUser?.email?.charAt(0) || 'G');
   
-  const displayName = currentUser?.firstName && currentUser?.lastName 
-    ? `${currentUser.firstName} ${currentUser.lastName}` 
-    : currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Guest User';
+  const displayName = currentUser?.name
+    ? currentUser.name
+    : currentUser?.email?.split('@')[0] || 'Guest User';
 
   return (
     <div className={cn(

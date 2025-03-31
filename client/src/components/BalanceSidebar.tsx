@@ -127,17 +127,13 @@ export function BalanceSidebar() {
   // Add current group members first (if any)
   if (currentMembers) {
     currentMembers.forEach(member => {
-      userMap[member.id.toString()] = member.firstName && member.lastName 
-        ? `${member.firstName} ${member.lastName}` 
-        : member.displayName || 'User';
+      userMap[member.id.toString()] = member.name || member.username || 'User';
     });
   }
   
   // Then add all other users from the global list
   allUsers.forEach(user => {
-    userMap[user.id.toString()] = user.firstName && user.lastName 
-      ? `${user.firstName} ${user.lastName}` 
-      : user.displayName || 'User';
+    userMap[user.id.toString()] = user.name || user.username || 'User';
   });
   
   // Log the summary data to see what we're working with

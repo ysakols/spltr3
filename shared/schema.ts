@@ -7,11 +7,9 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull(), // Legacy username field
-  firstName: text("first_name"), // User's first name (nullable)
-  lastName: text("last_name"), // User's last name (nullable)
+  name: text("first_name"), // User's name (renamed from firstName, limited to 20 chars)
   password: text("password").notNull(), // Can be empty for OAuth users
   email: text("email").notNull().unique(), // Email for notifications and authentication (required)
-  displayName: text("display_name"), // Optional display name (nullable)
   avatarUrl: text("avatar_url"), // Optional profile picture URL (nullable)
   googleId: text("google_id").unique(), // Google OAuth ID (nullable)
   googleAccessToken: text("google_access_token"), // Google access token (nullable)
@@ -352,21 +350,17 @@ export const insertTransactionSplitSchema = createInsertSchema(transactionSplits
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
-  firstName: true,
-  lastName: true,
+  name: true,
   password: true,
   email: true,
-  displayName: true,
   avatarUrl: true,
   googleId: true,
   googleAccessToken: true,
   googleRefreshToken: true
 }).extend({
   username: z.string().default(''),
-  firstName: z.string().optional().nullable(),
-  lastName: z.string().optional().nullable(),
+  name: z.string().max(20, { message: "Name should not exceed 20 characters" }).optional().nullable(),
   email: z.string().email({ message: "Invalid email address format" }).min(1, { message: "Email address is required" }),
-  displayName: z.string().optional().nullable(),
   avatarUrl: z.string().url().optional().nullable(),
   googleId: z.string().optional().nullable(),
   googleAccessToken: z.string().optional().nullable(),
@@ -377,9 +371,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const googleUserSchema = z.object({
   googleId: z.string(),
   email: z.string().email({ message: "Invalid email address format" }),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  displayName: z.string().optional(),
+  name: z.string().max(20).optional(),
   avatarUrl: z.string().url().optional(),
   googleAccessToken: z.string(),
   googleRefreshToken: z.string().optional()
@@ -479,7 +471,7 @@ export const groupInvitations = pgTable("group_invitations", {
   groupId: integer("group_id").notNull().references(() => groups.id),
   inviterUserId: integer("inviter_user_id").notNull().references(() => users.id),
   inviteeEmail: text("invitee_email").notNull(), // Email of the invited user
-  inviteeFirstName: text("invitee_first_name"), // First name of the invited user (optional)
+  inviteeName: text("invitee_first_name"), // Name of the invited user (optional, renamed from inviteeFirstName)
   status: text("status").notNull().default('pending'), // pending, accepted, rejected
   invitedAt: timestamp("invited_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // Optional expiration date
@@ -511,7 +503,7 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
     groupId: true,
     inviterUserId: true,
     inviteeEmail: true,
-    inviteeFirstName: true,
+    inviteeName: true,
     status: true,
     token: true,
     expiresAt: true,
@@ -522,7 +514,7 @@ export const insertGroupInvitationSchema = createInsertSchema(groupInvitations)
   })
   .extend({
     inviteeEmail: z.string().email({ message: "Invalid email address format" }),
-    inviteeFirstName: z.string().optional().nullable(),
+    inviteeName: z.string().max(20, { message: "Name should not exceed 20 characters" }).optional().nullable(),
     expiresAt: z.date().optional().nullable(),
     invitedAt: z.date().optional(),
     acceptedAt: z.date().optional().nullable(),
