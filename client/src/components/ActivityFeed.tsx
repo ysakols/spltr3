@@ -185,7 +185,7 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   };
 
   return (
-    <Card className="w-full shadow-sm">
+    <Card className="w-full shadow-sm !rounded-none">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Activity Feed</CardTitle>
       </CardHeader>
@@ -281,7 +281,7 @@ function InvitationActivity({
         </Badge>
       </div>
       
-      <div className="bg-card border rounded-md p-2">
+      <div className="bg-card border !rounded-none p-2">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="font-medium text-xs">
             {invitation.group?.name ? `Group: ${invitation.group.name}` : 'Join group'}
@@ -325,7 +325,7 @@ function ExpenseActivity({
         </Badge>
       </div>
       
-      <div className="bg-card border rounded-md p-2">
+      <div className="bg-card border !rounded-none p-2">
         <div className="flex justify-between items-center mb-1">
           <h4 className="font-medium text-xs">{transaction.description}</h4>
           <span className="font-bold text-xs">{formatCurrency(transaction.amount)}</span>
@@ -369,7 +369,7 @@ function SettlementActivity({
         </Badge>
       </div>
       
-      <div className="bg-card border rounded-md p-2">
+      <div className="bg-card border !rounded-none p-2">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <div className="flex items-center gap-1 flex-1 min-w-0">
             <span className="truncate font-medium">{payer}</span>
@@ -386,7 +386,7 @@ function SettlementActivity({
       </div>
       
       {transaction.notes && (
-        <p className="text-xs italic bg-muted/30 p-2 rounded-md">"{transaction.notes}"</p>
+        <p className="text-xs italic bg-muted/30 p-2 !rounded-none">"{transaction.notes}"</p>
       )}
       
       <div className="flex flex-wrap justify-between items-center gap-2 text-xs text-muted-foreground">
@@ -426,7 +426,7 @@ function EditActivity({
         </Badge>
       </div>
       
-      <div className="bg-card border rounded-md p-2">
+      <div className="bg-card border !rounded-none p-2">
         <div className="flex justify-between items-center mb-1">
           <h4 className="font-medium text-xs">
             {isExpense ? transaction.description : 'Payment'}
@@ -441,7 +441,7 @@ function EditActivity({
       </div>
       
       {transaction.previousValues && (
-        <div className="bg-muted/20 rounded-md p-2 text-xs text-muted-foreground space-y-1.5">
+        <div className="bg-muted/20 !rounded-none p-2 text-xs text-muted-foreground space-y-1.5">
           <p className="font-medium">Previous Values:</p>
           {(() => {
             try {
@@ -503,7 +503,7 @@ function DeleteActivity({
         </Badge>
       </div>
       
-      <div className="bg-card border border-red-100 rounded-md p-2">
+      <div className="bg-card border border-red-100 !rounded-none p-2">
         <div className="flex justify-between items-center mb-1">
           <h4 className="font-medium text-xs line-through">
             {isExpense ? transaction.description : 'Payment'}
