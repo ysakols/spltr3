@@ -140,6 +140,142 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(transactions.createdAt));
   }
 
+  // Helper function to validate and normalize transaction splits
+  private validateTransactionSplits(
+    transaction: InsertTransaction, 
+    splitWithUserIds: number[] | undefined,
+    transactionId: number
+  ): { 
+    splits: Array<{
+      transactionId: number;
+      userId: number;
+      amount: string;
+      percentage?: string;
+      isSettled: boolean;
+      settledAt?: Date | null;
+    }>, 
+    isValid: boolean, 
+    errorMessage?: string 
+  } {
+    // If no split user IDs, nothing to validate
+    if (!splitWithUserIds || splitWithUserIds.length === 0) {
+      return { splits: [], isValid: true };
+    }
+    
+    // Parse split details
+    const splitDetails = transaction.splitDetails 
+      ? JSON.parse(transaction.splitDetails)
+      : {};
+    
+    // Convert amount to a number
+    const totalAmount = typeof transaction.amount === 'string' 
+      ? parseFloat(transaction.amount) 
+      : transaction.amount;
+    
+    // Define a properly typed array for the splits
+    const splits: Array<{
+      transactionId: number;
+      userId: number;
+      amount: string;
+      percentage?: string;
+      isSettled: boolean;
+      settledAt?: Date | null;
+    }> = [];
+    
+    let splitsTotal = 0;
+    let percentageTotal = 0;
+    
+    switch (transaction.splitType) {
+      case SplitType.EQUAL:
+        // Equal split among all users (use toFixed(2) to avoid float precision issues)
+        const splitAmount = parseFloat((totalAmount / splitWithUserIds.length).toFixed(2));
+        
+        // Handle potential rounding errors by adjusting the last split
+        let remainingAmount = totalAmount;
+        
+        for (let i = 0; i < splitWithUserIds.length; i++) {
+          const userId = splitWithUserIds[i];
+          const isLast = i === splitWithUserIds.length - 1;
+          
+          // For the last user, use the remaining amount to avoid rounding errors
+          const userSplitAmount = isLast 
+            ? remainingAmount 
+            : splitAmount;
+          
+          remainingAmount -= userSplitAmount;
+          splitsTotal += userSplitAmount;
+          
+          splits.push({
+            transactionId,
+            userId,
+            amount: userSplitAmount.toString(),
+            isSettled: userId === transaction.paidByUserId,
+            settledAt: userId === transaction.paidByUserId ? new Date() : null
+          });
+        }
+        break;
+        
+      case SplitType.PERCENTAGE:
+        // Percentage-based split
+        for (const userId of splitWithUserIds) {
+          const percentage = parseFloat((splitDetails[userId] || 0).toString());
+          percentageTotal += percentage;
+          
+          const splitAmount = parseFloat(((totalAmount * percentage) / 100).toFixed(2));
+          splitsTotal += splitAmount;
+          
+          splits.push({
+            transactionId,
+            userId,
+            amount: splitAmount.toString(),
+            percentage: percentage.toString(),
+            isSettled: userId === transaction.paidByUserId,
+            settledAt: userId === transaction.paidByUserId ? new Date() : null
+          });
+        }
+        
+        // Validate that percentages add up to 100%
+        if (Math.abs(percentageTotal - 100) > 0.01) {
+          return { 
+            splits: [], 
+            isValid: false, 
+            errorMessage: `Percentage splits must total 100%, but they total ${percentageTotal}%`
+          };
+        }
+        break;
+        
+      case SplitType.EXACT:
+        // Exact amount split
+        for (const userId of splitWithUserIds) {
+          const splitAmount = parseFloat((splitDetails[userId] || 0).toString());
+          splitsTotal += splitAmount;
+          
+          splits.push({
+            transactionId,
+            userId,
+            amount: splitAmount.toString(),
+            isSettled: userId === transaction.paidByUserId,
+            settledAt: userId === transaction.paidByUserId ? new Date() : null
+          });
+        }
+        break;
+    }
+    
+    // Verify that the splits add up to the total (allowing for tiny float precision errors)
+    const isValidTotal = Math.abs(splitsTotal - totalAmount) < 0.01;
+    
+    if (!isValidTotal) {
+      return { 
+        splits: [], 
+        isValid: false, 
+        errorMessage: `Split amounts total ${splitsTotal.toFixed(2)}, but transaction amount is ${totalAmount.toFixed(2)}`
+      };
+    }
+    
+    // If we got here, the splits are valid
+    return { splits, isValid: true };
+  }
+
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     return await db.transaction(async (tx) => {
       // Extract splitWithUserIds if present before inserting
@@ -172,66 +308,22 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
       
-      // If this is an expense transaction and we have splitWithUserIds, create the splits
+      // If this is an expense transaction, create and validate the splits
       if (transaction.type === TransactionType.EXPENSE && splitWithUserIds && splitWithUserIds.length > 0) {
-        // Parse the split details to determine how to create the splits
-        const splitDetails = transaction.splitDetails 
-          ? JSON.parse(transaction.splitDetails)
-          : {};
+        const validation = this.validateTransactionSplits(
+          transaction, 
+          splitWithUserIds, 
+          newTransaction.id
+        );
         
-        const amount = typeof transaction.amount === 'string' 
-          ? parseFloat(transaction.amount) 
-          : transaction.amount;
-        
-        // Create the splits based on the splitType
-        const splits = [];
-        
-        switch (transaction.splitType) {
-          case SplitType.EQUAL:
-            // Equal split among all users
-            const splitAmount = amount / splitWithUserIds.length;
-            for (const userId of splitWithUserIds) {
-              splits.push({
-                transactionId: newTransaction.id,
-                userId,
-                amount: splitAmount.toString(), // Convert to string to match schema
-                isSettled: userId === transaction.paidByUserId // Payer's split is always settled
-              });
-            }
-            break;
-            
-          case SplitType.PERCENTAGE:
-            // Percentage-based split
-            for (const userId of splitWithUserIds) {
-              const percentage = splitDetails[userId] || 0;
-              const splitAmount = (amount * percentage) / 100;
-              splits.push({
-                transactionId: newTransaction.id,
-                userId,
-                amount: splitAmount.toString(),
-                percentage: percentage.toString(),
-                isSettled: userId === transaction.paidByUserId
-              });
-            }
-            break;
-            
-          case SplitType.EXACT:
-            // Exact amount split
-            for (const userId of splitWithUserIds) {
-              const splitAmount = splitDetails[userId] || 0;
-              splits.push({
-                transactionId: newTransaction.id,
-                userId,
-                amount: splitAmount.toString(),
-                isSettled: userId === transaction.paidByUserId
-              });
-            }
-            break;
+        if (!validation.isValid) {
+          // Transaction is invalid, so roll back and throw an error
+          throw new Error(validation.errorMessage || 'Invalid transaction splits');
         }
         
-        // Insert the splits
-        if (splits.length > 0) {
-          await tx.insert(transactionSplits).values(splits);
+        // Insert the validated splits
+        if (validation.splits.length > 0) {
+          await tx.insert(transactionSplits).values(validation.splits);
         }
       }
       
@@ -240,36 +332,175 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTransaction(id: number, updateData: Partial<InsertTransaction>, userId?: number): Promise<Transaction | undefined> {
-    // First, get the current transaction to store as previous values
-    const existingTransaction = await this.getTransaction(id);
+    return await db.transaction(async (tx) => {
+      // First, get the current transaction to store as previous values
+      const existingTransaction = await this.getTransaction(id);
+      if (!existingTransaction) {
+        return undefined;
+      }
+      
+      // Extract splitWithUserIds if present before updating
+      const { splitWithUserIds, ...transactionUpdateData } = updateData;
+      
+      // Prepare audit fields
+      const now = new Date();
+      const updateFields: any = {
+        ...transactionUpdateData,
+        updatedAt: now,
+        isEdited: true
+      };
+      
+      // Add user ID who performed the update if provided
+      if (userId) {
+        updateFields.updatedByUserId = userId;
+      }
+      
+      // Store the previous values as JSON for audit purposes
+      updateFields.previousValues = JSON.stringify(existingTransaction);
+      
+      // Perform the update
+      const [updatedTransaction] = await tx
+        .update(transactions)
+        .set(updateFields)
+        .where(eq(transactions.id, id))
+        .returning();
+      
+      // If this is an expense transaction and we're updating splits, validate and update them
+      if (
+        updatedTransaction.type === TransactionType.EXPENSE && 
+        (splitWithUserIds || updateData.splitType || updateData.splitDetails || updateData.amount)
+      ) {
+        // Combine the existing transaction with the updates to get the full data
+        // Extract only the valid properties for InsertTransaction
+        const combinedTransaction: InsertTransaction = {
+          type: TransactionType.EXPENSE,
+          description: existingTransaction.description, 
+          amount: existingTransaction.amount as string,
+          paidByUserId: existingTransaction.paidByUserId,
+          createdByUserId: existingTransaction.createdByUserId ?? undefined,
+          groupId: existingTransaction.groupId ?? undefined,
+          date: existingTransaction.date,
+          splitType: (existingTransaction.splitType || SplitType.EQUAL) as SplitType,
+          splitDetails: existingTransaction.splitDetails || '{}',
+          // Override with any update data
+          ...updateData
+        };
+        
+        // If splits are changing, delete existing splits and create new ones
+        if (splitWithUserIds || updateData.splitType || updateData.splitDetails) {
+          // Use explicitly provided split user IDs, or get existing ones from the database
+          const userIds = splitWithUserIds || await this.getTransactionSplitUserIds(id);
+          
+          if (userIds && userIds.length > 0) {
+            // Delete existing splits
+            await tx
+              .delete(transactionSplits)
+              .where(eq(transactionSplits.transactionId, id));
+            
+            // Create and validate new splits
+            // Ensure the transaction object has the correct type for validation
+            // Add more logging for better debugging
+            console.log('Creating validated splits for transaction:', id);
+            console.log('Using user IDs:', userIds);
+            
+            try {
+              const transaction: InsertTransaction = {
+                ...combinedTransaction,
+                type: TransactionType.EXPENSE, // Explicitly set the type as the enum value
+                splitType: combinedTransaction.splitType as SplitType || SplitType.EQUAL
+              };
+              
+              console.log('Validating transaction:', JSON.stringify(transaction));
+              
+              const validation = this.validateTransactionSplits(
+                transaction, 
+                userIds, 
+                id
+              );
+              
+              if (!validation.isValid) {
+                console.error('Split validation failed:', validation.errorMessage);
+                throw new Error(validation.errorMessage || 'Invalid transaction splits after update');
+              }
+              
+              // Insert the validated splits
+              if (validation.splits.length > 0) {
+                console.log(`Inserting ${validation.splits.length} validated splits`);
+                await tx.insert(transactionSplits).values(validation.splits);
+              }
+            } catch (error) {
+              console.error('Error during split validation:', error);
+              throw error;
+            }
+          }
+        }
+        // If only the amount changed but splitWithUserIds wasn't provided, just update the split amounts 
+        else if (updateData.amount) {
+          await this.updateTransactionSplitAmounts(id, parseFloat(updateData.amount as string), tx);
+        }
+      }
+      
+      return updatedTransaction;
+    });
+  }
+  
+  // Helper method to get user IDs from transaction splits
+  private async getTransactionSplitUserIds(transactionId: number): Promise<number[]> {
+    const splits = await db
+      .select()
+      .from(transactionSplits)
+      .where(eq(transactionSplits.transactionId, transactionId));
+    
+    return splits.map(split => split.userId);
+  }
+  
+  // Helper method to update split amounts proportionally when only the total amount changes
+  private async updateTransactionSplitAmounts(
+    transactionId: number, 
+    newAmount: number,
+    tx?: any // Optional transaction object
+  ): Promise<void> {
+    // Get the current transaction and splits
+    const existingTransaction = await this.getTransaction(transactionId);
     if (!existingTransaction) {
-      return undefined;
+      throw new Error(`Transaction with ID ${transactionId} not found`);
     }
     
-    // Prepare audit fields
-    const now = new Date();
-    const updateFields: any = {
-      ...updateData,
-      updatedAt: now,
-      isEdited: true
-    };
+    const existingSplits = await db
+      .select()
+      .from(transactionSplits)
+      .where(eq(transactionSplits.transactionId, transactionId));
     
-    // Add user ID who performed the update if provided
-    if (userId) {
-      updateFields.updatedByUserId = userId;
+    if (existingSplits.length === 0) {
+      return; // No splits to update
     }
     
-    // Store the previous values as JSON for audit purposes
-    updateFields.previousValues = JSON.stringify(existingTransaction);
+    const oldAmount = parseFloat(existingTransaction.amount as string);
+    const ratio = newAmount / oldAmount;
     
-    // Perform the update
-    const [updatedTransaction] = await db
-      .update(transactions)
-      .set(updateFields)
-      .where(eq(transactions.id, id))
-      .returning();
-    
-    return updatedTransaction;
+    // Update each split proportionally
+    for (const split of existingSplits) {
+      const originalAmount = parseFloat(split.amount as string);
+      const newSplitAmount = (originalAmount * ratio).toFixed(2);
+      
+      // Use composite key for update since transaction_splits uses a composite primary key
+      const updateQuery = db
+        .update(transactionSplits)
+        .set({ amount: newSplitAmount })
+        .where(
+          and(
+            eq(transactionSplits.transactionId, split.transactionId),
+            eq(transactionSplits.userId, split.userId)
+          )
+        );
+      
+      // Either use the provided transaction object or execute directly
+      if (tx) {
+        await tx.execute(updateQuery);
+      } else {
+        await updateQuery.execute();
+      }
+    }
   }
 
   async deleteTransaction(id: number, userId: number): Promise<Transaction | undefined> {

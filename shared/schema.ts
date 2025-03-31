@@ -345,7 +345,9 @@ export const insertTransactionSplitSchema = createInsertSchema(transactionSplits
     transactionId: true,
     userId: true,
     amount: true,
-    percentage: true
+    percentage: true,
+    isSettled: true,
+    settledAt: true
   });
 
 export const insertUserSchema = createInsertSchema(users).pick({
