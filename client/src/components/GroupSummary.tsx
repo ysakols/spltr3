@@ -57,10 +57,10 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
         <CardContent className="p-3 bg-gradient-to-br from-primary/5 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-1.5 h-6 bg-primary/70 rounded-full"></div>
+              <div className="w-1.5 h-6 bg-primary/70 !rounded-none"></div>
               <h3 className="text-xs font-medium">Total Group Expenses</h3>
             </div>
-            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 !rounded-none">
               {formatCurrency(summary.totalExpenses)}
             </span>
           </div>
@@ -70,7 +70,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
       {/* Individual Summaries */}
       <div className="space-y-3">
         <h3 className="text-xs font-medium flex items-center">
-          <div className="w-1 h-3 bg-primary/70 mr-1.5 rounded-full"></div>
+          <div className="w-1 h-3 bg-primary/70 mr-1.5 !rounded-none"></div>
           Member Balances
         </h3>
         
@@ -92,11 +92,11 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
               <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xs flex items-center min-w-0 max-w-[65%]">
-                    {isCurrentUser && <div className="w-1 h-3 bg-primary mr-1.5 rounded-full flex-shrink-0"></div>}
+                    {isCurrentUser && <div className="w-1 h-3 bg-primary mr-1.5 !rounded-none flex-shrink-0"></div>}
                     <span className="truncate">{getUserName(personId)}</span>
-                    {isCurrentUser && <span className="ml-1.5 text-[10px] text-primary/70 bg-primary/10 px-1.5 rounded-full flex-shrink-0">You</span>}
+                    {isCurrentUser && <span className="ml-1.5 text-[10px] text-primary/70 bg-primary/10 px-1.5 !rounded-none flex-shrink-0">You</span>}
                   </CardTitle>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${balanceColor} whitespace-nowrap ml-1`}>
+                  <span className={`text-xs font-semibold px-2 py-0.5 !rounded-none ${balanceColor} whitespace-nowrap ml-1`}>
                     {formatCurrency(balance)}
                   </span>
                 </div>
@@ -123,7 +123,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
         <Card className="shadow-sm !rounded-none border-border/50 overflow-hidden">
           <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
             <CardTitle className="text-xs flex items-center">
-              <div className="w-1 h-3 bg-primary/70 mr-1.5 rounded-full"></div>
+              <div className="w-1 h-3 bg-primary/70 mr-1.5 !rounded-none"></div>
               Settlement Plan
             </CardTitle>
           </CardHeader>
@@ -136,7 +136,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                 return (
                   <li 
                     key={index} 
-                    className={`text-xs flex flex-col gap-y-2 p-2 rounded-md ${isUserInvolved ? 'bg-primary/5' : ''} border-b border-border/30 last:border-b-0 last:pb-0`}
+                    className={`text-xs flex flex-col gap-y-2 p-2 !rounded-none ${isUserInvolved ? 'bg-primary/5' : ''} border-b border-border/30 last:border-b-0 last:pb-0`}
                   >
                     <div className="flex items-center gap-x-1.5 w-full">
                       <CircleDollarSign className={`h-3.5 w-3.5 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
@@ -149,7 +149,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                           {getUserName(settlement.to)}
                         </span>
                       </div>
-                      <span className="font-semibold text-primary ml-auto px-1.5 py-0.5 bg-primary/10 rounded-full whitespace-nowrap">
+                      <span className="font-semibold text-primary ml-auto px-1.5 py-0.5 bg-primary/10 !rounded-none whitespace-nowrap">
                         {formatCurrency(settlement.amount)}
                       </span>
                     </div>
