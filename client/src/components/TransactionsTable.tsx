@@ -375,8 +375,8 @@ function TransactionsTable({
   }
   
   return (
-    <Card className="shadow-sm !rounded-none mb-0">
-      <CardHeader className="pb-2 space-y-2 !rounded-none">
+    <Card className="shadow-sm !rounded-none mb-0 mx-0 px-0">
+      <CardHeader className="pb-2 space-y-2 !rounded-none px-3 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <CardTitle className="text-xl">Transactions</CardTitle>
         </div>

@@ -185,11 +185,11 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   };
 
   return (
-    <Card className="w-full shadow-sm !rounded-none border-t-0">
-      <CardHeader className="pb-3">
+    <Card className="w-full shadow-sm !rounded-none border-t-0 mx-0 px-0">
+      <CardHeader className="pb-3 px-3 sm:px-6">
         <CardTitle className="text-lg">Activity Feed</CardTitle>
       </CardHeader>
-      <CardContent className="p-3 sm:p-5">
+      <CardContent className="p-3 sm:p-5 mx-0">
         {activities.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             No activity found

@@ -259,7 +259,7 @@ function GroupDetail() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 gap-0">
+              <div className="w-full max-w-full overflow-hidden">
                 <TransactionsTable 
                   groupId={groupId}
                   totalAmount={summary.totalExpenses}
@@ -269,7 +269,7 @@ function GroupDetail() {
                 />
                 
                 {/* Show activity feed with invitations and group events */}
-                <div className="mt-0">
+                <div className="w-full m-0 p-0">
                   <ActivityFeed groupId={groupId} />
                 </div>
               </div>
