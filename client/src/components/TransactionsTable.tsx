@@ -275,8 +275,8 @@ function TransactionsTable({
       });
     } else if (transaction.type === 'settlement') {
       try {
-        // Delete settlement via the settlements endpoint (not transactions)
-        await apiRequest('DELETE', `/api/settlements/${transaction.id}`);
+        // Use the transactions endpoint instead of the settlements endpoint
+        await apiRequest('DELETE', `/api/transactions/${transaction.id}`);
         
         // Refresh all the relevant data after deletion
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
