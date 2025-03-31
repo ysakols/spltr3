@@ -1454,8 +1454,9 @@ export class DatabaseStorage implements IStorage {
       const splits = splitsByTransaction[transaction.id] || [];
       for (const split of splits) {
         if (memberIds.includes(split.userId)) {
-          // Only count if not settled or if the user is not the payer
-          if (!split.isSettled || split.userId !== transaction.paidByUserId) {
+          // Always count what each person owes from the expense
+          // When the split is for the payer, they don't owe themselves anything
+          if (split.userId !== transaction.paidByUserId) {
             owes[split.userId] = (owes[split.userId] || 0) + Number(split.amount);
           }
         }
