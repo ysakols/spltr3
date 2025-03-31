@@ -195,7 +195,7 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
             No activity found
           </div>
         ) : (
-          <div className="grid gap-2 md:gap-3">
+          <div className="space-y-4">
             {activities.map((activity: Activity, index: number) => {
               const key = `${activity.type}-${
                 activity.type === 'invitation' 
@@ -204,19 +204,19 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
               }-${activity.timestamp}`;
               
               // Determine activity type for styling
-              let activityColor = "border-l-blue-400";
+              let activityColor = "border-blue-400";
               if (activity.type === 'transaction') {
-                activityColor = activity.activityType === 'expense' ? "border-l-amber-400" : "border-l-teal-400";
+                activityColor = activity.activityType === 'expense' ? "border-amber-400" : "border-green-400";
               } else if (activity.type === 'edit') {
-                activityColor = "border-l-purple-400";
+                activityColor = "border-purple-400";
               } else if (activity.type === 'delete') {
-                activityColor = "border-l-red-400";
+                activityColor = "border-red-400";
               }
               
               return (
                 <div 
                   key={key}
-                  className={`transaction-card border overflow-hidden bg-card transition-all hover:shadow-sm border-l-4 ${activityColor}`}
+                  className={`relative border p-2 sm:p-3 transition-all hover:shadow-sm border-l-4 ${activityColor}`}
                 >
                   {activity.type === 'invitation' && (
                     <InvitationActivity 
