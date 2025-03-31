@@ -413,9 +413,18 @@ function TransactionsTable({
               return (
                 <div 
                   key={`${transaction.type}-${transaction.id}`} 
-                  className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-md ${
-                    isExpense ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-green-500'
-                  }`}
+                  style={{
+                    borderRadius: '0.5rem',
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
+                    borderColor: '#E5E7EB',
+                    borderLeftWidth: '4px',
+                    borderLeftColor: isExpense ? '#344054' : '#475569',
+                    overflow: 'hidden',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                  }}
                 >
                   <div className="p-3 sm:p-4">
                     {/* Transaction header */}
@@ -423,9 +432,9 @@ function TransactionsTable({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-2">
                           {isExpense ? (
-                            <CreditCard className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                            <CreditCard className="h-4 w-4 flex-shrink-0" style={{ color: '#344054' }} />
                           ) : (
-                            <Banknote className="h-4 w-4 text-green-600 flex-shrink-0" />
+                            <Banknote className="h-4 w-4 flex-shrink-0" style={{ color: '#475569' }} />
                           )}
                           <h3 className="font-medium text-xs truncate whitespace-nowrap">
                             {transaction.description}
@@ -452,9 +461,10 @@ function TransactionsTable({
                       </div>
                       
                       <div className="text-right flex-shrink-0">
-                        <div className={`font-semibold ${
-                          isExpense ? 'text-gray-800' : 'text-green-600'
-                        }`}>
+                        <div style={{ 
+                          fontWeight: '600',
+                          color: isExpense ? '#344054' : '#475569'
+                        }}>
                           {!isExpense && <span className="mr-1">+</span>}
                           {formatCurrency(amount)}
                         </div>
