@@ -317,6 +317,22 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       });
     };
 
+    // Check for invalid or missing users in split details
+    const checkForMissingUsers = () => {
+      if (!splitDetails || Object.keys(splitDetails).length === 0) return false;
+      
+      // Get the current member IDs in the group as strings
+      const currentMemberIds = members.map(m => String(m.id));
+      
+      // Check for any user IDs in splitDetails that aren't in the current members
+      const invalidUserIds = Object.keys(splitDetails).filter(userId => 
+        !currentMemberIds.includes(userId) && splitDetails[userId] > 0
+      );
+      
+      // Return true if we have any invalid users with non-zero allocations
+      return invalidUserIds.length > 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
@@ -331,6 +347,21 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
       
       try {
         setLoading(true);
+        
+        // Check for invalid users first
+        const hasMissingUsers = checkForMissingUsers();
+        if (hasMissingUsers) {
+          // Show a warning but allow the user to proceed
+          const warnResult = window.confirm(
+            'Warning: This expense contains allocations for users who are no longer in the group. ' +
+            'These allocations may be lost or need to be redistributed. Do you want to continue?'
+          );
+          
+          if (!warnResult) {
+            setLoading(false);
+            return;
+          }
+        }
         
         // Validate split details if not using equal split
         if (expenseData.splitType !== SplitType.EQUAL) {
