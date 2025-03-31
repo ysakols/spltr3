@@ -71,7 +71,7 @@ export function SettleUpButton({ groupId, summary, currentUser, members }: Settl
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" className="flex items-center justify-center gap-2 h-10 px-4 whitespace-nowrap text-sm">
+        <Button variant="default" className="settle-up-button">
           <ArrowUpRight className="h-4 w-4" />
           Settle Up
           {dropdownOpen ? 

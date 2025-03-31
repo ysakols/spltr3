@@ -470,7 +470,7 @@ const ExpenseForm = forwardRef<{ setOpen: (open: boolean) => void }, ExpenseForm
         }}>
           {!isEditing && (
             <DialogTrigger asChild>
-              <Button className="flex items-center justify-center gap-2 h-10 px-4 bg-red-500 hover:bg-red-600 text-white whitespace-nowrap text-sm">
+              <Button className="add-expense-button bg-red-500 hover:bg-red-600 text-white">
                 <Plus className="h-4 w-4" />
                 Add New Expense
               </Button>

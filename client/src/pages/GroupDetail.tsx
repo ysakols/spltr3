@@ -234,8 +234,8 @@ function GroupDetail() {
 
           {!isEditing && (
             <div className="pt-2">
-              <div className="flex gap-3 mb-4">
-                <div className="inline-flex items-center">
+              <div className="flex gap-3 mb-4 equal-width-buttons">
+                <div className="button-container">
                   {summary && members && (
                     <SettleUpButton
                       groupId={groupId}
@@ -245,7 +245,7 @@ function GroupDetail() {
                     />
                   )}
                 </div>
-                <div className="inline-flex items-center">
+                <div className="button-container">
                   <ExpenseForm 
                     ref={expenseFormRef}
                     group={group} 

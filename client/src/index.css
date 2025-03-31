@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import custom styles */
+@import './custom-styles.css';
+
 @layer base {
   * {
     @apply border-border;
