@@ -388,178 +388,174 @@ function TransactionsTable({
   }
   
   return (
-    <Card>
-      <CardHeader className="pb-1">
-        <div className="flex justify-between items-center">
+    <Card className="shadow-sm">
+      <CardHeader className="pb-2 space-y-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <CardTitle className="text-xl">Transactions</CardTitle>
-          <div className="flex space-x-1 text-sm">
+          <div className="flex flex-wrap gap-1">
             <Button
               variant={activeTab === 'all' ? "secondary" : "ghost"}
-              className="h-8 px-2"
+              className="h-8 px-3 text-sm"
               onClick={() => handleTabChange('all')}
             >
               All
             </Button>
             <Button
               variant={activeTab === 'expense' ? "secondary" : "ghost"}
-              className="h-8 px-2"
+              className="h-8 px-3 text-sm"
               onClick={() => handleTabChange('expense')}
             >
               Expenses
             </Button>
             <Button
               variant={activeTab === 'settlement' ? "secondary" : "ghost"}
-              className="h-8 px-2"
+              className="h-8 px-3 text-sm"
               onClick={() => handleTabChange('settlement')}
             >
               Settlements
             </Button>
           </div>
         </div>
-        <div className="flex space-x-2 text-xs text-muted-foreground mt-2">
+        <div className="flex gap-2 text-xs text-muted-foreground">
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 text-xs"
+            className="h-7 text-xs"
             onClick={() => handleSort('date')}
           >
-            Sort by Date {renderSortIndicator('date')}
+            Date {renderSortIndicator('date')}
           </Button>
           <Button
             variant="ghost" 
             size="sm"
-            className="h-6 text-xs"
+            className="h-7 text-xs"
             onClick={() => handleSort('amount')}
           >
-            Sort by Amount {renderSortIndicator('amount')}
+            Amount {renderSortIndicator('amount')}
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 sm:p-5">
         {sortedTransactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No transactions found. Add an expense to get started.
           </div>
         ) : (
-          <div className="space-y-3">
-            {sortedTransactions.map((transaction) => (
-              <Card key={`${transaction.type}-${transaction.id}`} className="overflow-hidden">
-                <div className={`px-3 py-1 text-xs font-medium ${
-                  transaction.type === 'expense' 
-                    ? 'bg-amber-100 text-amber-800' 
-                    : 'bg-green-100 text-green-800'
-                }`}>
-                  {transaction.type === 'expense' ? (
-                    <div className="flex items-center">
-                      <CreditCard className="h-3 w-3 mr-1" />
-                      <span>Expense</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <Banknote className="h-3 w-3 mr-1" />
-                      <span>Settlement</span>
-                    </div>
-                  )}
-                </div>
-                
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="w-3/4">
-                      <h3 className="font-medium text-sm">
-                        {transaction.description}
-                      </h3>
-                      <div className="text-xs text-muted-foreground flex items-center mt-1">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        {formatDate(transaction.date)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`font-semibold text-sm ${
-                        transaction.type === 'settlement' ? 'text-green-600' : ''
-                      }`}>
-                        {transaction.type === 'settlement' && (
-                          <span className="mr-1">+</span>
-                        )}
-                        {formatCurrency(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center border-t pt-2 mt-1">
-                    <div className="text-xs">
-                      <div className="flex items-center">
-                        <UserIcon className="h-3 w-3 mr-1" />
-                        {transaction.type === 'expense' ? (
-                          <span>Paid by {getUsernameById(transaction.paidByUserId)}</span>
-                        ) : (
+          <div className="grid gap-3 md:gap-4">
+            {sortedTransactions.map((transaction) => {
+              const isExpense = transaction.type === 'expense';
+              const amount = typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount;
+              
+              return (
+                <div 
+                  key={`${transaction.type}-${transaction.id}`} 
+                  className={`rounded-lg border overflow-hidden bg-card transition-all hover:shadow-md ${
+                    isExpense ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-green-500'
+                  }`}
+                >
+                  <div className="p-3 sm:p-4">
+                    {/* Transaction header */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {isExpense ? (
+                            <CreditCard className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                          ) : (
+                            <Banknote className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          )}
+                          <h3 className="font-medium text-sm truncate">
+                            {transaction.description}
+                          </h3>
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <div className="flex items-center">
-                            <span>{getUsernameById(transaction.paidByUserId)}</span>
-                            <span className="mx-1">→</span>
-                            <span>{getUsernameById(transaction.toUserId)}</span>
+                            <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                            {formatDate(transaction.date)}
                           </div>
-                        )}
+                          <div className="flex items-center">
+                            <UserIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                            {isExpense ? (
+                              <span className="truncate">Paid by {getUsernameById(transaction.paidByUserId)}</span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <span className="truncate">{getUsernameById(transaction.paidByUserId)}</span>
+                                <span>→</span>
+                                <span className="truncate">{getUsernameById(transaction.toUserId)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       
-                      {/* For settlements, show payment method and status */}
-                      {transaction.type === 'settlement' && (
-                        <div className="flex mt-1 space-x-1">
-                          {transaction.paymentMethod && (
-                            <Badge variant="outline" className="text-[10px] py-0 h-4 flex items-center">
-                              {getPaymentMethodIcon(transaction.paymentMethod)}
-                              <span>{getPaymentMethodLabel(transaction.paymentMethod)}</span>
-                            </Badge>
-                          )}
-                          
-                          {transaction.status && (
-                            <Badge className={`text-[10px] py-0 h-4 flex items-center`}>
-                              {getStatusIcon(transaction.status)}
-                              <span>{transaction.status}</span>
-                            </Badge>
-                          )}
+                      <div className="text-right flex-shrink-0">
+                        <div className={`font-semibold ${
+                          isExpense ? 'text-gray-800' : 'text-green-600'
+                        }`}>
+                          {!isExpense && <span className="mr-1">+</span>}
+                          {formatCurrency(amount)}
                         </div>
-                      )}
+                      </div>
                     </div>
                     
-                    <div className="flex space-x-1">
-                      {/* Edit button */}
-                      {(transaction.type === 'expense' && onEditExpense) && (
-                        <Button 
-                          variant="outline"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => handleEditTransaction(transaction)}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                      )}
-                      
-                      {/* Delete button */}
-                      {(transaction.type === 'expense' || 
-                        (transaction.type === 'settlement' && 
-                          (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)
-                        )) && (
+                    {/* Settlement specific elements */}
+                    {!isExpense && transaction.status && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {transaction.paymentMethod && (
+                          <Badge variant="outline" className="text-xs py-0 h-5 flex items-center">
+                            {getPaymentMethodIcon(transaction.paymentMethod)}
+                            <span>{getPaymentMethodLabel(transaction.paymentMethod)}</span>
+                          </Badge>
+                        )}
+                        <Badge className={`text-xs py-0 h-5 flex items-center ${getStatusBadgeStyle(transaction.status)}`}>
+                          {getStatusIcon(transaction.status)}
+                          <span>{transaction.status}</span>
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {/* Action buttons */}
+                    {((isExpense && onEditExpense) || 
+                      (!isExpense && 
+                      (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)
+                    )) && (
+                      <div className="flex justify-end mt-2 gap-2">
+                        {/* Edit button - only for expenses */}
+                        {(isExpense && onEditExpense) && (
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => handleEditTransaction(transaction)}
+                          >
+                            <Edit2 className="h-3.5 w-3.5 mr-1" />
+                            Edit
+                          </Button>
+                        )}
+                        
+                        {/* Delete button */}
                         <AlertDialog>
-                          <AlertDialogTrigger>
+                          <AlertDialogTrigger asChild>
                             <Button 
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6 text-destructive"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              Delete
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle className="flex items-center gap-2">
                                 <AlertTriangle className="h-5 w-5 text-destructive" />
-                                Delete {transaction.type === 'expense' ? 'Expense' : 'Settlement'}
+                                Delete {isExpense ? 'Expense' : 'Settlement'}
                               </AlertDialogTitle>
                               <AlertDialogDescription>
                                 Are you sure you want to delete this {transaction.type}?
                                 <div className="mt-2 p-3 bg-muted/50 rounded-md">
                                   <p className="font-medium">{transaction.description}</p>
                                   <p className="text-sm text-primary mt-1">
-                                    {formatCurrency(typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount)}
+                                    {formatCurrency(amount)}
                                   </p>
                                 </div>
                                 This action cannot be undone.
@@ -579,12 +575,12 @@ function TransactionsTable({
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
