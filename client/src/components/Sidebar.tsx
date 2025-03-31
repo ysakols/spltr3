@@ -243,14 +243,7 @@ export function MobileSidebarTrigger() {
             <UserProfile />
             <NavLinks />
             
-            <div className="mt-8 pt-4 border-t border-border/40">
-              <div className="p-3 rounded-md bg-muted/50">
-                <h3 className="text-xs font-medium text-foreground mb-1.5">Need help?</h3>
-                <p className="text-xs text-muted-foreground">
-                  Visit our help center or contact support for assistance with your account.
-                </p>
-              </div>
-            </div>
+
           </div>
         </nav>
       </SheetContent>
@@ -299,15 +292,6 @@ export function Sidebar({ className }: SidebarProps) {
         
         <UserProfile isCollapsed={isCollapsed} />
         <NavLinks isCollapsed={isCollapsed} />
-        
-        {!isCollapsed && (
-          <div className="mt-8 pt-4 border-t border-border/40">
-            <div className="p-2.5 rounded-md bg-primary/5 text-xs text-muted-foreground">
-              <p className="mb-1">Need help with your expenses?</p>
-              <p className="text-primary/70 font-medium">Visit our help center</p>
-            </div>
-          </div>
-        )}
       </div>
       
       <Separator className="bg-border/40" />
