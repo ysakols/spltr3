@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { CircleDollarSign } from 'lucide-react';
 import { SettlementButton } from '@/components/SettlementButton';
@@ -50,9 +49,11 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
     fetchCurrentUser();
   }, []);
 
+  // This line ensures currentUserId is treated as a number in the component
+  const safeCurrentUserId = currentUserId || 0;
+
   return (
     <div className="space-y-4">
-      {/* One unified card for group summary */}
       <Card className="shadow-md border-0 overflow-hidden">
         <CardContent className="p-0">
           {/* Group Total Header */}
@@ -75,50 +76,52 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
               Member Balances
             </h3>
             
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-gray-200">
-                  <th className="pb-2 font-medium text-sm text-gray-500">Member</th>
-                  <th className="pb-2 font-medium text-sm text-gray-500 text-center">Paid</th>
-                  <th className="pb-2 font-medium text-sm text-gray-500 text-center">Owes</th>
-                  <th className="pb-2 font-medium text-sm text-gray-500 text-right">Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memberIds.map(personId => {
-                  const isCurrentUser = currentUserId === Number(personId);
-                  const balance = summary.balances[personId] || 0;
-                  const isPaid = summary.paid[personId] || 0;
-                  const isOwed = summary.owes[personId] || 0;
-                  const balanceColor = 
-                    balance > 0 ? 'text-green-600 bg-green-50' : 
-                    balance < 0 ? 'text-red-600 bg-red-50' : 
-                    'text-gray-600 bg-gray-100';
-                  
-                  return (
-                    <tr 
-                      key={personId} 
-                      className={`border-b border-gray-100 last:border-0 ${isCurrentUser ? 'bg-primary/5' : ''}`}
-                    >
-                      <td className="py-3 pr-2">
-                        <div className="flex items-center">
-                          {isCurrentUser && <div className="w-1 h-4 bg-primary mr-2 flex-shrink-0"></div>}
-                          <span className="font-medium text-sm truncate">{getUserName(personId)}</span>
-                          {isCurrentUser && <span className="ml-2 text-xs text-primary/80 bg-primary/10 px-2 py-0.5 flex-shrink-0">You</span>}
-                        </div>
-                      </td>
-                      <td className="py-3 text-center font-medium text-sm">{formatCurrency(isPaid)}</td>
-                      <td className="py-3 text-center font-medium text-sm">{formatCurrency(isOwed)}</td>
-                      <td className="py-3 text-right">
-                        <span className={`text-sm font-bold px-3 py-1 ${balanceColor}`}>
-                          {formatCurrency(balance)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr className="text-left border-b border-gray-200">
+                    <th className="pb-2 pl-2 font-medium text-sm text-gray-500 w-[38%]">Member</th>
+                    <th className="pb-2 font-medium text-sm text-gray-500 text-right w-[20%]">Paid</th>
+                    <th className="pb-2 font-medium text-sm text-gray-500 text-right w-[20%]">Owes</th>
+                    <th className="pb-2 pr-2 font-medium text-sm text-gray-500 text-right w-[22%]">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {memberIds.map(personId => {
+                    const isCurrentUser = currentUserId === Number(personId);
+                    const balance = summary.balances[personId] || 0;
+                    const isPaid = summary.paid[personId] || 0;
+                    const isOwed = summary.owes[personId] || 0;
+                    const balanceColor = 
+                      balance > 0 ? 'text-green-600 bg-green-50' : 
+                      balance < 0 ? 'text-red-600 bg-red-50' : 
+                      'text-gray-600 bg-gray-100';
+                    
+                    return (
+                      <tr 
+                        key={personId} 
+                        className={`border-b border-gray-100 last:border-0 ${isCurrentUser ? 'bg-primary/5' : ''}`}
+                      >
+                        <td className="py-3 pl-2">
+                          <div className="flex items-center">
+                            {isCurrentUser && <div className="w-1 h-4 bg-primary mr-2 flex-shrink-0"></div>}
+                            <span className="font-medium text-sm">{getUserName(personId)}</span>
+                            {isCurrentUser && <span className="ml-2 text-xs text-primary/80 bg-primary/10 px-2 py-0.5 flex-shrink-0">You</span>}
+                          </div>
+                        </td>
+                        <td className="py-3 text-right font-medium text-sm">{formatCurrency(isPaid)}</td>
+                        <td className="py-3 text-right font-medium text-sm">{formatCurrency(isOwed)}</td>
+                        <td className="py-3 pr-2 text-right">
+                          <span className={`text-sm font-bold px-3 py-1 ${balanceColor}`}>
+                            {formatCurrency(balance)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
           
           {/* Settlement Plan Section */}
@@ -129,47 +132,49 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                 Settlement Plan
               </h3>
               
-              <table className="w-full mb-2">
-                <thead>
-                  <tr className="text-left border-b border-gray-200">
-                    <th className="pb-2 font-medium text-sm text-gray-500">From</th>
-                    <th className="pb-2 font-medium text-sm text-gray-500 text-center">To</th>
-                    <th className="pb-2 font-medium text-sm text-gray-500 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.settlements.map((settlement, index) => {
-                    const isUserInvolved = currentUserId && (Number(settlement.from) === currentUserId || Number(settlement.to) === currentUserId);
-                    const isUserPaying = currentUserId && Number(settlement.from) === currentUserId;
-                    
-                    return (
-                      <tr 
-                        key={index} 
-                        className={`border-b border-gray-100 last:border-0 ${isUserInvolved ? 'bg-primary/5' : ''}`}
-                      >
-                        <td className="py-3 pr-2">
-                          <div className="flex items-center">
-                            <CircleDollarSign className={`h-4 w-4 mr-2 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
-                            <span className={`font-medium text-sm truncate ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
-                              {getUserName(settlement.from)}
+              <div className="overflow-x-auto -mx-4 px-4">
+                <table className="w-full min-w-[500px] mb-2">
+                  <thead>
+                    <tr className="text-left border-b border-gray-200">
+                      <th className="pb-2 pl-2 font-medium text-sm text-gray-500 w-[40%]">From</th>
+                      <th className="pb-2 font-medium text-sm text-gray-500 w-[40%]">To</th>
+                      <th className="pb-2 pr-2 font-medium text-sm text-gray-500 text-right w-[20%]">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.settlements.map((settlement, index) => {
+                      const isUserInvolved = currentUserId && (Number(settlement.from) === currentUserId || Number(settlement.to) === currentUserId);
+                      const isUserPaying = currentUserId && Number(settlement.from) === currentUserId;
+                      
+                      return (
+                        <tr 
+                          key={index} 
+                          className={`border-b border-gray-100 last:border-0 ${isUserInvolved ? 'bg-primary/5' : ''}`}
+                        >
+                          <td className="py-3 pl-2">
+                            <div className="flex items-center">
+                              <CircleDollarSign className={`h-4 w-4 mr-2 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
+                              <span className={`font-medium text-sm ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
+                                {getUserName(settlement.from)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <span className={`font-medium text-sm ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
+                              {getUserName(settlement.to)}
                             </span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className={`font-medium text-sm ${Number(settlement.to) === currentUserId ? 'text-primary' : ''}`}>
-                            {getUserName(settlement.to)}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right">
-                          <span className="font-bold text-sm text-primary px-3 py-1 bg-primary/10">
-                            {formatCurrency(settlement.amount)}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="py-3 pr-2 text-right">
+                            <span className="font-bold text-sm text-primary px-3 py-1 bg-primary/10">
+                              {formatCurrency(settlement.amount)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
               
               {/* Settlement buttons for current user */}
               {summary.settlements.some(s => currentUserId && Number(s.from) === currentUserId) && (
@@ -186,7 +191,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                           </div>
                           <SettlementButton 
                             settlement={settlement}
-                            currentUserId={currentUserId}
+                            currentUserId={safeCurrentUserId}
                             userMap={userMap}
                             groupId={group.id}
                             variant="outline"
