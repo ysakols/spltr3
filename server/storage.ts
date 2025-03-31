@@ -157,20 +157,79 @@ export class DatabaseStorage implements IStorage {
     isValid: boolean, 
     errorMessage?: string 
   } {
-    // If no split user IDs, nothing to validate
+    // Validate basic inputs
+    if (!transaction) {
+      return { splits: [], isValid: false, errorMessage: 'Transaction object is missing' };
+    }
+    
+    // Validate transaction amount
+    if (!transaction.amount) {
+      return { splits: [], isValid: false, errorMessage: 'Transaction amount is required' };
+    }
+    
+    // Check for negative amounts
+    const totalAmount = typeof transaction.amount === 'string' 
+      ? parseFloat(transaction.amount) 
+      : transaction.amount;
+      
+    if (isNaN(totalAmount)) {
+      return { splits: [], isValid: false, errorMessage: `Invalid transaction amount: ${transaction.amount}` };
+    }
+    
+    if (totalAmount < 0) {
+      return { splits: [], isValid: false, errorMessage: 'Transaction amount cannot be negative' };
+    }
+    
+    // Zero amount is a valid edge case, but needs special handling
+    if (totalAmount === 0) {
+      // For zero amount expenses, create minimal splits with zero amounts
+      if (splitWithUserIds && splitWithUserIds.length > 0) {
+        const zeroSplits = splitWithUserIds.map(userId => ({
+          transactionId,
+          userId,
+          amount: '0.00',
+          isSettled: true, // Zero amounts are automatically settled
+          settledAt: new Date()
+        }));
+        return { splits: zeroSplits, isValid: true };
+      }
+      return { splits: [], isValid: true };
+    }
+    
+    // If no split user IDs, nothing further to validate
     if (!splitWithUserIds || splitWithUserIds.length === 0) {
       return { splits: [], isValid: true };
     }
     
-    // Parse split details
-    const splitDetails = transaction.splitDetails 
-      ? JSON.parse(transaction.splitDetails)
-      : {};
+    // Validate the transaction has a payer
+    if (!transaction.paidByUserId) {
+      return { 
+        splits: [], 
+        isValid: false, 
+        errorMessage: 'Transaction must have a payer (paidByUserId)'
+      };
+    }
     
-    // Convert amount to a number
-    const totalAmount = typeof transaction.amount === 'string' 
-      ? parseFloat(transaction.amount) 
-      : transaction.amount;
+    // Validate the payer is among the split users
+    if (!splitWithUserIds.includes(transaction.paidByUserId)) {
+      console.warn(`Transaction payer (id: ${transaction.paidByUserId}) is not included in the split users`);
+      // We'll add them to ensure data consistency
+      splitWithUserIds.push(transaction.paidByUserId);
+    }
+    
+    // Parse split details - with better error handling
+    let splitDetails = {};
+    try {
+      splitDetails = transaction.splitDetails 
+        ? JSON.parse(transaction.splitDetails)
+        : {};
+    } catch (error) {
+      return { 
+        splits: [], 
+        isValid: false, 
+        errorMessage: `Invalid split details format: ${error.message}`
+      };
+    }
     
     // Define a properly typed array for the splits
     const splits: Array<{
@@ -185,67 +244,176 @@ export class DatabaseStorage implements IStorage {
     let splitsTotal = 0;
     let percentageTotal = 0;
     
+    // Process the splits based on split type
     switch (transaction.splitType) {
       case SplitType.EQUAL:
-        // Equal split among all users (use toFixed(2) to avoid float precision issues)
-        const splitAmount = parseFloat((totalAmount / splitWithUserIds.length).toFixed(2));
+        // Equal split among all users with proper rounding
+        // Calculate precise split amount (but keep as a number for now)
+        const rawSplitAmount = totalAmount / splitWithUserIds.length;
         
-        // Handle potential rounding errors by adjusting the last split
+        // Calculate initial split amount, rounded to 2 decimal places
+        const splitAmount = Math.round(rawSplitAmount * 100) / 100;
+        
+        // Initialize tracking for remainder distribution
         let remainingAmount = totalAmount;
+        let totalDistributed = 0;
         
-        for (let i = 0; i < splitWithUserIds.length; i++) {
+        // Create all splits except the last one
+        for (let i = 0; i < splitWithUserIds.length - 1; i++) {
           const userId = splitWithUserIds[i];
-          const isLast = i === splitWithUserIds.length - 1;
           
-          // For the last user, use the remaining amount to avoid rounding errors
-          const userSplitAmount = isLast 
-            ? remainingAmount 
-            : splitAmount;
+          // Round to exactly 2 decimal places for currency
+          const userSplitAmount = splitAmount;
           
           remainingAmount -= userSplitAmount;
+          totalDistributed += userSplitAmount;
           splitsTotal += userSplitAmount;
           
           splits.push({
             transactionId,
             userId,
-            amount: userSplitAmount.toString(),
+            // Format with exactly 2 decimal places
+            amount: userSplitAmount.toFixed(2),
             isSettled: userId === transaction.paidByUserId,
             settledAt: userId === transaction.paidByUserId ? new Date() : null
           });
         }
+        
+        // Handle the last split to account for any rounding errors
+        const lastUserId = splitWithUserIds[splitWithUserIds.length - 1];
+        const lastSplitAmount = Math.round((totalAmount - totalDistributed) * 100) / 100;
+        
+        splitsTotal += lastSplitAmount;
+        
+        splits.push({
+          transactionId,
+          userId: lastUserId,
+          amount: lastSplitAmount.toFixed(2), // Format with exactly 2 decimal places
+          isSettled: lastUserId === transaction.paidByUserId,
+          settledAt: lastUserId === transaction.paidByUserId ? new Date() : null
+        });
         break;
         
       case SplitType.PERCENTAGE:
-        // Percentage-based split
+        // Percentage-based split with correction for rounding errors
+        // First pass: calculate percentages and basic splits
+        const percentageSplits = [];
+        
         for (const userId of splitWithUserIds) {
           const percentage = parseFloat((splitDetails[userId] || 0).toString());
+          
+          // Skip users with 0% - they shouldn't be in the split
+          if (percentage <= 0) {
+            console.warn(`User ${userId} has 0% or negative percentage in split, skipping`);
+            continue;
+          }
+          
           percentageTotal += percentage;
           
-          const splitAmount = parseFloat(((totalAmount * percentage) / 100).toFixed(2));
-          splitsTotal += splitAmount;
+          // Calculate raw amount
+          const exactAmount = (totalAmount * percentage) / 100;
+          // Round to 2 decimal places
+          const roundedAmount = Math.round(exactAmount * 100) / 100;
           
-          splits.push({
-            transactionId,
+          percentageSplits.push({
             userId,
-            amount: splitAmount.toString(),
-            percentage: percentage.toString(),
-            isSettled: userId === transaction.paidByUserId,
-            settledAt: userId === transaction.paidByUserId ? new Date() : null
+            percentage,
+            amount: roundedAmount
           });
         }
         
-        // Validate that percentages add up to 100%
+        // Validate that percentages add up to 100% (with small tolerance for floating point errors)
         if (Math.abs(percentageTotal - 100) > 0.01) {
           return { 
             splits: [], 
             isValid: false, 
-            errorMessage: `Percentage splits must total 100%, but they total ${percentageTotal}%`
+            errorMessage: `Percentage splits must total 100%, but they total ${percentageTotal.toFixed(2)}%`
           };
+        }
+        
+        // Calculate the total after rounding each amount
+        const totalAfterRounding = percentageSplits.reduce((sum, split) => sum + split.amount, 0);
+        
+        // Calculate the difference due to rounding
+        const roundingDifference = totalAmount - totalAfterRounding;
+        
+        // If there's a meaningful difference, adjust the largest split to compensate
+        if (Math.abs(roundingDifference) >= 0.01) {
+          // Find the largest split
+          let largestSplitIndex = 0;
+          for (let i = 1; i < percentageSplits.length; i++) {
+            if (percentageSplits[i].amount > percentageSplits[largestSplitIndex].amount) {
+              largestSplitIndex = i;
+            }
+          }
+          
+          // Adjust the largest split
+          percentageSplits[largestSplitIndex].amount += roundingDifference;
+        }
+        
+        // Now create the final splits
+        for (const percentageSplit of percentageSplits) {
+          splitsTotal += percentageSplit.amount;
+          
+          splits.push({
+            transactionId,
+            userId: percentageSplit.userId,
+            amount: percentageSplit.amount.toFixed(2),
+            percentage: percentageSplit.percentage.toString(),
+            isSettled: percentageSplit.userId === transaction.paidByUserId,
+            settledAt: percentageSplit.userId === transaction.paidByUserId ? new Date() : null
+          });
         }
         break;
         
       case SplitType.EXACT:
-        // Exact amount split
+        // Exact amount split with validation
+        let exactSplitTotal = 0;
+        
+        // First pass to calculate the total
+        for (const userId of splitWithUserIds) {
+          // Get the explicit amount or default to 0
+          let splitAmount = 0;
+          try {
+            splitAmount = parseFloat((splitDetails[userId] || 0).toString());
+          } catch (e) {
+            return { 
+              splits: [], 
+              isValid: false, 
+              errorMessage: `Invalid split amount for user ${userId}: ${splitDetails[userId]}`
+            };
+          }
+          
+          // Validate the split amount
+          if (isNaN(splitAmount)) {
+            return { 
+              splits: [], 
+              isValid: false, 
+              errorMessage: `Invalid split amount for user ${userId}: ${splitDetails[userId]}`
+            };
+          }
+          
+          if (splitAmount < 0) {
+            return { 
+              splits: [], 
+              isValid: false, 
+              errorMessage: `Split amount cannot be negative for user ${userId}: ${splitAmount}`
+            };
+          }
+          
+          exactSplitTotal += splitAmount;
+        }
+        
+        // Verify the exact splits add up to the total amount (within rounding tolerance)
+        if (Math.abs(exactSplitTotal - totalAmount) > 0.01) {
+          return { 
+            splits: [], 
+            isValid: false, 
+            errorMessage: `Exact split amounts total ${exactSplitTotal.toFixed(2)}, but transaction amount is ${totalAmount.toFixed(2)}`
+          };
+        }
+        
+        // If validation passed, create the splits
         for (const userId of splitWithUserIds) {
           const splitAmount = parseFloat((splitDetails[userId] || 0).toString());
           splitsTotal += splitAmount;
@@ -253,22 +421,33 @@ export class DatabaseStorage implements IStorage {
           splits.push({
             transactionId,
             userId,
-            amount: splitAmount.toString(),
+            amount: splitAmount.toFixed(2), // Format with exactly 2 decimal places
             isSettled: userId === transaction.paidByUserId,
             settledAt: userId === transaction.paidByUserId ? new Date() : null
           });
         }
         break;
+        
+      default:
+        return { 
+          splits: [], 
+          isValid: false, 
+          errorMessage: `Unknown split type: ${transaction.splitType}`
+        };
     }
     
-    // Verify that the splits add up to the total (allowing for tiny float precision errors)
-    const isValidTotal = Math.abs(splitsTotal - totalAmount) < 0.01;
+    // Final verification that the splits add up to the total (allowing for tiny float precision errors)
+    // Convert to cents for comparison to avoid floating point issues
+    const totalCents = Math.round(totalAmount * 100);
+    const splitsCents = Math.round(splitsTotal * 100);
     
-    if (!isValidTotal) {
+    if (totalCents !== splitsCents) {
       return { 
         splits: [], 
         isValid: false, 
-        errorMessage: `Split amounts total ${splitsTotal.toFixed(2)}, but transaction amount is ${totalAmount.toFixed(2)}`
+        errorMessage: `After all calculations, split amounts total ${splitsTotal.toFixed(2)}, ` +
+          `but transaction amount is ${totalAmount.toFixed(2)}. ` +
+          `Difference: ${Math.abs(totalAmount - splitsTotal).toFixed(2)}`
       };
     }
     

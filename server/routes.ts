@@ -15,6 +15,11 @@ import { db } from "./db";
 import passport, { isAuthenticated } from "./auth";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import { 
+  verifyTransactionConsistency, 
+  reconcileTransactionData, 
+  findInconsistentTransactions 
+} from './transactionVerification';
 
 // Helper function to sanitize user objects by removing sensitive data
 export function sanitizeUser(user: User) {
