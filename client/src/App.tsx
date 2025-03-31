@@ -33,13 +33,13 @@ function Layout({ children }: { children: React.ReactNode }) {
         
         {/* Main content */}
         <main className="flex-1 overflow-auto">
-          <div className="container mx-auto px-2 sm:px-3 pt-10 md:pt-3 pb-16 max-w-full md:max-w-3xl">
+          <div className="container mx-auto px-2 sm:px-3 pt-10 md:pt-3 pb-16 max-w-full md:max-w-[650px]">
             {children}
           </div>
         </main>
         
         {/* Right sidebar - Balance summary */}
-        <div className="hidden md:block w-[600px] border-l bg-muted/10 overflow-auto">
+        <div className="hidden md:block w-[450px] border-l bg-muted/10 overflow-auto">
           <BalanceSidebar />
         </div>
       </div>

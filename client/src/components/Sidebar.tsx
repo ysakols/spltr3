@@ -264,7 +264,7 @@ export function Sidebar({ className }: SidebarProps) {
     <div 
       className={cn(
         "hidden md:flex flex-col h-screen bg-muted/20 border-r border-border/60 transition-all duration-300 relative",
-        isCollapsed ? "w-[50px]" : "w-[200px]",
+        isCollapsed ? "w-[45px]" : "w-[160px]",
         className
       )}
       onMouseEnter={() => setIsHovered(true)}
