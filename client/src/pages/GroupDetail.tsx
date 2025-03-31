@@ -234,7 +234,7 @@ function GroupDetail() {
 
           {!isEditing && (
             <div className="pt-2">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-start gap-3 mb-4">
                 {summary && members && (
                   <SettleUpButton
                     groupId={groupId}

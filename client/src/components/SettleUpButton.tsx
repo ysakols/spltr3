@@ -69,47 +69,44 @@ export function SettleUpButton({ groupId, summary, currentUser, members }: Settl
   const otherGroupMembers = members.filter(member => member.id !== currentUser.id);
   
   return (
-    <div>
-      {/* Always show the dropdown to allow settling up with any member */}
-      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="default" className="flex items-center gap-2 h-10 px-4">
-            <ArrowUpRight className="h-4 w-4" />
-            Settle Up
-            {dropdownOpen ? 
-              <ChevronUp className="h-4 w-4" /> : 
-              <ChevronDown className="h-4 w-4" />
-            }
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {/* Show owed users at the top if there are any */}
-          {usersOwed.length > 0 && (
-            <>
-              {usersOwed.map(({ userId, amount }) => (
-                <DropdownMenuItem 
-                  key={`owed-${userId}`}
-                  onClick={() => handleSettleUp(userId, amount)}
-                >
-                  Pay {userMap[userId]} ${amount.toFixed(2)} (owed)
-                </DropdownMenuItem>
-              ))}
-              <hr className="my-1 border-t border-gray-200" />
-            </>
-          )}
-          
-          {/* Show all other group members */}
-          {otherGroupMembers.map(member => (
-            <DropdownMenuItem 
-              key={member.id}
-              // Default to $0 so the user can enter their own amount
-              onClick={() => handleSettleUp(member.id, 0)}
-            >
-              Pay {userMap[member.id]}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="default" className="flex items-center gap-2 h-10 px-4 whitespace-nowrap">
+          <ArrowUpRight className="h-4 w-4" />
+          Settle Up
+          {dropdownOpen ? 
+            <ChevronUp className="h-4 w-4" /> : 
+            <ChevronDown className="h-4 w-4" />
+          }
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {/* Show owed users at the top if there are any */}
+        {usersOwed.length > 0 && (
+          <>
+            {usersOwed.map(({ userId, amount }) => (
+              <DropdownMenuItem 
+                key={`owed-${userId}`}
+                onClick={() => handleSettleUp(userId, amount)}
+              >
+                Pay {userMap[userId]} ${amount.toFixed(2)} (owed)
+              </DropdownMenuItem>
+            ))}
+            <hr className="my-1 border-t border-gray-200" />
+          </>
+        )}
+        
+        {/* Show all other group members */}
+        {otherGroupMembers.map(member => (
+          <DropdownMenuItem 
+            key={member.id}
+            // Default to $0 so the user can enter their own amount
+            onClick={() => handleSettleUp(member.id, 0)}
+          >
+            Pay {userMap[member.id]}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
