@@ -23,13 +23,13 @@ After saving your changes, the application will refresh automatically.
   --transaction-card-radius: 0rem; /* Set to 0 for completely square corners */
   
   /* Form controls, inputs, selectors */
-  --form-control-radius: 0.25rem;
+  --form-control-radius: 0rem; /* Set to 0 for completely square corners */
   
   /* Buttons, badges, action items */
-  --button-radius: 0.25rem;
+  --button-radius: 0rem; /* Set to 0 for completely square corners */
   
   /* Modal dialogs, popovers, dropdowns */
-  --dialog-radius: 0.375rem;
+  --dialog-radius: 0rem; /* Set to 0 for completely square corners */
   /* Primary brand color (used for main UI elements, buttons, etc.) */
   --primary-color: #2c5282;
   --primary-color-light: #3182ce;
@@ -214,10 +214,14 @@ li[data-sidebar],
   border-radius: 0 !important;
 }
 
-/* Force square corners on Card components */
+/* Force ALL square corners - maximum specificity */
+*,
+*::before,
+*::after,
 .card,
 div[data-card],
 div.shadow-sm,
+div[class*="Card"],
 [data-radix-card],
 [data-radix-card-header],
 [data-radix-card-content],
@@ -227,28 +231,47 @@ div.shadow-sm,
 .card-footer,
 .shadow-sm,
 .shadow-md,
-.shadow-lg {
-  border-radius: var(--transaction-card-radius) !important;
+.shadow-lg,
+.rounded-lg,
+.rounded-md,
+.rounded-sm,
+.rounded,
+div[class*="rounded"],
+[data-shadcn-card],
+div[class*="shadcn"],
+div[class*="ui-card"],
+div[class*="card"],
+div[class*="Card-"],
+div[class^="Card"],
+div.Card,
+div.border,
+.rounded-lg.border,
+.div-card {
+  border-radius: 0 !important;
 }
 
-/* Specific additional overrides for Shadcn card components */
-.rounded-lg.border {
-  border-radius: var(--transaction-card-radius) !important; 
+/* Preserve roundness only for specific UI elements */
+.rounded-full,
+.avatar,
+.badge,
+button.rounded-full,
+span.rounded-full,
+div.rounded-full {
+  border-radius: 9999px !important;
 }
 
-/* Explicitly target Card and its sub-components */
-div[class*="Card"],
-div[class*="CardHeader"],
-div[class*="CardContent"],
-div[class*="CardFooter"] {
-  border-radius: var(--transaction-card-radius) !important;
-}
-
-/* Global sidebar overrides */
+/* Global sidebar overrides - force square corners */
+.sidebar,
 .sidebar *,
 .sidebar div,
 .sidebar li,
 .sidebar a,
-.sidebar button {
-  border-radius: var(--transaction-card-radius) !important;
+.sidebar nav,
+.sidebar button,
+.sidebar ul,
+.sidebar span,
+nav.sidebar div,
+div[class*="sidebar"],
+[data-sidebar] {
+  border-radius: 0 !important;
 }

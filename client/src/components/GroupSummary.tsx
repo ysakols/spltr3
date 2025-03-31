@@ -87,7 +87,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
           return (
             <Card 
               key={personId} 
-              className={`overflow-hidden shadow-sm border-border/50 transition-shadow hover:shadow-md ${isCurrentUser ? 'ring-1 ring-primary/20' : ''}`}
+              className={`overflow-hidden shadow-sm !rounded-none border-border/50 transition-shadow hover:shadow-md ${isCurrentUser ? 'ring-1 ring-primary/20' : ''}`}
             >
               <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
                 <div className="flex items-center justify-between">
@@ -120,7 +120,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
       
       {/* Settlement Plan */}
       {summary.settlements && summary.settlements.length > 0 && (
-        <Card className="shadow-sm border-border/50 overflow-hidden">
+        <Card className="shadow-sm !rounded-none border-border/50 overflow-hidden">
           <CardHeader className="py-2 px-3 bg-gradient-to-r from-primary/5 to-transparent border-b">
             <CardTitle className="text-xs flex items-center">
               <div className="w-1 h-3 bg-primary/70 mr-1.5 rounded-full"></div>
@@ -178,7 +178,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
       
       {/* No settlements case */}
       {(!summary.settlements || summary.settlements.length === 0) && (
-        <Card className="shadow-sm border-border/50">
+        <Card className="shadow-sm !rounded-none border-border/50">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground">
               No settlements needed in this group.
