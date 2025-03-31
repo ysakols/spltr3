@@ -185,7 +185,7 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   };
 
   return (
-    <Card className="w-full shadow-sm !rounded-none">
+    <Card className="w-full shadow-sm !rounded-none border-t-0">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Activity Feed</CardTitle>
       </CardHeader>
