@@ -10,8 +10,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X, Plus, Mail, User as UserIcon } from 'lucide-react';
+import { X, Plus, Mail, User as UserIcon, AlertTriangle, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import type { Group, User } from '@shared/schema';
 import { insertGroupSchema } from '@shared/schema';
@@ -37,6 +48,8 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
   const [nameInput, setNameInput] = useState(group.name);
   const [descriptionInput, setDescriptionInput] = useState(group.description || '');
   const [membersChanged, setMembersChanged] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<User | null>(null);
+  const [removingMember, setRemovingMember] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -76,30 +89,41 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
       });
   };
   
-  const handleRemoveMember = (user: User) => {
-    apiRequest('DELETE', `/api/groups/${group.id}/members/${user.id}`)
-      .then(() => {
-        // Mark members as changed (to enable save button)
-        setMembersChanged(true);
-        
-        // Refresh the member list
-        queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
-        
-        toast({
-          title: 'Member removed',
-          description: `${user.firstName && user.lastName 
-            ? `${user.firstName} ${user.lastName}` 
-            : user.displayName || user.email} has been removed from the group.`
-        });
-      })
-      .catch((error) => {
-        console.error('Error removing member:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to remove member from the group.',
-          variant: 'destructive'
-        });
+  const confirmRemoveMember = (user: User) => {
+    setMemberToRemove(user);
+  };
+  
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    
+    setRemovingMember(true);
+    
+    try {
+      await apiRequest('DELETE', `/api/groups/${group.id}/members/${memberToRemove.id}`);
+      
+      // Mark members as changed (to enable save button)
+      setMembersChanged(true);
+      
+      // Refresh the member list
+      queryClient.invalidateQueries({ queryKey: [`/api/groups/${group.id}/members`] });
+      
+      toast({
+        title: 'Member removed',
+        description: `${memberToRemove.firstName && memberToRemove.lastName 
+          ? `${memberToRemove.firstName} ${memberToRemove.lastName}` 
+          : memberToRemove.displayName || memberToRemove.email} has been removed from the group.`
       });
+    } catch (error) {
+      console.error('Error removing member:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove member from the group.',
+        variant: 'destructive'
+      });
+    } finally {
+      setRemovingMember(false);
+      setMemberToRemove(null);
+    }
   };
   
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -251,13 +275,50 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
                           ? `${member.firstName} ${member.lastName}` 
                           : member.displayName || member.email}
                       </span>
-                      <button 
-                        type="button" 
-                        onClick={() => handleRemoveMember(member)}
-                        className="ml-2 text-gray-600 hover:text-gray-900"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger>
+                          <button 
+                            type="button" 
+                            className="ml-2 text-gray-600 hover:text-gray-900"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5 text-destructive" />
+                              Remove Member
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to remove this member from the group?
+                              <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                                <p className="font-medium">
+                                  {member.firstName && member.lastName 
+                                    ? `${member.firstName} ${member.lastName}` 
+                                    : member.displayName || member.email}
+                                </p>
+                              </div>
+                              Once removed, they will no longer have access to this group.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => {
+                                confirmRemoveMember(member);
+                                handleRemoveMember();
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {removingMember && memberToRemove?.id === member.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : <X className="h-4 w-4 mr-2" />}
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   ))}
                 </div>

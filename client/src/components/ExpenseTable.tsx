@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Users } from 'lucide-react';
+import { Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Users, Loader2, AlertTriangle } from 'lucide-react';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
@@ -22,6 +22,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import type { User, Expense } from '@shared/schema';
 import type { ExtendedExpense } from '@/types';
@@ -127,8 +138,19 @@ function ExpenseTable({
     return `User ${userId}`;
   };
 
+  // State for delete confirmation
+  const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const deleteExpense = async (id: number) => {
-    await handleDeleteExpense(id, onExpenseDeleted);
+    setExpenseToDelete(id);
+    setIsDeleting(true);
+    try {
+      await handleDeleteExpense(id, onExpenseDeleted);
+    } finally {
+      setIsDeleting(false);
+      setExpenseToDelete(null);
+    }
   };
   
   // Handle sort click
@@ -464,14 +486,45 @@ function ExpenseTable({
                             <Edit2 className="h-3 w-3" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteExpense(expense.id)}
-                          className="text-red-600 hover:text-red-900 hover:bg-red-50 h-5 w-5 p-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-900 hover:bg-red-50 h-5 w-5 p-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                Delete Expense
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this expense?
+                                <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                                  <p className="font-medium">{expense.description}</p>
+                                  <p className="text-sm text-primary mt-1">{formatCurrency(Number(expense.amount))}</p>
+                                </div>
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => deleteExpense(expense.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {isDeleting && expenseToDelete === expense.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : <Trash2 className="h-4 w-4 mr-2" />}
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
