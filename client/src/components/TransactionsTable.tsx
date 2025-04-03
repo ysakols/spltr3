@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { 
   Trash2, Edit2, ArrowUpDown, ArrowDown, ArrowUp, Banknote, CreditCard, 
   CheckCircle2, XCircle, Clock, CalendarIcon, DollarSign, User as UserIcon, Tag, 
-  AlertTriangle, Loader2
+  AlertTriangle, Loader2, Check
 } from 'lucide-react';
+import { useSettlementModal } from '@/hooks/use-settlement-modal';
 import { useExpenseFunctions } from '@/lib/hooks';
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -144,15 +145,15 @@ function TransactionsTable({
     return sorted;
   }, [transactions, sortField, sortDirection]);
   
-  // Function to get username by user ID with full name preferred
+  // Function to get username by user ID with name preferred
   const getUsernameById = (userId?: number) => {
     if (!userId || !members) return 'Unknown User';
     
     const user = members.find(member => member.id === userId);
     return user ? (
-      user.firstName && user.lastName 
-        ? `${user.firstName} ${user.lastName}` 
-        : user.displayName || user.email
+      user.name 
+        ? user.name
+        : user.username || user.email
     ) : `User ${userId}`;
   };
   
@@ -318,6 +319,63 @@ function TransactionsTable({
   };
   
   // Function to handle edit transaction
+  // Function to handle creditor marking a settlement as complete
+  const handleMarkSettlementReceived = async (transaction: Transaction) => {
+    if (!transaction.toUserId || !transaction.paidByUserId || transaction.type !== 'settlement') {
+      return;
+    }
+    
+    // Only allow if the current user is the recipient (creditor)
+    if (transaction.toUserId !== currentUser?.id) {
+      return;
+    }
+    
+    // Get the payer's name (debtor)
+    const payerName = getUsernameById(transaction.paidByUserId);
+    
+    // Use the settlement modal to confirm
+    useSettlementModal.getState().openModal({
+      title: 'Mark Payment As Received',
+      description: `Confirm that you received ${formatCurrency(parseFloat(transaction.amount.toString()))} from ${payerName}.`,
+      fromUserId: transaction.paidByUserId,
+      toUserId: transaction.toUserId,
+      amount: parseFloat(transaction.amount.toString()),
+      groupId: transaction.groupId,
+      fromUserName: payerName,
+      isCreditor: true,
+      onConfirm: async () => {
+        try {
+          // Update the settlement status to completed
+          await apiRequest('PUT', `/api/settlements/${transaction.id}`, {
+            status: 'completed',
+            notes: 'Marked as received by creditor',
+          });
+          
+          toast({
+            title: 'Payment confirmed',
+            description: `You confirmed payment of ${formatCurrency(parseFloat(transaction.amount.toString()))} from ${payerName}`,
+          });
+          
+          // Refresh all the relevant data after update
+          queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'global-summary'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users', currentUser?.id, 'settlements'] });
+          
+        } catch (error) {
+          console.error('Error confirming payment:', error);
+          toast({
+            title: 'Error',
+            description: 'Could not mark the payment as completed.',
+            variant: 'destructive'
+          });
+        }
+      }
+    });
+  };
+
   const handleEditTransaction = (transaction: Transaction) => {
     // If it's an expense, pass it to the expense edit handler
     if (transaction.type === 'expense' && onEditExpense) {
@@ -480,7 +538,7 @@ function TransactionsTable({
                     {/* Action buttons */}
                     {((isExpense && onEditExpense) || 
                       (!isExpense && 
-                      (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id)
+                      (transaction.createdByUserId === currentUser?.id || transaction.paidByUserId === currentUser?.id || transaction.toUserId === currentUser?.id)
                     )) && (
                       <div className="flex justify-end mt-2 gap-1 border-t pt-1.5 border-gray-100">
                         {/* Edit button - only for expenses */}
@@ -493,6 +551,21 @@ function TransactionsTable({
                           >
                             <Edit2 className="h-4 w-4 mr-1.5" />
                             Edit
+                          </Button>
+                        )}
+                        
+                        {/* Mark as Received button - only for pending settlements where current user is creditor */}
+                        {!isExpense && 
+                          transaction.status?.toLowerCase() === 'pending' && 
+                          transaction.toUserId === currentUser?.id && (
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 text-sm bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                            onClick={() => handleMarkSettlementReceived(transaction)}
+                          >
+                            <Check className="h-4 w-4 mr-1.5" />
+                            Mark Received
                           </Button>
                         )}
                         
