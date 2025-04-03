@@ -158,9 +158,11 @@ export function BalanceSidebar() {
 
   return (
     <div className="h-full p-4 flex flex-col text-sm">
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <h2 className="font-bold text-base inline-flex items-center">
-          <div className="w-1 h-6 bg-primary mr-2"></div>
+          <div className="p-1 rounded-md bg-primary/5 mr-2">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
           Balance Summary
         </h2>
       </div>
@@ -168,17 +170,17 @@ export function BalanceSidebar() {
       {/* Global Balance Section - Fixed portion */}
       <div className="mb-6 flex-shrink-0">
         {/* Single Unified Card for Global Balance */}
-        <Card className="border-0 shadow-md overflow-hidden">
+        <Card className="border border-border/60 shadow-sm overflow-hidden bg-background">
           <CardContent className="p-0">
             {/* Header section */}
-            <div className="p-5 bg-gradient-to-br from-primary/5 to-transparent border-b">
-              <div className="flex items-center space-x-5">
-                <div className="h-12 w-12 bg-primary/10 flex items-center justify-center shadow-sm">
-                  <Users className="h-6 w-6 text-primary" />
+            <div className="p-5 bg-muted/10 border-b">
+              <div className="flex items-center space-x-4">
+                <div className="h-10 w-10 bg-primary/5 flex items-center justify-center rounded-md">
+                  <Users className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold">Overall Balance</h3>
-                  <div className="text-sm text-gray-700">
+                  <h3 className="text-base font-medium">Overall Balance</h3>
+                  <div className="text-sm text-muted-foreground">
                     {peopleWhoOweMe.length > 0 && peopleIOwe.length > 0 ? (
                       <p>You have both incoming and outgoing balances</p>
                     ) : peopleWhoOweMe.length > 0 ? (
@@ -199,34 +201,34 @@ export function BalanceSidebar() {
                 {/* People who owe you */}
                 {peopleWhoOweMe.length > 0 && (
                   <div className="p-5">
-                    <h3 className="text-base font-bold mb-4 flex items-center">
-                      <div className="w-1.5 h-5 bg-green-500 mr-2"></div>
+                    <h3 className="text-sm font-medium mb-3 flex items-center">
+                      <div className="w-1 h-4 bg-green-500 mr-2 rounded-sm"></div>
                       Money Owed To You
                     </h3>
                     <table className="w-full">
                       <thead>
-                        <tr className="text-left border-b border-gray-200">
-                          <th className="pb-3 font-medium text-sm text-gray-600">Person</th>
-                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Amount</th>
-                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Actions</th>
+                        <tr className="text-left border-b border-muted">
+                          <th className="pb-2 font-medium text-xs text-muted-foreground">Person</th>
+                          <th className="pb-2 font-medium text-xs text-muted-foreground text-right">Amount</th>
+                          <th className="pb-2 font-medium text-xs text-muted-foreground text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {[...peopleWhoOweMe]
                           .sort((a, b) => b.amount - a.amount)
                           .map((settlement, idx) => (
-                            <tr key={idx} className="border-b border-gray-100 last:border-0">
-                              <td className="py-3 font-medium text-base">{getUserName(settlement.from)}</td>
-                              <td className="py-3 text-right">
-                                <span className="text-green-600 font-bold text-base bg-green-50 px-4 py-1.5">
+                            <tr key={idx} className="border-b border-border/20 last:border-0">
+                              <td className="py-2 font-medium text-sm">{getUserName(settlement.from)}</td>
+                              <td className="py-2 text-right">
+                                <span className="text-green-600 font-medium text-sm bg-green-50 px-2 py-1 rounded">
                                   +{formatCurrency(settlement.amount)}
                                 </span>
                               </td>
-                              <td className="py-3 text-right">
+                              <td className="py-2 text-right">
                                 <Button
                                   size="sm" 
                                   variant="outline"
-                                  className="text-xs px-3 py-1.5"
+                                  className="text-xs h-7 px-2"
                                   onClick={() => {}}
                                 >
                                   Record
@@ -242,34 +244,34 @@ export function BalanceSidebar() {
                 {/* People you owe */}
                 {peopleIOwe.length > 0 && (
                   <div className="p-5">
-                    <h3 className="text-base font-bold mb-4 flex items-center">
-                      <div className="w-1.5 h-5 bg-red-500 mr-2"></div>
+                    <h3 className="text-sm font-medium mb-3 flex items-center">
+                      <div className="w-1 h-4 bg-red-500 mr-2 rounded-sm"></div>
                       Money You Owe
                     </h3>
                     <table className="w-full">
                       <thead>
-                        <tr className="text-left border-b border-gray-200">
-                          <th className="pb-3 font-medium text-sm text-gray-600">Person</th>
-                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Amount</th>
-                          <th className="pb-3 font-medium text-sm text-gray-600 text-right">Actions</th>
+                        <tr className="text-left border-b border-muted">
+                          <th className="pb-2 font-medium text-xs text-muted-foreground">Person</th>
+                          <th className="pb-2 font-medium text-xs text-muted-foreground text-right">Amount</th>
+                          <th className="pb-2 font-medium text-xs text-muted-foreground text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {[...peopleIOwe]
                           .sort((a, b) => b.amount - a.amount)
                           .map((settlement, idx) => (
-                            <tr key={idx} className="border-b border-gray-100 last:border-0">
-                              <td className="py-3 font-medium text-base">{getUserName(settlement.to)}</td>
-                              <td className="py-3 text-right">
-                                <span className="text-red-600 font-bold text-base bg-red-50 px-4 py-1.5">
+                            <tr key={idx} className="border-b border-border/20 last:border-0">
+                              <td className="py-2 font-medium text-sm">{getUserName(settlement.to)}</td>
+                              <td className="py-2 text-right">
+                                <span className="text-red-600 font-medium text-sm bg-red-50 px-2 py-1 rounded">
                                   -{formatCurrency(settlement.amount)}
                                 </span>
                               </td>
-                              <td className="py-3 text-right">
+                              <td className="py-2 text-right">
                                 <Button
                                   size="sm" 
                                   variant="outline"
-                                  className="text-xs px-3 py-1.5"
+                                  className="text-xs h-7 px-2"
                                   onClick={() => {}}
                                 >
                                   Pay
@@ -287,10 +289,10 @@ export function BalanceSidebar() {
             {/* No settlements case */}
             {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
               <div className="p-5 text-center">
-                <p className="text-sm text-gray-700 mb-1">
+                <p className="text-sm text-muted-foreground mb-1">
                   No settlements to display
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-muted-foreground/80">
                   Add expenses to see who owes you money
                 </p>
               </div>
@@ -305,17 +307,19 @@ export function BalanceSidebar() {
           {/* Prominent divider between sections */}
           <div className="relative py-3 flex-shrink-0 mb-2">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-border/60"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-background px-4 py-1 text-sm font-medium text-gray-700 border border-gray-200">
+              <span className="bg-muted/20 px-3 py-0.5 text-xs font-medium text-muted-foreground rounded-sm border border-border/40">
                 Current Group
               </span>
             </div>
           </div>
           
           <h2 className="font-bold text-base mb-4 flex items-center flex-shrink-0">
-            <div className="w-1 h-6 bg-primary mr-2"></div>
+            <div className="p-1 rounded-md bg-primary/5 mr-2">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
             {currentGroup.name} Summary
           </h2>
           

@@ -32,14 +32,14 @@ function Layout({ children }: { children: React.ReactNode }) {
         <Sidebar className="z-20" />
         
         {/* Main content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-muted/5">
           <div className="container mx-auto px-2 sm:px-3 pt-10 md:pt-3 pb-16 max-w-full md:max-w-[650px]">
             {children}
           </div>
         </main>
         
         {/* Right sidebar - Balance summary */}
-        <div className="hidden md:block w-[450px] border-l bg-muted/10 overflow-auto">
+        <div className="hidden md:block w-[450px] border-l border-border/60 bg-muted/20 overflow-auto z-10">
           <BalanceSidebar />
         </div>
       </div>
