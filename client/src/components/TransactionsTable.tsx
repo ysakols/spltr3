@@ -345,15 +345,10 @@ function TransactionsTable({
       isCreditor: true,
       onConfirm: async () => {
         try {
-          // Create a completed settlement record, which will update the balance calculations
-          await apiRequest('POST', '/api/settlements', {
-            fromUserId: transaction.paidByUserId,
-            toUserId: transaction.toUserId,
-            amount: parseFloat(transaction.amount.toString()),
-            groupId: transaction.groupId,
-            paymentMethod: transaction.paymentMethod || 'other',
+          // In a unified transaction system, we need to update the transaction directly
+          await apiRequest('PATCH', `/api/transactions/${transaction.id}`, {
             status: 'completed',
-            notes: 'Marked as received by creditor',
+            notes: 'Marked as received by creditor'
           });
           
           toast({

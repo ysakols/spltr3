@@ -1840,8 +1840,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user is authorized to update this transaction
       const currentUserId = (req.user as User).id;
-      if (transaction.createdByUserId !== currentUserId && transaction.paidByUserId !== currentUserId) {
-        return res.status(403).json({ message: 'Not authorized to update this transaction' });
+      const isSettlement = transaction.type === TransactionType.SETTLEMENT;
+      
+      // For settlements, also allow the recipient (toUserId) to update
+      if (isSettlement) {
+        if (transaction.createdByUserId !== currentUserId && 
+            transaction.paidByUserId !== currentUserId &&
+            transaction.toUserId !== currentUserId) {
+          return res.status(403).json({ message: 'Not authorized to update this transaction' });
+        }
+      } else {
+        // For non-settlements (expenses), only allow creator or payer
+        if (transaction.createdByUserId !== currentUserId && transaction.paidByUserId !== currentUserId) {
+          return res.status(403).json({ message: 'Not authorized to update this transaction' });
+        }
       }
       
       // Validate the update data
