@@ -74,14 +74,14 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
               Member Balances
             </h3>
             
-            <div className="overflow-x-auto -mx-4 px-4">
-              <table className="w-full min-w-[500px]">
+            <div className="overflow-x-auto">
+              <table className="w-full">
                 <thead>
                   <tr className="text-left border-b border-gray-200">
-                    <th className="pb-2 pl-2 font-medium text-sm text-gray-500 w-[38%]">Member</th>
+                    <th className="pb-2 pl-3 font-medium text-sm text-gray-500 w-[35%]">Member</th>
                     <th className="pb-2 font-medium text-sm text-gray-500 text-right w-[20%]">Paid</th>
                     <th className="pb-2 font-medium text-sm text-gray-500 text-right w-[20%]">Owes</th>
-                    <th className="pb-2 pr-2 font-medium text-sm text-gray-500 text-right w-[22%]">Balance</th>
+                    <th className="pb-2 pr-3 font-medium text-sm text-gray-500 text-right w-[25%]">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -100,7 +100,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                         key={personId} 
                         className={`border-b border-gray-100 last:border-0 ${isCurrentUser ? 'bg-primary/5' : ''}`}
                       >
-                        <td className="py-3 pl-2">
+                        <td className="py-3 pl-3">
                           <div className="flex items-center">
                             {isCurrentUser && <div className="w-1 h-4 bg-primary mr-2 flex-shrink-0"></div>}
                             <span className="font-medium text-sm">{getUserName(personId)}</span>
@@ -109,7 +109,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                         </td>
                         <td className="py-3 text-right font-medium text-sm">{formatCurrency(isPaid)}</td>
                         <td className="py-3 text-right font-medium text-sm">{formatCurrency(isOwed)}</td>
-                        <td className="py-3 pr-2 text-right">
+                        <td className="py-3 pr-3 text-right">
                           <span className={`text-sm font-bold px-3 py-1 ${balanceColor}`}>
                             {formatCurrency(balance)}
                           </span>
@@ -130,13 +130,13 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                 Settlement Plan
               </h3>
               
-              <div className="overflow-x-auto -mx-4 px-4">
-                <table className="w-full min-w-[500px] mb-2">
+              <div className="overflow-x-auto">
+                <table className="w-full mb-2">
                   <thead>
                     <tr className="text-left border-b border-gray-200">
-                      <th className="pb-2 pl-2 font-medium text-sm text-gray-500 w-[40%]">From</th>
-                      <th className="pb-2 font-medium text-sm text-gray-500 w-[40%]">To</th>
-                      <th className="pb-2 pr-2 font-medium text-sm text-gray-500 text-right w-[20%]">Amount</th>
+                      <th className="pb-2 pl-3 font-medium text-sm text-gray-500 w-[37.5%]">From</th>
+                      <th className="pb-2 font-medium text-sm text-gray-500 w-[37.5%]">To</th>
+                      <th className="pb-2 pr-3 font-medium text-sm text-gray-500 text-right w-[25%]">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -149,7 +149,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                           key={index} 
                           className={`border-b border-gray-100 last:border-0 ${isUserInvolved ? 'bg-primary/5' : ''}`}
                         >
-                          <td className="py-3 pl-2">
+                          <td className="py-3 pl-3">
                             <div className="flex items-center">
                               <CircleDollarSign className={`h-4 w-4 mr-2 flex-shrink-0 ${isUserPaying ? 'text-red-500' : 'text-primary'}`} />
                               <span className={`font-medium text-sm ${Number(settlement.from) === currentUserId ? 'text-primary' : ''}`}>
@@ -162,7 +162,7 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
                               {getUserName(settlement.to)}
                             </span>
                           </td>
-                          <td className="py-3 pr-2 text-right">
+                          <td className="py-3 pr-3 text-right">
                             <span className="font-bold text-sm text-primary px-3 py-1 bg-primary/10">
                               {formatCurrency(settlement.amount)}
                             </span>

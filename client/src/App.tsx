@@ -10,9 +10,8 @@ import Login from "@/pages/Login";
 import Invitation from "@/pages/Invitation";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
-// Contacts and ContactDetail pages have been removed as the contacts concept is no longer used
 import Profile from "@/pages/Profile";
-import { Sidebar, MobileSidebarTrigger } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
 import { BalanceSidebar } from "@/components/BalanceSidebar";
 import { SettlementModal } from "@/components/SettlementModal";
 import { useState, useEffect } from "react";
@@ -20,26 +19,20 @@ import { useState, useEffect } from "react";
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen max-h-screen bg-background font-sans text-foreground antialiased">
-      {/* Main content with sidebars */}
+      {/* Header with navigation */}
+      <Header />
+      
+      {/* Main content with right sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Mobile Sidebar Trigger - Now floating at the top left corner for mobile */}
-        <div className="md:hidden fixed top-2.5 left-2.5 z-30">
-          <div className="bg-background/80 backdrop-blur-sm rounded-lg shadow-sm p-0.5">
-            <MobileSidebarTrigger />
-          </div>
-        </div>
-        {/* Left sidebar - Navigation */}
-        <Sidebar className="z-20" />
-        
         {/* Main content */}
         <main className="flex-1 overflow-auto bg-muted/5">
-          <div className="container mx-auto px-1 sm:px-2 md:px-3 pt-10 md:pt-3 pb-16 max-w-full md:max-w-[800px] lg:max-w-[900px]">
+          <div className="container mx-auto px-1 sm:px-2 md:px-3 pt-4 pb-16 max-w-full md:max-w-[800px] lg:max-w-[900px]">
             {children}
           </div>
         </main>
         
         {/* Right sidebar - Balance summary */}
-        <div className="hidden md:block w-[350px] border-l border-border/30 bg-background overflow-auto z-10">
+        <div className="hidden md:block w-[450px] border-l border-border/30 bg-background overflow-auto z-10">
           <BalanceSidebar />
         </div>
       </div>
