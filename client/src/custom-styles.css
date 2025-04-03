@@ -67,15 +67,25 @@ h1, h2, h3, h4, h5, h6 {
 /* Fix container alignment */
 .button-container {
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   justify-content: flex-start !important;
-  height: 2.5rem !important; /* Same height as buttons */
+  min-height: 2.5rem !important; /* Same height as buttons */
+}
+
+/* Container for buttons to ensure proper alignment */
+.equal-width-buttons {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1rem !important;
+  align-items: flex-start !important;
 }
 
 /* Make buttons identical width if desired */
 .equal-width-buttons .settle-up-button,
 .equal-width-buttons .add-expense-button {
   min-width: 8.5rem !important; /* 136px - adjust as needed */
+  height: 2.5rem !important; 
 }
 
 /* Make sure icons are properly sized and aligned */
