@@ -111,7 +111,23 @@ export function SettlementModal() {
   // For creditor confirmation (mark as received)
   const confirmCreditorAction = async () => {
     if (isNewFormat && data?.onConfirm) {
-      data.onConfirm();
+      setIsSubmitting(true);
+      try {
+        // Execute the confirmation callback
+        await data.onConfirm();
+        
+        // Auto-close modal after successful confirmation
+        onDismiss();
+      } catch (error) {
+        console.error('Error confirming payment:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not confirm the payment.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
     
