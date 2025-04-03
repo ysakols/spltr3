@@ -345,8 +345,13 @@ function TransactionsTable({
       isCreditor: true,
       onConfirm: async () => {
         try {
-          // Update the settlement status to completed
-          await apiRequest('PUT', `/api/settlements/${transaction.id}`, {
+          // Create a completed settlement record, which will update the balance calculations
+          await apiRequest('POST', '/api/settlements', {
+            fromUserId: transaction.paidByUserId,
+            toUserId: transaction.toUserId,
+            amount: parseFloat(transaction.amount.toString()),
+            groupId: transaction.groupId,
+            paymentMethod: transaction.paymentMethod || 'other',
             status: 'completed',
             notes: 'Marked as received by creditor',
           });
