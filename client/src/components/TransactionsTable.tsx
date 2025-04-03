@@ -588,14 +588,16 @@ function TransactionsTable({
                                 Delete {isExpense ? 'Expense' : 'Settlement'}
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete this {transaction.type}?
-                                <div className="mt-2 p-3 bg-muted/50 rounded-md">
-                                  <p className="font-medium">{transaction.description}</p>
-                                  <p className="text-xs text-primary mt-1">
-                                    {formatCurrency(amount)}
-                                  </p>
+                                <div>
+                                  Are you sure you want to delete this {transaction.type}?
+                                  <div className="mt-2 p-3 bg-muted/50 rounded-md">
+                                    <div className="font-medium">{transaction.description}</div>
+                                    <div className="text-xs text-primary mt-1">
+                                      {formatCurrency(amount)}
+                                    </div>
+                                  </div>
+                                  This action cannot be undone.
                                 </div>
-                                This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

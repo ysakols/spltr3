@@ -1904,16 +1904,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user is authorized to delete this transaction
       const currentUserId = (req.user as User).id;
-      // Allow deletion if the user created the transaction OR paid for it (for settlements)
+      const isSettlement = transaction.type === TransactionType.SETTLEMENT;
+      
+      // Allow deletion based on role in the transaction
       const isCreator = Number(transaction.createdByUserId) === Number(currentUserId);
       const isPayer = Number(transaction.paidByUserId) === Number(currentUserId);
+      // Also allow recipient for settlements
+      const isRecipient = isSettlement && Number(transaction.toUserId) === Number(currentUserId);
       
-      if (!isCreator && !isPayer) {
+      if (!isCreator && !isPayer && !isRecipient) {
         console.log('Access denied: User is not authorized to delete this transaction');
         console.log(`Transaction creator ID: ${transaction.createdByUserId} (${typeof transaction.createdByUserId})`);
         console.log(`Transaction payer ID: ${transaction.paidByUserId} (${typeof transaction.paidByUserId})`);
+        console.log(`Transaction recipient ID: ${transaction.toUserId} (${typeof transaction.toUserId})`);
         console.log(`Current user ID: ${currentUserId} (${typeof currentUserId})`);
-        console.log(`Is Creator: ${isCreator}, Is Payer: ${isPayer}`);
+        console.log(`Is Creator: ${isCreator}, Is Payer: ${isPayer}, Is Recipient: ${isRecipient}`);
         return res.status(403).json({ message: 'Not authorized to delete this transaction' });
       }
       
