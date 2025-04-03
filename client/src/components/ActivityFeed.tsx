@@ -3,7 +3,7 @@ import { User, TransactionType, TransactionStatus } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
@@ -13,7 +13,8 @@ import {
   CreditCard,
   Banknote,
   CheckCircle2,
-  User as UserIcon
+  User as UserIcon,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 
 type GroupInvitation = {
@@ -185,17 +186,17 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
   };
 
   return (
-    <Card className="w-full shadow-sm !rounded-none border-t-0 mx-0 px-0">
-      <CardHeader className="pb-3 px-3 sm:px-6">
-        <CardTitle className="text-lg">Activity Feed</CardTitle>
+    <Card className="shadow-sm !rounded-none mb-0 mx-0 px-0">
+      <CardHeader className="pb-2 space-y-2 !rounded-none px-3 sm:px-6">
+        <CardTitle className="text-xl">Activity Feed</CardTitle>
       </CardHeader>
-      <CardContent className="p-3 sm:p-5 mx-0">
+      <CardContent className="p-2 sm:p-3 !rounded-none">
         {activities.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground">
             No activity found
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid gap-2 md:gap-3">
             {activities.map((activity: Activity, index: number) => {
               const key = `${activity.type}-${
                 activity.type === 'invitation' 
@@ -204,19 +205,19 @@ export function ActivityFeed({ groupId }: { groupId: number }) {
               }-${activity.timestamp}`;
               
               // Determine activity type for styling
-              let activityColor = "border-blue-400";
+              let activityColor = "border-l-blue-400";
               if (activity.type === 'transaction') {
-                activityColor = activity.activityType === 'expense' ? "border-amber-400" : "border-green-400";
+                activityColor = activity.activityType === 'expense' ? "border-l-indigo-400" : "border-l-teal-400";
               } else if (activity.type === 'edit') {
-                activityColor = "border-purple-400";
+                activityColor = "border-l-purple-400";
               } else if (activity.type === 'delete') {
-                activityColor = "border-red-400";
+                activityColor = "border-l-red-400";
               }
               
               return (
                 <div 
                   key={key}
-                  className={`relative border p-2 sm:p-3 transition-all hover:shadow-sm border-l-4 ${activityColor}`}
+                  className={`transaction-card border overflow-hidden bg-card transition-all hover:shadow-sm border-l-4 ${activityColor}`}
                 >
                   {activity.type === 'invitation' && (
                     <InvitationActivity 
@@ -270,34 +271,33 @@ function InvitationActivity({
   getStatusColor: (status: string) => string 
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5">
-          <UserIcon className="h-5 w-5 text-blue-600" />
-          <span className="font-medium">Invitation</span>
+    <div className="p-2 sm:p-3">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-1">
+            <UserIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
+            <h3 className="font-medium text-sm truncate whitespace-nowrap">
+              {invitation.group?.name ? `Group: ${invitation.group.name}` : 'Join group'}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
+              {invitation.inviterUser?.name || invitation.inviterUser?.username || invitation.inviterUser?.email || 'Someone'} invited {invitation.inviteeEmail}
+            </p>
+          </div>
         </div>
-        <Badge className={`${getStatusColor(invitation.status)} font-normal text-sm py-0.5 h-6`}>
+        
+        <Badge className={`${getStatusColor(invitation.status)} font-normal text-sm py-0.5 h-6 flex-shrink-0`}>
           {invitation.status}
         </Badge>
       </div>
       
-      <div className="bg-card border !rounded-none p-2">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="font-medium text-sm">
-            {invitation.group?.name ? `Group: ${invitation.group.name}` : 'Join group'}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {invitation.inviterUser?.firstName || invitation.inviterUser?.email || 'Someone'} invited {invitation.inviteeEmail}
-        </p>
-      </div>
-      
-      <div className="flex flex-wrap justify-between items-center gap-2 text-sm text-muted-foreground">
-        <span>
+      <div className="flex flex-wrap gap-1 mt-1.5">
+        <span className="text-sm text-muted-foreground">
           {formatDistanceToNow(new Date(invitation.invitedAt), { addSuffix: true })}
         </span>
         {invitation.acceptedAt && (
-          <span className="flex items-center">
+          <span className="flex items-center text-sm text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
             Accepted {formatDistanceToNow(new Date(invitation.acceptedAt), { addSuffix: true })}
           </span>
@@ -314,29 +314,38 @@ function ExpenseActivity({
   transaction: Transaction
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5">
-          <CreditCard className="h-5 w-5 text-amber-600" />
-          <span className="font-medium">Expense Added</span>
+    <div className="p-2 sm:p-3">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-1">
+            <CreditCard className="h-4 w-4 text-indigo-500 flex-shrink-0" />
+            <h3 className="font-medium text-sm truncate whitespace-nowrap">
+              {transaction.description}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center whitespace-nowrap">
+              <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              {format(new Date(transaction.date), 'MMM d, yyyy')}
+            </div>
+            <div className="flex items-center whitespace-nowrap">
+              <UserIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate max-w-[120px] inline-block">
+                Paid by {transaction.paidByUser?.name || transaction.paidByUser?.username || 'Unknown'}
+              </span>
+            </div>
+          </div>
         </div>
-        <Badge variant="outline" className="font-normal text-sm py-0.5 h-6">
-          {transaction.splitType || 'Split'}
+        <div className="text-right">
+          <span className="font-bold whitespace-nowrap">{formatCurrency(transaction.amount)}</span>
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-1 mt-1.5">
+        <Badge variant="outline" className="text-sm py-0.5 h-6 flex items-center">
+          {transaction.splitType || 'Equal split'}
         </Badge>
-      </div>
-      
-      <div className="bg-card border !rounded-none p-2">
-        <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-sm">{transaction.description}</h4>
-          <span className="font-bold text-sm">{formatCurrency(transaction.amount)}</span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Added by {transaction.createdByUser?.firstName || 'Someone'}, paid by {transaction.paidByUser?.firstName || 'Unknown'}
-        </p>
-      </div>
-      
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
         </span>
       </div>
@@ -354,48 +363,59 @@ function SettlementActivity({
   getStatusColor: (status?: string) => string,
   formatPaymentMethod: (method?: string) => string
 }) {
-  const payer = transaction.paidByUser?.firstName || 'Someone';
-  const receiver = transaction.toUser?.firstName || 'Someone';
+  const payer = transaction.paidByUser?.name || transaction.paidByUser?.username || 'Someone';
+  const receiver = transaction.toUser?.name || transaction.toUser?.username || 'Someone';
   
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5">
-          <Banknote className="h-5 w-5 text-green-600" />
-          <span className="font-medium">Payment</span>
-        </div>
-        <Badge className={`${getStatusColor(transaction.status)} font-normal text-sm py-0.5 h-6`}>
-          {transaction.status || TransactionStatus.PENDING}
-        </Badge>
-      </div>
-      
-      <div className="bg-card border !rounded-none p-2">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <div className="flex items-center gap-1 flex-1 min-w-0">
-            <span className="truncate font-medium">{payer}</span>
-            <span className="text-muted-foreground">→</span>
-            <span className="truncate font-medium">{receiver}</span>
+    <div className="p-2 sm:p-3">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-1">
+            <Banknote className="h-4 w-4 text-teal-500 flex-shrink-0" />
+            <h3 className="font-medium text-sm truncate whitespace-nowrap">
+              Payment
+            </h3>
           </div>
-          <span className="font-bold text-green-600 flex-shrink-0">{formatCurrency(transaction.amount)}</span>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center whitespace-nowrap">
+              <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              {format(new Date(transaction.date), 'MMM d, yyyy')}
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="truncate max-w-[80px] inline-block">{payer}</span>
+              <span className="text-muted-foreground">→</span>
+              <span className="truncate max-w-[80px] inline-block">{receiver}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="text-sm py-0.5 h-6 flex items-center">
-            {formatPaymentMethod(transaction.paymentMethod)}
-          </Badge>
+        <div className="text-right">
+          <span className="font-bold whitespace-nowrap text-teal-600">{formatCurrency(transaction.amount)}</span>
+          <div className="mt-1">
+            <Badge className={`${getStatusColor(transaction.status)} font-normal text-sm py-0.5 h-6 flex-shrink-0`}>
+              {transaction.status || TransactionStatus.PENDING}
+            </Badge>
+          </div>
         </div>
       </div>
       
-      {transaction.notes && (
-        <p className="text-sm italic bg-muted/30 p-2 !rounded-none">"{transaction.notes}"</p>
-      )}
-      
-      <div className="flex flex-wrap justify-between items-center gap-2 text-sm text-muted-foreground">
-        <span>
+      <div className="flex flex-wrap gap-1 mt-1.5">
+        <Badge variant="outline" className="text-sm py-0.5 h-6 flex items-center">
+          {formatPaymentMethod(transaction.paymentMethod)}
+        </Badge>
+        
+        {transaction.notes && (
+          <Badge variant="outline" className="text-sm py-0.5 h-6 flex items-center">
+            Note: {transaction.notes}
+          </Badge>
+        )}
+        
+        <span className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(transaction.createdAt), { addSuffix: true })}
         </span>
+        
         {transaction.completedAt && (
-          <span className="flex items-center">
-            <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
+          <span className="flex items-center text-xs text-muted-foreground">
+            <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />
             Completed {formatDistanceToNow(new Date(transaction.completedAt), { addSuffix: true })}
           </span>
         )}
@@ -415,39 +435,44 @@ function EditActivity({
   const isExpense = transaction.type === TransactionType.EXPENSE;
   
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5">
-          <FileEdit className="h-5 w-5 text-purple-600" />
-          <span className="font-medium">{isExpense ? 'Expense Edited' : 'Payment Edited'}</span>
+    <div className="p-2 sm:p-3">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-1">
+            <FileEdit className="h-4 w-4 text-purple-500 flex-shrink-0" />
+            <h3 className="font-medium text-sm truncate whitespace-nowrap">
+              {isExpense ? transaction.description : 'Payment Edit'}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center whitespace-nowrap">
+              <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              {format(new Date(transaction.date), 'MMM d, yyyy')}
+            </div>
+            <div className="flex items-center whitespace-nowrap">
+              <UserIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate max-w-[120px] inline-block">
+                Edited by {transaction.updatedByUser?.name || transaction.updatedByUser?.username || 'Someone'}
+              </span>
+            </div>
+          </div>
         </div>
-        <Badge variant="outline" className="font-normal text-sm py-0.5 h-6 bg-purple-50">
-          Edited
-        </Badge>
-      </div>
-      
-      <div className="bg-card border !rounded-none p-2">
-        <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-sm">
-            {isExpense ? transaction.description : 'Payment'}
-          </h4>
-          <span className="font-bold text-sm">
-            {formatCurrency(transaction.amount)}
-          </span>
+        <div className="text-right">
+          <span className="font-bold whitespace-nowrap">{formatCurrency(transaction.amount)}</span>
+          <div className="mt-1">
+            <Badge variant="outline" className="font-normal text-sm py-0.5 h-6 bg-purple-50">Edited</Badge>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Edited by {transaction.updatedByUser?.firstName || 'Someone'}
-        </p>
       </div>
       
       {transaction.previousValues && (
-        <div className="bg-muted/20 !rounded-none p-2 text-sm text-muted-foreground space-y-1.5">
+        <div className="bg-muted/20 rounded-sm p-2 mt-2 text-sm text-muted-foreground space-y-1.5">
           <p className="font-medium">Previous Values:</p>
           {(() => {
             try {
               const prevValues = JSON.parse(transaction.previousValues);
               return (
-                <div className="space-y-1 pl-1">
+                <div className="space-y-1">
                   {isExpense ? (
                     <>
                       <p>Description: {prevValues.description}</p>
@@ -474,8 +499,8 @@ function EditActivity({
         </div>
       )}
       
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
+      <div className="flex flex-wrap gap-1 mt-1.5">
+        <span className="text-xs text-muted-foreground">
           {transaction.updatedAt && formatDistanceToNow(new Date(transaction.updatedAt), { addSuffix: true })}
         </span>
       </div>
@@ -492,33 +517,38 @@ function DeleteActivity({
   const isExpense = transaction.type === TransactionType.EXPENSE;
   
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5">
-          <Trash className="h-5 w-5 text-red-600" />
-          <span className="font-medium">{isExpense ? 'Expense Deleted' : 'Payment Deleted'}</span>
+    <div className="p-2 sm:p-3">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-1">
+            <Trash className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <h3 className="font-medium text-sm truncate whitespace-nowrap line-through">
+              {isExpense ? transaction.description : 'Payment'}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center whitespace-nowrap">
+              <CalendarIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              {format(new Date(transaction.date), 'MMM d, yyyy')}
+            </div>
+            <div className="flex items-center whitespace-nowrap">
+              <UserIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate max-w-[120px] inline-block">
+                Deleted by {transaction.deletedByUser?.name || transaction.deletedByUser?.username || 'Someone'}
+              </span>
+            </div>
+          </div>
         </div>
-        <Badge variant="destructive" className="font-normal text-sm py-0.5 h-6">
-          Deleted
-        </Badge>
+        <div className="text-right">
+          <span className="font-bold whitespace-nowrap line-through">{formatCurrency(transaction.amount)}</span>
+          <div className="mt-1">
+            <Badge variant="destructive" className="font-normal text-sm py-0.5 h-6">Deleted</Badge>
+          </div>
+        </div>
       </div>
       
-      <div className="bg-card border border-red-100 !rounded-none p-2">
-        <div className="flex justify-between items-center mb-1">
-          <h4 className="font-medium text-sm line-through">
-            {isExpense ? transaction.description : 'Payment'}
-          </h4>
-          <span className="font-bold text-sm line-through">
-            {formatCurrency(transaction.amount)}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Deleted by {transaction.deletedByUser?.firstName || 'Someone'}
-        </p>
-      </div>
-      
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
+      <div className="flex flex-wrap gap-1 mt-1.5">
+        <span className="text-xs text-muted-foreground">
           {transaction.deletedAt && formatDistanceToNow(new Date(transaction.deletedAt), { addSuffix: true })}
         </span>
       </div>
