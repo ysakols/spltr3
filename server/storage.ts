@@ -2038,9 +2038,11 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // Process settlement transactions
+    // Process settlement transactions - exclude deleted ones
     const settlementTransactions = transactions.filter(
-      t => t.type === TransactionType.SETTLEMENT && t.status === TransactionStatus.COMPLETED
+      t => t.type === TransactionType.SETTLEMENT && 
+           t.status === TransactionStatus.COMPLETED &&
+           (!t.isDeleted || t.isDeleted === false)
     );
     
     for (const settlement of settlementTransactions) {
@@ -2140,6 +2142,7 @@ export class DatabaseStorage implements IStorage {
     
     // Add global settlement transactions (not tied to a specific group)
     // Get all completed settlement transactions not associated with any group
+    // Also exclude deleted transactions
     const globalSettlements = await db
       .select()
       .from(transactions)
@@ -2147,7 +2150,11 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(transactions.type, TransactionType.SETTLEMENT),
           eq(transactions.status, TransactionStatus.COMPLETED),
-          isNull(transactions.groupId)
+          isNull(transactions.groupId),
+          or(
+            eq(transactions.isDeleted, false),
+            isNull(transactions.isDeleted)
+          )
         )
       );
     
