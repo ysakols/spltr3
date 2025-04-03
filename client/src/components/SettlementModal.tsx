@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSettlementModal } from '@/hooks/use-settlement-modal';
 import { PaymentMethod, SettlementStatus } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/utils';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Banknote, ArrowUpRight, CheckCircle } from 'lucide-react';
+import { Loader2, Banknote, ArrowUpRight, CheckCircle, Check } from 'lucide-react';
 
 import {
   Dialog,
@@ -55,34 +55,108 @@ const settlementFormSchema = z.object({
 type SettlementFormValues = z.infer<typeof settlementFormSchema>;
 
 export function SettlementModal() {
-  const { isOpen, settlementDetails, clearSettlementDetails } = useSettlementModal();
-  const [activeTab, setActiveTab] = useState<string>(PaymentMethod.CASH);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingSettlementId, setPendingSettlementId] = useState<number | null>(null);
+  const { isOpen, settlementDetails, clearSettlementDetails, data, closeModal } = useSettlementModal();
+  const [activeTab, setActiveTab] = React.useState<string>(PaymentMethod.CASH);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [pendingSettlementId, setPendingSettlementId] = React.useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Handle both the new and old modal data formats
+  const isNewFormat = !!data;
+  const modalTitle = isNewFormat ? data?.title : "Settle Up";
+  const modalDescription = isNewFormat ? data?.description : settlementDetails ? 
+    `You owe ${settlementDetails.toUsername} ${formatCurrency(settlementDetails.amount)}` : 
+    "Record payment";
+    
+  const fromUserId = isNewFormat ? data?.fromUserId : settlementDetails?.fromUserId;
+  const toUserId = isNewFormat ? data?.toUserId : settlementDetails?.toUserId;
+  const amount = isNewFormat ? data?.amount : settlementDetails?.amount || 0;
+  const groupId = isNewFormat ? data?.groupId : settlementDetails?.groupId;
+  const fromUsername = isNewFormat ? data?.fromUserName : settlementDetails?.fromUsername;
+  const toUsername = isNewFormat ? data?.toUserName : settlementDetails?.toUsername;
+  const isCreditor = isNewFormat ? data?.isCreditor : settlementDetails?.isCreditor;
 
   // Set up form with the amount defaulting to the suggested amount
   const form = useForm<SettlementFormValues>({
     resolver: zodResolver(settlementFormSchema),
     defaultValues: {
-      amount: settlementDetails?.amount.toString() || '',
+      amount: amount?.toString() || '',
       notes: '',
       transactionReference: '',
     },
   });
 
+  // Update form defaults when modal data changes
+  useEffect(() => {
+    if (isOpen && amount) {
+      form.setValue('amount', amount.toString());
+    }
+  }, [isOpen, amount, form]);
+
   // Reset form when modal closes
   const onDismiss = () => {
     form.reset();
-    clearSettlementDetails();
+    if (isNewFormat) {
+      closeModal();
+    } else {
+      clearSettlementDetails();
+    }
   };
 
-  if (!settlementDetails) {
+  if (!settlementDetails && !data) {
     return null;
   }
 
-  const { fromUserId, toUserId, amount, groupId, fromUsername, toUsername } = settlementDetails;
+  // For creditor confirmation (mark as received)
+  const confirmCreditorAction = async () => {
+    if (isNewFormat && data?.onConfirm) {
+      data.onConfirm();
+      return;
+    }
+    
+    // Legacy fallback
+    setIsSubmitting(true);
+    try {
+      // Create settlement record with status completed
+      await apiRequest('POST', '/api/settlements', {
+          fromUserId,
+          toUserId,
+          amount,
+          groupId: groupId || null,
+          paymentMethod: PaymentMethod.OTHER,
+          status: SettlementStatus.COMPLETED,
+          notes: 'Marked as received by creditor',
+      });
+
+      toast({
+        title: 'Payment confirmed',
+        description: `You confirmed payment of ${formatCurrency(amount)} from ${fromUsername}`,
+      });
+
+      // Invalidate queries to refresh all affected components
+      if (groupId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
+      }
+      
+      // Invalidate global summary for both users
+      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', toUserId, 'global-summary'] });
+      
+      onDismiss();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not confirm the payment.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleVenmoPayment = async () => {
     // Validate the amount before proceeding
@@ -135,18 +209,15 @@ export function SettlementModal() {
       setActiveTab(PaymentMethod.VENMO);
       
       // Invalidate queries to refresh all affected components
-      // This ensures that all tables, summaries, and history are updated
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
       }
       
-      // Invalidate global summary and settlements for the user
+      // Invalidate global summary for both users
       queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'settlements'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', toUserId, 'global-summary'] });
       
     } catch (error) {
       console.error('Error creating Venmo settlement:', error);
@@ -174,7 +245,6 @@ export function SettlementModal() {
     setIsSubmitting(true);
     try {
       // Update the settlement status to completed
-      // Don't send completedAt from the client - server will handle this
       await apiRequest('PUT', `/api/settlements/${pendingSettlementId}`, {
         status: SettlementStatus.COMPLETED,
         transactionReference: form.getValues().transactionReference,
@@ -186,18 +256,15 @@ export function SettlementModal() {
       });
       
       // Invalidate queries to refresh all affected components
-      // This ensures that all tables, summaries, and history are updated
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
       }
       
-      // Invalidate global summary and settlements for the user
+      // Invalidate global summary for both users
       queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'settlements'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', toUserId, 'global-summary'] });
       
       onDismiss();
     } catch (error) {
@@ -242,18 +309,15 @@ export function SettlementModal() {
       });
 
       // Invalidate queries to refresh all affected components
-      // This ensures that all tables, summaries, and history are updated
       if (groupId) {
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'summary'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'settlements'] });
         queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'transactions'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/groups', groupId, 'expenses'] });
       }
       
-      // Invalidate global summary and settlements for the user
+      // Invalidate global summary for both users
       queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'settlements'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/groups/all-summaries'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', toUserId, 'global-summary'] });
       
       onDismiss();
     } catch (error) {
@@ -268,208 +332,268 @@ export function SettlementModal() {
     }
   };
 
+  // Determine if this is a creditor confirming receipt (simplified view)
+  const showCreditorView = !!isCreditor;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onDismiss()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Settle Up</DialogTitle>
+          <DialogTitle className="flex items-center">
+            {showCreditorView ? (
+              <>
+                <Check className="h-5 w-5 mr-2 text-green-500" />
+                {modalTitle}
+              </>
+            ) : (
+              <>
+                <Banknote className="h-5 w-5 mr-2 text-primary" />
+                {modalTitle}
+              </>
+            )}
+          </DialogTitle>
           <DialogDescription>
-            You owe {toUsername} {formatCurrency(amount)}
+            {modalDescription}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue={PaymentMethod.CASH} value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value={PaymentMethod.CASH}>
-              <Banknote className="h-4 w-4 mr-2" />
-              Mark as Settled
-            </TabsTrigger>
-            <TabsTrigger value={PaymentMethod.VENMO}>
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              Pay with Venmo
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={PaymentMethod.CASH}>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCashPayment)} className="space-y-4 py-4">
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Amount ($)</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                          <input
-                            type="text"
-                            className="flex h-10 w-full !rounded-none border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="0.00"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Notes (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="e.g. Paid in cash on March 24" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="transactionReference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reference Number (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="e.g. Cash transaction #123" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={onDismiss}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Mark as Settled
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </TabsContent>
-
-          <TabsContent value={PaymentMethod.VENMO}>
-            <Form {...form}>
-              <div className="space-y-4 py-4">
-                {pendingSettlementId ? (
-                  // Show this when user has been to Venmo and needs to mark payment as completed
+        {showCreditorView ? (
+          // Simple confirmation for creditor
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-8">
+              This will mark the debt as settled and update the balances accordingly.
+            </p>
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onDismiss}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button"
+                onClick={confirmCreditorAction}
+                disabled={isSubmitting}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isSubmitting ? (
                   <>
-                    <Alert className="bg-green-50 border-green-200">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertTitle>Final Step</AlertTitle>
-                      <AlertDescription>
-                        If you've completed your payment to <strong>{toUsername}</strong> in Venmo, 
-                        please click "Mark as Completed" below to record it in the system.
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <FormField
-                      control={form.control}
-                      name="transactionReference"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Venmo Transaction ID (Optional)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="e.g. Venmo transaction reference" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <DialogFooter className="mt-4">
-                      <Button type="button" variant="outline" onClick={onDismiss}>
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="button" 
-                        onClick={handleVenmoCompleted}
-                        disabled={isSubmitting}
-                        variant="default"
-                      >
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Mark as Completed
-                      </Button>
-                    </DialogFooter>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
                   </>
                 ) : (
-                  // Show this initially before they go to Venmo
-                  <>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        You'll be redirected to the Venmo website. To complete payment:
-                      </p>
-                      <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-1">
-                        <li>Search for recipient <strong>{toUsername}</strong> in Venmo</li>
-                        <li>Pay them the amount you specify below</li>
-                        <li>Once payment is complete, return here and click "Mark as Completed"</li>
-                      </ol>
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Amount ($)</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                              <input
-                                type="text"
-                                className="flex h-10 w-full !rounded-none border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="0.00"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Payment Notes (Optional)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Add a note for this payment" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <DialogFooter className="mt-4">
-                      <Button type="button" variant="outline" onClick={onDismiss}>
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="button" 
-                        onClick={handleVenmoPayment}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Continue to Venmo
-                      </Button>
-                    </DialogFooter>
-                  </>
+                  'Confirm Payment Received'
                 )}
-              </div>
-            </Form>
-          </TabsContent>
-        </Tabs>
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          // Normal payment flow for debtor
+          <Tabs defaultValue={PaymentMethod.CASH} value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value={PaymentMethod.CASH}>
+                <Banknote className="h-4 w-4 mr-2" />
+                Mark as Settled
+              </TabsTrigger>
+              <TabsTrigger value={PaymentMethod.VENMO}>
+                <ArrowUpRight className="h-4 w-4 mr-2" />
+                Pay with Venmo
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={PaymentMethod.CASH}>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleCashPayment)} className="space-y-4 py-4">
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Amount ($)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                            <input
+                              type="text"
+                              className="flex h-10 w-full !rounded-none border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              placeholder="0.00"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Notes (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="e.g. Paid in cash on March 24" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="transactionReference"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reference Number (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="e.g. Cash transaction #123" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onDismiss}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Mark as Settled
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value={PaymentMethod.VENMO}>
+              <Form {...form}>
+                <div className="space-y-4 py-4">
+                  {pendingSettlementId ? (
+                    // Show this when user has been to Venmo and needs to mark payment as completed
+                    <>
+                      <Alert className="bg-green-50 border-green-200">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <AlertTitle>Final Step</AlertTitle>
+                        <AlertDescription>
+                          If you've completed your payment to <strong>{toUsername}</strong> in Venmo, 
+                          please click "Mark as Completed" below to record it in the system.
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <FormField
+                        control={form.control}
+                        name="transactionReference"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Venmo Transaction ID (Optional)</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="e.g. Venmo transaction reference" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <DialogFooter className="mt-4">
+                        <Button type="button" variant="outline" onClick={onDismiss}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={handleVenmoCompleted}
+                          disabled={isSubmitting}
+                          variant="default"
+                        >
+                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Mark as Completed
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  ) : (
+                    // Show this initially before they go to Venmo
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          You'll be redirected to the Venmo website. To complete payment:
+                        </p>
+                        <ol className="list-decimal pl-4 text-sm text-muted-foreground space-y-1">
+                          <li>Search for <strong>{toUsername}</strong> in the Venmo app</li>
+                          <li>Complete the payment for <strong>${parseFloat(form.getValues().amount || amount?.toString() || '0').toFixed(2)}</strong></li>
+                          <li>Return to this page and click "Mark as Completed"</li>
+                        </ol>
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payment Amount ($)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                                <input
+                                  type="text"
+                                  className="flex h-10 w-full !rounded-none border border-input bg-background px-9 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  placeholder="0.00"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payment Notes (Optional)</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Add notes about this payment" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={onDismiss}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={handleVenmoPayment}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <ArrowUpRight className="mr-2 h-4 w-4" />
+                              Continue to Venmo
+                            </>
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  )}
+                </div>
+              </Form>
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

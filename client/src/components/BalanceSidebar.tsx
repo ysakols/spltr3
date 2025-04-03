@@ -3,12 +3,13 @@ import { formatCurrency } from "@/lib/utils";
 import { Balance, Settlement, Group, User } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Card, CardContent } from '@/components/ui/card';
-import { Users } from 'lucide-react';
+import { Users, Check } from 'lucide-react';
 import GroupSummary from './GroupSummary';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { getQueryFn } from '@/lib/queryClient';
 import { displayToNumericId } from '@/lib/id-utils';
+import { useSettlementModal } from '@/hooks/use-settlement-modal';
 
 export function BalanceSidebar() {
   // Get current location to detect if we're on a group details page
@@ -164,7 +165,7 @@ export function BalanceSidebar() {
       
       {/* Global Balance Section - Fixed portion */}
       <div className="flex-shrink-0 px-4 pt-4">
-        {/* People who owe you - Simplified list view */}
+        {/* People who owe you - Simplified list view with mark received buttons */}
         {peopleWhoOweMe.length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-medium mb-3 text-green-600 flex items-center">
@@ -174,14 +175,40 @@ export function BalanceSidebar() {
             <div className="space-y-2">
               {peopleWhoOweMe
                 .sort((a, b) => b.amount - a.amount)
-                .map((settlement, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-green-50/30 rounded-md border border-green-100 shadow-sm">
-                    <div className="font-medium text-sm">{getUserName(settlement.from)}</div>
-                    <div className="text-green-600 font-medium text-sm">
-                      +{formatCurrency(settlement.amount)}
+                .map((settlement, idx) => {
+                  const fromUserName = getUserName(settlement.from);
+                  
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-green-50/30 rounded-md border border-green-100 shadow-sm">
+                      <div>
+                        <div className="font-medium text-sm">{fromUserName}</div>
+                        <div className="text-green-600 font-medium text-sm">
+                          +{formatCurrency(settlement.amount)}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline" 
+                        size="sm"
+                        className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 text-xs h-8"
+                        onClick={() => {
+                          const { openModal } = useSettlementModal.getState();
+                          openModal({
+                            title: 'Mark Payment As Received',
+                            description: `Confirm that you received ${formatCurrency(settlement.amount)} from ${fromUserName}.`,
+                            fromUserId: parseInt(settlement.from),
+                            toUserId: userId,
+                            amount: settlement.amount,
+                            fromUserName,
+                            isCreditor: true
+                          });
+                        }}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Received
+                      </Button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         )}
