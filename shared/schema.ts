@@ -7,15 +7,18 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull(), // Legacy username field
-  name: text("first_name"), // User's name (renamed from firstName, limited to 20 chars)
+  name: text("first_name"), // User's first name (limited to 20 chars)
   password: text("password").notNull(), // Can be empty for OAuth users
   email: text("email").notNull().unique(), // Email for notifications and authentication (required)
-  avatarUrl: text("avatar_url"), // Optional profile picture URL (nullable)
-  googleId: text("google_id").unique(), // Google OAuth ID (nullable)
-  googleAccessToken: text("google_access_token"), // Google access token (nullable)
-  googleRefreshToken: text("google_refresh_token"), // Google refresh token (nullable)
-  lastLogin: timestamp("last_login"), // Track last login time
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  display_name: text("display_name"), // Display name (full name or nickname)
+  first_name: text("first_name"), // First name separate field
+  last_name: text("last_name"), // Last name separate field
+  avatar_url: text("avatar_url"), // Optional profile picture URL (nullable)
+  google_id: text("google_id").unique(), // Google OAuth ID (nullable)
+  google_access_token: text("google_access_token"), // Google access token (nullable)
+  google_refresh_token: text("google_refresh_token"), // Google refresh token (nullable)
+  last_login: timestamp("last_login"), // Track last login time
+  created_at: timestamp("created_at").defaultNow().notNull()
 });
 
 // Define user relations
@@ -349,31 +352,40 @@ export const insertTransactionSplitSchema = createInsertSchema(transactionSplits
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
-  name: true,
   password: true,
   email: true,
-  avatarUrl: true,
-  googleId: true,
-  googleAccessToken: true,
-  googleRefreshToken: true
+  name: true,
+  first_name: true,
+  last_name: true,
+  display_name: true,
+  avatar_url: true,
+  google_id: true,
+  google_access_token: true,
+  google_refresh_token: true
 }).extend({
   username: z.string().default(''),
+  first_name: z.string().max(20, { message: "First name should not exceed 20 characters" }).optional().nullable(),
+  last_name: z.string().max(20, { message: "Last name should not exceed 20 characters" }).optional().nullable(),
   name: z.string().max(20, { message: "Name should not exceed 20 characters" }).optional().nullable(),
+  display_name: z.string().max(30, { message: "Display name should not exceed 30 characters" }).optional().nullable(),
   email: z.string().email({ message: "Invalid email address format" }).min(1, { message: "Email address is required" }),
-  avatarUrl: z.string().url().optional().nullable(),
-  googleId: z.string().optional().nullable(),
-  googleAccessToken: z.string().optional().nullable(),
-  googleRefreshToken: z.string().optional().nullable()
+  avatar_url: z.string().url().optional().nullable(),
+  google_id: z.string().optional().nullable(),
+  google_access_token: z.string().optional().nullable(),
+  google_refresh_token: z.string().optional().nullable()
 });
 
 // Schema for Google OAuth users
 export const googleUserSchema = z.object({
-  googleId: z.string(),
+  google_id: z.string(),
   email: z.string().email({ message: "Invalid email address format" }),
   name: z.string().max(20).optional(),
-  avatarUrl: z.string().url().optional(),
-  googleAccessToken: z.string(),
-  googleRefreshToken: z.string().optional()
+  first_name: z.string().max(20).optional(),
+  last_name: z.string().max(20).optional(),
+  display_name: z.string().max(30).optional(),
+  avatar_url: z.string().url().optional(),
+  google_access_token: z.string(),
+  google_refresh_token: z.string().optional()
 });
 
 export const insertGroupSchema = createInsertSchema(groups).pick({
@@ -447,7 +459,17 @@ export type TransactionSplit = typeof transactionSplits.$inferSelect;
 
 // User related types
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  google_id?: string | null;
+  google_access_token?: string | null;
+  google_refresh_token?: string | null;
+  last_login?: Date | null;
+  created_at: Date;
+};
 
 export type InsertGroup = z.infer<typeof insertGroupSchema>;
 export type Group = typeof groups.$inferSelect;

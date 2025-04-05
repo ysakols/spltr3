@@ -130,14 +130,22 @@ export function Header() {
   });
 
   // Get user initial for avatar
-  const userInitial = currentUser?.name 
-    ? currentUser.name.charAt(0) 
-    : (currentUser?.email?.charAt(0) || 'G');
+  const userInitial = currentUser?.display_name
+    ? currentUser.display_name.charAt(0)
+    : currentUser?.first_name
+      ? currentUser.first_name.charAt(0)
+      : currentUser?.name
+        ? currentUser.name.charAt(0) 
+        : (currentUser?.email?.charAt(0) || 'G');
   
   // Get display name
-  const displayName = currentUser?.name
-    ? currentUser.name
-    : currentUser?.email?.split('@')[0] || 'Guest User';
+  const displayName = currentUser?.display_name
+    ? currentUser.display_name
+    : currentUser?.first_name && currentUser?.last_name
+      ? `${currentUser.first_name} ${currentUser.last_name}`
+      : currentUser?.name
+        ? currentUser.name
+        : currentUser?.email?.split('@')[0] || 'Guest User';
 
   // Check if a route is active
   const isActive = (path: string) => {
