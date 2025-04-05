@@ -32,6 +32,14 @@ interface SettlementModalStore {
   clearSettlementDetails: () => void;
   openModal: (data: ModalData) => void;
   closeModal: () => void;
+  // Function to simplify opening a settlement modal with minimal details
+  openSettlementModal: (details: {
+    fromUserId: number;
+    toUserId: number;
+    amount: number;
+    groupId?: number;
+    isCreditor?: boolean;
+  }) => void;
 }
 
 export const useSettlementModal = create<SettlementModalStore>((set) => ({
@@ -50,4 +58,28 @@ export const useSettlementModal = create<SettlementModalStore>((set) => ({
     set({ isOpen: true, data }),
   closeModal: () => 
     set({ isOpen: false, data: null }),
+    
+  // Simplified helper method for opening a settlement modal with minimal info
+  openSettlementModal: (details) => {
+    const title = details.isCreditor 
+      ? 'Mark Payment as Received'
+      : 'Settle Up';
+      
+    const description = details.isCreditor
+      ? 'Confirm that you received payment from this user'
+      : 'Record payment to settle your debt';
+      
+    set({ 
+      isOpen: true, 
+      data: {
+        title,
+        description,
+        fromUserId: details.fromUserId,
+        toUserId: details.toUserId,
+        amount: details.amount,
+        groupId: details.groupId,
+        isCreditor: details.isCreditor
+      } 
+    });
+  }
 }));

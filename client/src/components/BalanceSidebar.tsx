@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Balance, Settlement, Group, User } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Check, CheckCircle } from 'lucide-react';
+import { Users, Check, CheckCircle, Banknote } from 'lucide-react';
 import GroupSummary from './GroupSummary';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -170,6 +170,9 @@ export function BalanceSidebar() {
   console.log("People who owe me:", peopleWhoOweMe);
   console.log("People I owe:", peopleIOwe);
   
+  // Extract the settlement modal hook functionality
+  const { openSettlementModal } = useSettlementModal();
+
   // Function to get username from ID
   const getUserName = (userId: string) => {
     return userMap[userId] || `User ${userId}`;
@@ -204,9 +207,23 @@ export function BalanceSidebar() {
                           +{formatCurrency(settlement.amount)}
                         </div>
                       </div>
-                      <div className="text-base font-medium text-green.600">
-                        {/* This area intentionally left empty - we've removed the "Mark Received" button */}
-                      </div>
+                      <Button 
+                        variant="ghost" 
+                        className="h-8 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 group relative overflow-hidden"
+                        onClick={() => {
+                          // Open the settlement modal as a creditor view
+                          openSettlementModal({
+                            fromUserId: parseInt(settlement.from),
+                            toUserId: parseInt(settlement.to),
+                            amount: settlement.amount,
+                            isCreditor: true
+                          });
+                        }}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1 group-hover:animate-bounce" />
+                        <span className="whitespace-nowrap">Mark Received</span>
+                        <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-green-100/60 transition-transform duration-300 group-hover:scale-100" />
+                      </Button>
                     </div>
                   );
                 })}
@@ -232,7 +249,23 @@ export function BalanceSidebar() {
                         -{formatCurrency(settlement.amount)}
                       </div>
                     </div>
-                    {/* This area intentionally left empty - we've removed the "Pay Now" button */}
+                    <Button 
+                      variant="ghost" 
+                      className="h-8 px-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 group relative overflow-hidden"
+                      onClick={() => {
+                        // Open the regular settlement modal
+                        openSettlementModal({
+                          fromUserId: parseInt(settlement.from),
+                          toUserId: parseInt(settlement.to),
+                          amount: settlement.amount,
+                          isCreditor: false
+                        });
+                      }}
+                    >
+                      <Banknote className="h-3.5 w-3.5 mr-1 group-hover:translate-y-[-2px] transition-transform duration-200" />
+                      <span className="whitespace-nowrap">Pay</span>
+                      <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-red-100/60 transition-transform duration-300 group-hover:scale-100" />
+                    </Button>
                   </div>
                 ))}
             </div>

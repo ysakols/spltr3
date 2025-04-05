@@ -9,11 +9,15 @@ export function formatCurrency(amount: number | string) {
   // Convert string to number if needed
   const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   
+  // Round to 2 decimal places to fix floating point precision issues
+  const roundedAmount = Math.round(numericAmount * 100) / 100;
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2
-  }).format(numericAmount);
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(roundedAmount);
 }
 
 export function formatDate(date: Date): string {

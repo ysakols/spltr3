@@ -605,10 +605,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: invitation.inviteeEmail,
           isUser: false,
           groupIds: [invitation.groupId],
-          firstName: invitation.inviteeName,
+          first_name: invitation.inviteeName,
           status: invitation.status,
           token: invitation.token,
-          displayName: invitation.inviteeName || invitation.inviteeEmail
+          display_name: invitation.inviteeName || invitation.inviteeEmail
         });
       }
 
@@ -722,7 +722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Invite a new user to a group
   app.post('/api/contacts', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { email, userId, groupId, firstName } = req.body;
+      const { email, userId, groupId, first_name } = req.body;
       
       if (!email || !userId) {
         return res.status(400).json({ message: 'Email and userId are required' });
@@ -768,7 +768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invitation = await storage.createGroupInvitation({
         inviterUserId: userId,
         inviteeEmail: email,
-        inviteeName: firstName || null,
+        inviteeName: first_name || null,
         groupId: group.id,
         token,
         status: 'pending',
@@ -841,8 +841,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate display name from first and last name if provided
       let userData = { ...validatedData.data };
       
-      if (userData.firstName && userData.lastName) {
-        userData.displayName = `${userData.firstName} ${userData.lastName}`;
+      if (userData.first_name && userData.last_name) {
+        userData.display_name = `${userData.first_name} ${userData.last_name}`;
       }
       
       // Hash the password

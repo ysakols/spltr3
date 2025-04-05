@@ -385,7 +385,7 @@ export function SettlementModal() {
                 type="button"
                 onClick={confirmCreditorAction}
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
+                className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105 relative overflow-hidden group"
               >
                 {isSubmitting ? (
                   <>
@@ -394,8 +394,9 @@ export function SettlementModal() {
                   </>
                 ) : (
                   <>
-                    <Check className="mr-2 h-4 w-4" />
+                    <Check className="mr-2 h-4 w-4 group-hover:animate-bounce" />
                     Confirm Payment Received
+                    <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-white/20 transition-transform duration-300 group-hover:scale-100" />
                   </>
                 )}
               </Button>
@@ -475,7 +476,7 @@ export function SettlementModal() {
                     <Button 
                       type="submit" 
                       disabled={isSubmitting}
-                      className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
+                      className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105 relative overflow-hidden group"
                     >
                       {isSubmitting ? (
                         <>
@@ -484,8 +485,9 @@ export function SettlementModal() {
                         </>
                       ) : (
                         <>
-                          <Check className="mr-2 h-4 w-4" />
+                          <Check className="mr-2 h-4 w-4 group-hover:animate-bounce" />
                           Mark as Settled
+                          <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-white/20 transition-transform duration-300 group-hover:scale-100" />
                         </>
                       )}
                     </Button>
@@ -531,7 +533,7 @@ export function SettlementModal() {
                           type="button" 
                           onClick={handleVenmoCompleted}
                           disabled={isSubmitting}
-                          className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
+                          className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105 relative overflow-hidden group"
                         >
                           {isSubmitting ? (
                             <>
@@ -540,8 +542,9 @@ export function SettlementModal() {
                             </>
                           ) : (
                             <>
-                              <CheckCircle className="mr-2 h-4 w-4" />
+                              <CheckCircle className="mr-2 h-4 w-4 group-hover:animate-bounce" />
                               Mark as Completed
+                              <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-white/20 transition-transform duration-300 group-hover:scale-100" />
                             </>
                           )}
                         </Button>
@@ -605,7 +608,7 @@ export function SettlementModal() {
                           type="button" 
                           onClick={handleVenmoPayment}
                           disabled={isSubmitting}
-                          className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 transform hover:scale-105"
+                          className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 transform hover:scale-105 relative overflow-hidden group"
                         >
                           {isSubmitting ? (
                             <>
@@ -614,8 +617,9 @@ export function SettlementModal() {
                             </>
                           ) : (
                             <>
-                              <ArrowUpRight className="mr-2 h-4 w-4" />
+                              <ArrowUpRight className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
                               Continue to Venmo
+                              <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-white/20 transition-transform duration-300 group-hover:scale-100" />
                             </>
                           )}
                         </Button>
