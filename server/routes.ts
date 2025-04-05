@@ -647,6 +647,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Registration route - for creating new accounts with first name required
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
+    try {
+      const { email, password, first_name, last_name } = req.body;
+      
+      // Check if required fields are present
+      if (!email || !password || !first_name) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Email, password, and first name are required' 
+        });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this email already exists'
+        });
+      }
+      
+      // Generate a username from the email
+      const username = email.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
+      
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create the user with the provided first name
+      let display_name = first_name;
+      if (last_name) {
+        display_name = `${first_name} ${last_name}`;
+      }
+      
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        username,
+        display_name,
+        first_name,
+        last_name: last_name || null
+      });
+      
+      // Log the user in automatically
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Error logging in after registration:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Account created, but failed to log in automatically'
+          });
+        }
+        
+        // Return success with user data
+        return res.json({
+          success: true,
+          message: 'Account created successfully',
+          user: sanitizeUser(user)
+        });
+      });
+    } catch (err) {
+      console.error('Registration error:', err);
+      res.status(500).json({ 
+        success: false, 
+        message: 'An error occurred during registration' 
+      });
+    }
+  });
+  
   // User routes
   // ==========================================================
   

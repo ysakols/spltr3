@@ -173,9 +173,9 @@ function Profile() {
     );
   }
 
-  const userInitial = user.firstName 
-    ? user.firstName.charAt(0) 
-    : (user.displayName?.charAt(0) || user.email.charAt(0) || "U");
+  const userInitial = user.first_name 
+    ? user.first_name.charAt(0) 
+    : (user.display_name?.charAt(0) || user.email.charAt(0) || "U");
 
   return (
     <div className="max-w-3xl mx-auto pt-4">
@@ -184,7 +184,7 @@ function Profile() {
           <AvatarFallback className="text-xl bg-primary/20">{userInitial}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-bold">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.displayName || user.email)}</h1>
+          <h1 className="text-2xl font-bold">{user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : (user.display_name || user.email)}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
       </div>
@@ -209,7 +209,7 @@ function Profile() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={profileForm.control}
-                      name="firstName"
+                      name="first_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
@@ -227,7 +227,7 @@ function Profile() {
                     
                     <FormField
                       control={profileForm.control}
-                      name="lastName"
+                      name="last_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Last Name</FormLabel>
@@ -249,9 +249,9 @@ function Profile() {
                     <p className="text-sm text-muted-foreground">
                       Your display name will be automatically generated from your first and last name.
                     </p>
-                    {profileForm.watch('firstName') && profileForm.watch('lastName') && (
+                    {profileForm.watch('first_name') && profileForm.watch('last_name') && (
                       <p className="mt-2 font-medium">
-                        Your display name will be: <span className="text-primary">{profileForm.watch('firstName')} {profileForm.watch('lastName')}</span>
+                        Your display name will be: <span className="text-primary">{profileForm.watch('first_name')} {profileForm.watch('last_name')}</span>
                       </p>
                     )}
                   </div>

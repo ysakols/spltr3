@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { SiGoogle } from "react-icons/si";
+import { RegisterForm } from "@/components/RegisterForm";
 
 function Login() {
   const [location, setLocation] = useLocation();
@@ -15,6 +16,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
   
   // Check for error message in URL (e.g., from failed Google auth)
   useEffect(() => {
@@ -143,27 +145,43 @@ function Login() {
                 </Button>
               </form>
               
-              <div className="flex items-center justify-center mt-2">
-                <span className="text-sm text-muted-foreground">
-                  Don't have an account yet? Register with email and password:
-                </span>
-              </div>
-              
-              <div className="mt-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: "Registration",
-                      description: "To register: Just enter your email and password above, then click Sign In. If the account doesn't exist, it will be created automatically."
-                    });
-                  }}
-                >
-                  Create Account
-                </Button>
-              </div>
+              {!showRegistration ? (
+                <>
+                  <div className="flex items-center justify-center mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      Don't have an account yet? Create one below:
+                    </span>
+                  </div>
+                  
+                  <div className="mt-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setShowRegistration(true)}
+                    >
+                      Create Account
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="pt-4 pb-2">
+                    <h3 className="text-lg font-medium">Create New Account</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Please provide your information below to create a new account
+                    </p>
+                  </div>
+                  
+                  <RegisterForm 
+                    onSuccess={() => {
+                      // Redirect to home page on successful registration
+                      window.location.href = "/";
+                    }}
+                    onCancel={() => setShowRegistration(false)}
+                  />
+                </>
+              )}
               
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
