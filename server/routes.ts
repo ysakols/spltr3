@@ -1982,10 +1982,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
-      // Make sure the current user is the one creating the settlement
+      // Allow either:
+      // 1. The debtor to create a settlement they're paying for (fromUserId is their ID)
+      // 2. The creditor to create a settlement for a received payment (toUserId is their ID)
       const user = req.user as User;
-      if (validatedData.data.fromUserId !== user.id) {
-        return res.status(403).json({ message: 'You can only create settlements for yourself' });
+      
+      if (validatedData.data.fromUserId !== user.id && validatedData.data.toUserId !== user.id) {
+        return res.status(403).json({ message: 'You can only create settlements where you are either the payer or recipient' });
       }
       
       // If status is COMPLETED, set the completedAt timestamp
