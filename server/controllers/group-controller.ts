@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { storage } from "../storage";
 import { insertGroupSchema, insertGroupInvitationSchema } from "@shared/schema";
-import { sanitizeUser } from "../utils/user-utils";
+import { sanitizeUser, isUserInGroup } from "../utils/user-utils";
 import crypto from "crypto";
 import { createInvitationEmailContent, sendInvitationEmail, hasEmailConfiguration } from "../email";
 
@@ -20,7 +20,7 @@ export const GroupController = {
         return res.status(401).json({ message: 'Not authenticated' });
       }
 
-      const groups = await storage.getGroupsByUserId(userId);
+      const groups = await storage.getUserGroups(userId);
       res.json(groups);
     } catch (error) {
       if (error instanceof Error) {
@@ -98,7 +98,7 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(id));
+      const isMember = await isUserInGroup(userId, Number(id));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
@@ -211,13 +211,13 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
 
       // Get all users in the group
-      const users = await storage.getUsersByGroupId(Number(groupId));
+      const users = await storage.getGroupMembers(Number(groupId));
       res.json(users.map(user => sanitizeUser(user)));
     } catch (error) {
       if (error instanceof Error) {
@@ -292,7 +292,7 @@ export const GroupController = {
       }
 
       // Check if target user is in the group
-      const isMember = await storage.isUserInGroup(Number(targetUserId), Number(groupId));
+      const isMember = await isUserInGroup(Number(targetUserId), Number(groupId));
       if (!isMember) {
         return res.status(404).json({ message: 'User is not a member of this group' });
       }
@@ -333,7 +333,7 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
@@ -362,7 +362,7 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
@@ -391,7 +391,7 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
@@ -420,7 +420,7 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to invite to this group' });
       }
@@ -436,7 +436,7 @@ export const GroupController = {
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         // Check if user is already in the group
-        const alreadyMember = await storage.isUserInGroup(existingUser.id, Number(groupId));
+        const alreadyMember = await isUserInGroup(existingUser.id, Number(groupId));
         if (alreadyMember) {
           return res.status(400).json({ message: 'User is already a member of this group' });
         }
@@ -594,7 +594,7 @@ export const GroupController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, invitation.groupId);
+      const isMember = await isUserInGroup(userId, invitation.groupId);
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to resend invitations for this group' });
       }
