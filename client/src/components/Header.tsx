@@ -178,17 +178,6 @@ export function Header() {
                 Groups
               </Button>
             </Link>
-            
-            <Link href="/create">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9"
-              >
-                <PlusCircle className="h-4 w-4 mr-1 text-primary" />
-                New Group
-              </Button>
-            </Link>
           </div>
         </div>
         
