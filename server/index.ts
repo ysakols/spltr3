@@ -1,13 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { registerAdminRoutes } from "./admin-routes";
-import { registerTransactionRoutes } from "./transaction-routes";
-import { migrationRouteHandler } from "./migrateToUnifiedSystem";
-import { registerCleanupRoutes } from "./cleanup-duplicate-settlements";
+import { registerAllRoutes } from "./routes/index";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware } from "./session";
 import passport from "./auth";
-import { isAuthenticated } from "./auth";
 
 const app = express();
 app.use(express.json());
@@ -52,19 +47,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
-  
-  // Register the new unified transaction routes
-  registerTransactionRoutes(app);
-  
-  // Register admin routes after the main routes
-  registerAdminRoutes(app);
-  
-  // Register cleanup routes for duplicate settlements
-  registerCleanupRoutes(app);
-  
-  // Add migration endpoint
-  app.get('/api/migrate-to-unified-system', isAuthenticated, migrationRouteHandler);
+  // Register all routes through our new structure
+  const server = await registerAllRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
