@@ -213,11 +213,11 @@ function TransactionsTable({
     
     switch (status.toLowerCase()) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300 ring-1 ring-yellow-200';
       case 'completed':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-green-100 text-green-800 border-green-300 ring-1 ring-green-200 font-medium';
       case 'canceled':
-        return 'bg-red-100 text-red-800 border-red-300';
+        return 'bg-red-100 text-red-800 border-red-300 ring-1 ring-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
@@ -259,7 +259,7 @@ function TransactionsTable({
     
     switch (status.toLowerCase()) {
       case 'completed':
-        return <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />;
+        return <CheckCircle2 className="h-4 w-4 mr-1 text-green-600 animate-once-pulse" />;
       case 'pending':
         return <Clock className="h-4 w-4 mr-1 text-amber-600" />;
       case 'canceled':
@@ -471,8 +471,12 @@ function TransactionsTable({
               return (
                 <div 
                   key={`${transaction.type}-${transaction.id}`} 
-                  className={`transaction-card border overflow-hidden bg-card transition-all hover:shadow-sm ${
-                    isExpense ? 'border-l-4 border-l-indigo-400' : 'border-l-4 border-l-teal-400'
+                  className={`transaction-card border overflow-hidden transition-all hover:shadow-sm ${
+                    isExpense 
+                      ? 'border-l-4 border-l-indigo-400 bg-card' 
+                      : transaction.status?.toLowerCase() === 'completed'
+                        ? 'border-l-4 border-l-green-400 bg-green-50/40'
+                        : 'border-l-4 border-l-teal-400 bg-card'
                   }`}
                 >
                   <div className="p-2 sm:p-3">
