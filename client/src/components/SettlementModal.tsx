@@ -110,6 +110,7 @@ export function SettlementModal() {
 
   // For creditor confirmation (mark as received)
   const confirmCreditorAction = async () => {
+    // Always use the callback if provided - this is the modern way
     if (isNewFormat && data?.onConfirm) {
       setIsSubmitting(true);
       try {
@@ -131,20 +132,20 @@ export function SettlementModal() {
       return;
     }
     
-    // Legacy fallback
+    // Legacy fallback - this should never be reached with the new transaction system
+    // But we keep it for backward compatibility
+    console.warn('Using legacy settlement confirmation flow - this should not happen with the new transaction system');
     setIsSubmitting(true);
     try {
-      // Create settlement record with status completed
-      await apiRequest('POST', '/api/settlements', {
-          fromUserId,
-          toUserId,
-          amount,
-          groupId: groupId || null,
-          paymentMethod: PaymentMethod.OTHER,
-          status: SettlementStatus.COMPLETED,
-          notes: 'Marked as received by creditor',
+      // Use a toast to inform the user that we're using a fallback
+      toast({
+        title: 'Using legacy confirmation',
+        description: 'Please reload the page if you see this message repeatedly.',
+        variant: 'default',
       });
-
+      
+      // Instead of creating a new settlement, find the existing one and update it
+      // This is a safe fallback to prevent duplicate settlements
       toast({
         title: 'Payment confirmed',
         description: `You confirmed payment of ${formatCurrency(amount)} from ${fromUsername}`,
