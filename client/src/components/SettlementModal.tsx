@@ -133,22 +133,12 @@ export function SettlementModal() {
     }
     
     // Legacy fallback - this should never be reached with the new transaction system
-    // But we keep it for backward compatibility
     console.warn('Using legacy settlement confirmation flow - this should not happen with the new transaction system');
     setIsSubmitting(true);
     try {
-      // Use a toast to inform the user that we're using a fallback
-      toast({
-        title: 'Using legacy confirmation',
-        description: 'Please reload the page if you see this message repeatedly.',
-        variant: 'default',
-      });
-      
-      // Instead of creating a new settlement, find the existing one and update it
-      // This is a safe fallback to prevent duplicate settlements
       toast({
         title: 'Payment confirmed',
-        description: `You confirmed payment of ${formatCurrency(amount)} from ${fromUsername}`,
+        description: `You confirmed receiving ${formatCurrency(amount)} from ${fromUsername}`,
       });
 
       // Invalidate queries to refresh all affected components
@@ -162,6 +152,7 @@ export function SettlementModal() {
       queryClient.invalidateQueries({ queryKey: ['/api/users', fromUserId, 'global-summary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users', toUserId, 'global-summary'] });
       
+      // Auto-close modal after successful confirmation
       onDismiss();
     } catch (error) {
       console.error('Error confirming payment:', error);
@@ -188,14 +179,14 @@ export function SettlementModal() {
     
     setIsSubmitting(true);
     try {
-      // Create a settlement record with status pending
+      // Create a settlement record with status completed
+      // Settlements are now immediately set to COMPLETED status to match the simplified workflow
       const settlement = await apiRequest('POST', '/api/settlements', {
           fromUserId,
           toUserId,
           amount: formAmount,
           groupId: groupId || null,
           paymentMethod: PaymentMethod.VENMO,
-          status: SettlementStatus.PENDING,
           notes: form.getValues().notes,
       });
 
@@ -394,7 +385,7 @@ export function SettlementModal() {
                 type="button"
                 onClick={confirmCreditorAction}
                 disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
               >
                 {isSubmitting ? (
                   <>
@@ -402,7 +393,10 @@ export function SettlementModal() {
                     Processing...
                   </>
                 ) : (
-                  'Confirm Payment Received'
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Confirm Payment Received
+                  </>
                 )}
               </Button>
             </DialogFooter>
@@ -478,9 +472,22 @@ export function SettlementModal() {
                     <Button type="button" variant="outline" onClick={onDismiss}>
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Mark as Settled
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Mark as Settled
+                        </>
+                      )}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -524,11 +531,19 @@ export function SettlementModal() {
                           type="button" 
                           onClick={handleVenmoCompleted}
                           disabled={isSubmitting}
-                          variant="default"
+                          className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
                         >
-                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Mark as Completed
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Mark as Completed
+                            </>
+                          )}
                         </Button>
                       </DialogFooter>
                     </>
@@ -590,6 +605,7 @@ export function SettlementModal() {
                           type="button" 
                           onClick={handleVenmoPayment}
                           disabled={isSubmitting}
+                          className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 transform hover:scale-105"
                         >
                           {isSubmitting ? (
                             <>

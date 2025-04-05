@@ -53,23 +53,26 @@ export function registerTransactionRoutes(app: Express): void {
         // Create user objects with only the necessary fields for the UI
         const minimalPaidByUser = paidByUser ? {
           id: paidByUser.id,
-          firstName: paidByUser.firstName,
-          lastName: paidByUser.lastName,
-          displayName: paidByUser.displayName
+          username: paidByUser.username,
+          name: paidByUser.name,
+          email: paidByUser.email,
+          avatarUrl: paidByUser.avatarUrl
         } : null;
         
         const minimalCreatedByUser = createdByUser ? {
           id: createdByUser.id,
-          firstName: createdByUser.firstName,
-          lastName: createdByUser.lastName,
-          displayName: createdByUser.displayName
+          username: createdByUser.username,
+          name: createdByUser.name,
+          email: createdByUser.email,
+          avatarUrl: createdByUser.avatarUrl
         } : null;
         
         const minimalToUser = toUser ? {
           id: toUser.id,
-          firstName: toUser.firstName,
-          lastName: toUser.lastName,
-          displayName: toUser.displayName
+          username: toUser.username,
+          name: toUser.name,
+          email: toUser.email,
+          avatarUrl: toUser.avatarUrl
         } : null;
         
         return {
@@ -126,23 +129,26 @@ export function registerTransactionRoutes(app: Express): void {
       // Create user objects with only the necessary fields
       const minimalPaidByUser = paidByUser ? {
         id: paidByUser.id,
-        firstName: paidByUser.firstName,
-        lastName: paidByUser.lastName,
-        displayName: paidByUser.displayName
+        username: paidByUser.username,
+        name: paidByUser.name,
+        email: paidByUser.email,
+        avatarUrl: paidByUser.avatarUrl
       } : null;
       
       const minimalCreatedByUser = createdByUser ? {
         id: createdByUser.id,
-        firstName: createdByUser.firstName,
-        lastName: createdByUser.lastName,
-        displayName: createdByUser.displayName
+        username: createdByUser.username,
+        name: createdByUser.name,
+        email: createdByUser.email,
+        avatarUrl: createdByUser.avatarUrl
       } : null;
       
       const minimalToUser = toUser ? {
         id: toUser.id,
-        firstName: toUser.firstName,
-        lastName: toUser.lastName,
-        displayName: toUser.displayName
+        username: toUser.username,
+        name: toUser.name,
+        email: toUser.email,
+        avatarUrl: toUser.avatarUrl
       } : null;
       
       const enhancedTransaction = {
@@ -248,6 +254,9 @@ export function registerTransactionRoutes(app: Express): void {
       }
       
       // Create the transaction object
+      // Default status for settlements is now COMPLETED to simplify the flow
+      // This matches the recommendation to remove the 2-step confirmation process
+      // User can explicitly set a different status if needed
       const transactionData = {
         type: TransactionType.SETTLEMENT,
         description: 'Settlement payment',
@@ -258,7 +267,7 @@ export function registerTransactionRoutes(app: Express): void {
         paymentMethod: validatedSettlement.data.paymentMethod,
         notes: validatedSettlement.data.notes,
         createdByUserId: user.id,
-        status: TransactionStatus.PENDING,
+        status: TransactionStatus.COMPLETED, // Default to COMPLETED now
         isEdited: false,
         isDeleted: false
       };

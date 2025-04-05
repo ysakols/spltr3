@@ -122,7 +122,6 @@ export enum PaymentMethod {
 
 // Transaction status enum
 export enum TransactionStatus {
-  PENDING = 'pending',
   COMPLETED = 'completed',
   CANCELED = 'canceled'
 }
@@ -310,7 +309,7 @@ export const insertTransactionSchema = createInsertSchema(transactions)
     // For settlement transactions
     toUserId: z.number().optional(),
     paymentMethod: z.nativeEnum(PaymentMethod).optional(),
-    status: z.nativeEnum(TransactionStatus).optional().default(TransactionStatus.PENDING),
+    status: z.nativeEnum(TransactionStatus).optional().default(TransactionStatus.COMPLETED),
     notes: z.string().optional().nullable(),
     transactionReference: z.string().optional().nullable(),
     completedAt: z.date().optional().nullable(),
