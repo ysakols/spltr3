@@ -196,26 +196,9 @@ export function BalanceSidebar() {
                           +{formatCurrency(settlement.amount)}
                         </div>
                       </div>
-                      <Button
-                        variant="outline" 
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
-                        onClick={() => {
-                          const { openModal } = useSettlementModal.getState();
-                          openModal({
-                            title: 'Mark Payment As Received',
-                            description: `Confirm that you received ${formatCurrency(settlement.amount)} from ${fromUserName}.`,
-                            fromUserId: parseInt(settlement.from),
-                            toUserId: userId,
-                            amount: settlement.amount,
-                            fromUserName,
-                            isCreditor: true
-                          });
-                        }}
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Mark Received
-                      </Button>
+                      <div className="text-base font-medium text-green.600">
+                        {/* This area intentionally left empty - we've removed the "Mark Received" button */}
+                      </div>
                     </div>
                   );
                 })}
@@ -241,26 +224,7 @@ export function BalanceSidebar() {
                         -{formatCurrency(settlement.amount)}
                       </div>
                     </div>
-                    <Button
-                      variant="outline" 
-                      size="sm"
-                      className="bg-red-600 hover:bg-red-700 text-white transition-all duration-200 transform hover:scale-105"
-                      onClick={() => {
-                        const { openModal } = useSettlementModal.getState();
-                        const toUserName = getUserName(settlement.to);
-                        openModal({
-                          title: 'Pay Settlement',
-                          description: `Pay ${formatCurrency(settlement.amount)} to ${toUserName}.`,
-                          fromUserId: userId,
-                          toUserId: parseInt(settlement.to),
-                          amount: settlement.amount,
-                          toUserName,
-                          isCreditor: false
-                        });
-                      }}
-                    >
-                      Pay Now
-                    </Button>
+                    {/* This area intentionally left empty - we've removed the "Pay Now" button */}
                   </div>
                 ))}
             </div>
