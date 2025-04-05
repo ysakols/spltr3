@@ -20,9 +20,9 @@ import { User } from "@shared/schema";
 
 // Form validation schemas
 const profileFormSchema = z.object({
-  displayName: z.string().optional(),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  display_name: z.string().optional(),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address")
 });
 
@@ -106,15 +106,15 @@ function Profile() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      displayName: user?.displayName || "",
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
+      display_name: user?.display_name || "",
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
       email: user?.email || ""
     },
     values: {
-      displayName: user?.displayName || "",
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
+      display_name: user?.display_name || "",
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
       email: user?.email || ""
     }
   });
@@ -131,9 +131,9 @@ function Profile() {
 
   // Handle profile form submission
   const onProfileSubmit = (values: ProfileFormValues) => {
-    // Generate displayName from firstName and lastName if both are provided
-    if (values.firstName && values.lastName) {
-      values.displayName = `${values.firstName} ${values.lastName}`;
+    // Generate display_name from first_name and last_name if both are provided
+    if (values.first_name && values.last_name) {
+      values.display_name = `${values.first_name} ${values.last_name}`;
     }
     profileMutation.mutate(values);
   };
