@@ -119,17 +119,17 @@ export function BalanceSidebar() {
   
   // Group-related queries (only enabled when on a group page)
   const { data: currentGroup } = useQuery<Group>({
-    queryKey: ['/api/groups', currentGroupId],
+    queryKey: [`/api/groups/${currentGroupId}`],
     enabled: !!currentGroupId,
   });
   
   const { data: currentMembers } = useQuery<User[]>({
-    queryKey: ['/api/groups/members', currentGroupId],
+    queryKey: [`/api/groups/${currentGroupId}/members`],
     enabled: !!currentGroupId,
   });
   
   const { data: currentSummary } = useQuery<Balance>({
-    queryKey: ['/api/groups/summary', currentGroupId],
+    queryKey: [`/api/groups/${currentGroupId}/summary`],
     enabled: !!currentGroupId,
     refetchInterval: 5000,
     staleTime: 2000,
@@ -138,7 +138,7 @@ export function BalanceSidebar() {
   
   // Global summary query for the current user
   const { data: summary, isLoading } = useQuery<Balance>({
-    queryKey: ['/api/users/global-summary', userId],
+    queryKey: [`/api/users/${userId}/global-summary`],
     enabled: !!userId,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
