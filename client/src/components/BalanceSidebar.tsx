@@ -170,8 +170,8 @@ export function BalanceSidebar() {
   console.log("People who owe me:", peopleWhoOweMe);
   console.log("People I owe:", peopleIOwe);
   
-  // Extract the settlement modal hook functionality
-  const { openSettlementModal } = useSettlementModal();
+  // Get the settlement modal state
+  const settlementModal = useSettlementModal();
 
   // Function to get username from ID
   const getUserName = (userId: string) => {
@@ -212,7 +212,7 @@ export function BalanceSidebar() {
                         className="h-8 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 group relative overflow-hidden"
                         onClick={() => {
                           // Open the settlement modal as a creditor view
-                          openSettlementModal({
+                          settlementModal.openSettlementModal({
                             fromUserId: parseInt(settlement.from),
                             toUserId: parseInt(settlement.to),
                             amount: settlement.amount,
@@ -254,7 +254,7 @@ export function BalanceSidebar() {
                       className="h-8 px-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 group relative overflow-hidden"
                       onClick={() => {
                         // Open the regular settlement modal
-                        openSettlementModal({
+                        settlementModal.openSettlementModal({
                           fromUserId: parseInt(settlement.from),
                           toUserId: parseInt(settlement.to),
                           amount: settlement.amount,
