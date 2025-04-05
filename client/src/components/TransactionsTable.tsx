@@ -427,14 +427,31 @@ function TransactionsTable({
     try {
       // Parse the split details
       const splitDetails = JSON.parse(transaction.splitDetails);
+      const transactionAmount = typeof transaction.amount === 'string' 
+        ? parseFloat(transaction.amount) 
+        : transaction.amount;
       
       // Get a list of usernames who borrowed (everyone except the payer)
       const borrowerNames = Object.keys(splitDetails)
         .filter(userId => parseInt(userId) !== transaction.paidByUserId)
         .map(userId => {
-          const amount = splitDetails[userId];
+          const splitValue = splitDetails[userId];
           const name = getUsernameById(parseInt(userId));
-          return { name, amount };
+          
+          // Calculate actual amount based on split type
+          let actualAmount = 0;
+          if (transaction.splitType === 'percentage') {
+            // Convert percentage to dollar amount
+            actualAmount = (splitValue / 100) * transactionAmount;
+          } else if (transaction.splitType === 'equal') {
+            // Equal split - amount is already the dollar value
+            actualAmount = splitValue;
+          } else {
+            // Exact amount - value is already the dollar amount
+            actualAmount = splitValue;
+          }
+          
+          return { name, amount: actualAmount };
         });
       
       if (borrowerNames.length === 0) return "No borrowers";
@@ -446,7 +463,7 @@ function TransactionsTable({
       
       // Show names and amounts for 1-3 borrowers
       return borrowerNames.map(b => {
-        return `${b.name} (${formatCurrency(parseFloat(b.amount.toString()))})`;
+        return `${b.name} (${formatCurrency(b.amount)})`;
       }).join(', ');
     } catch (error) {
       console.error("Error parsing split details:", error);
