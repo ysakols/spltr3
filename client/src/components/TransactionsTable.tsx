@@ -434,27 +434,27 @@ function TransactionsTable({
   
   return (
     <Card className="shadow-sm !rounded-none mb-0 mx-0 px-0">
-      <CardHeader className="pb-2 space-y-2 !rounded-none px-3 sm:px-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+      <CardHeader className="pb-2 !rounded-none px-3 sm:px-6">
+        <div className="flex flex-row justify-between items-center">
           <CardTitle className="text-xl">Transactions</CardTitle>
-        </div>
-        <div className="flex gap-2 text-xs text-muted-foreground">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => handleSort('date')}
-          >
-            Date {renderSortIndicator('date')}
-          </Button>
-          <Button
-            variant="ghost" 
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => handleSort('amount')}
-          >
-            Amount {renderSortIndicator('amount')}
-          </Button>
+          <div className="flex gap-2 text-xs text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => handleSort('date')}
+            >
+              Date {renderSortIndicator('date')}
+            </Button>
+            <Button
+              variant="ghost" 
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => handleSort('amount')}
+            >
+              Amount {renderSortIndicator('amount')}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-2 sm:p-3 !rounded-none">
