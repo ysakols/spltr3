@@ -25,7 +25,7 @@ export const TransactionController = {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
 
-      const transactions = await storage.getTransactionsByGroupId(Number(groupId));
+      const transactions = await storage.getGroupTransactions(Number(groupId));
       res.json(transactions);
     } catch (error) {
       if (error instanceof Error) {
@@ -211,7 +211,7 @@ export const TransactionController = {
         return res.status(403).json({ message: 'Not authorized to view other users transactions' });
       }
       
-      const transactions = await storage.getTransactionsByUserId(Number(userId));
+      const transactions = await storage.getUserTransactions(Number(userId));
       res.json(transactions);
     } catch (error) {
       if (error instanceof Error) {
@@ -294,7 +294,7 @@ export const TransactionController = {
         return res.status(403).json({ message: 'Not authorized to view other users settlements' });
       }
       
-      const settlements = await storage.getSettlementsByUserId(Number(userId));
+      const settlements = await storage.getUserSettlements(Number(userId));
       res.json(settlements);
     } catch (error) {
       if (error instanceof Error) {
@@ -323,7 +323,7 @@ export const TransactionController = {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
       
-      const settlements = await storage.getSettlementsByGroupId(Number(groupId));
+      const settlements = await storage.getGroupSettlements(Number(groupId));
       res.json(settlements);
     } catch (error) {
       if (error instanceof Error) {

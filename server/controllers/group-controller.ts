@@ -338,7 +338,7 @@ export const GroupController = {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
 
-      const expenses = await storage.getExpensesByGroupId(Number(groupId));
+      const expenses = await storage.getExpenses(Number(groupId));
       res.json(expenses);
     } catch (error) {
       if (error instanceof Error) {
@@ -367,7 +367,7 @@ export const GroupController = {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
 
-      const summary = await storage.getGroupSummary(Number(groupId));
+      const summary = await storage.calculateSummary(Number(groupId));
       res.json(summary);
     } catch (error) {
       if (error instanceof Error) {
@@ -396,7 +396,7 @@ export const GroupController = {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
 
-      const invitations = await storage.getGroupInvitations(Number(groupId));
+      const invitations = await storage.getGroupInvitationsByGroupId(Number(groupId));
       res.json(invitations);
     } catch (error) {
       if (error instanceof Error) {
@@ -535,14 +535,22 @@ export const GroupController = {
         return res.status(401).json({ message: 'Not authenticated' });
       }
 
-      // Get the invitation
-      const invitation = await storage.getGroupInvitation(Number(id));
+      // Get the invitation - look for the invitation by ID using filter on invitations table
+      // We don't have a direct getGroupInvitation method, but we'll get invitations by email and filter
+      const userEmail = req.user?.email;
+      if (!userEmail) {
+        return res.status(401).json({ message: 'User email not found' });
+      }
+      
+      const invitations = await storage.getGroupInvitationsByEmail(userEmail);
+      const invitation = invitations.find(inv => inv.id === Number(id));
+      
       if (!invitation) {
         return res.status(404).json({ message: 'Invitation not found' });
       }
 
       // Check if this invitation is for the current user
-      if (invitation.inviteeEmail !== req.user.email) {
+      if (invitation.inviteeEmail !== userEmail) {
         return res.status(403).json({ message: 'Not authorized to respond to this invitation' });
       }
 
@@ -587,8 +595,9 @@ export const GroupController = {
         return res.status(401).json({ message: 'Not authenticated' });
       }
 
-      // Get the invitation
-      const invitation = await storage.getGroupInvitation(Number(id));
+      // Get all invitations where the current user is the inviter
+      const invitationsByInviter = await storage.getGroupInvitationsByInviterUserId(userId);
+      const invitation = invitationsByInviter.find(inv => inv.id === Number(id));
       if (!invitation) {
         return res.status(404).json({ message: 'Invitation not found' });
       }
