@@ -79,9 +79,10 @@ export interface IStorage {
   getTransaction(id: number, includeDeleted?: boolean): Promise<Transaction | undefined>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, transaction: Partial<InsertTransaction>, userId?: number): Promise<Transaction | undefined>;
-  deleteTransaction(id: number, userId: number): Promise<Transaction | undefined>;
+  deleteTransaction(id: number, userId?: number): Promise<Transaction | undefined>;
   getUserTransactions(userId: number, includeDeleted?: boolean): Promise<Transaction[]>;
   getGroupTransactions(groupId: number, includeDeleted?: boolean): Promise<Transaction[]>;
+  getAllTransactionsByType(type: string): Promise<Transaction[]>;
   markTransactionSplitsAsSettled(transactionId: number): Promise<void>;
   
   // Settlement methods (legacy - to be migrated)
@@ -682,7 +683,47 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deleteTransaction(id: number, userId: number): Promise<Transaction | undefined> {
+  // Get all transactions of a specific type (useful for admin and cleanup operations)
+  async getAllTransactionsByType(type: string): Promise<Transaction[]> {
+    try {
+      return await db.select().from(transactions)
+          .where(eq(transactions.type, type))
+          .execute();
+    } catch (error) {
+      console.error('Error getting transactions by type:', error);
+      return [];
+    }
+  }
+  
+  async deleteTransaction(id: number): Promise<Transaction | undefined>;
+  async deleteTransaction(id: number, userId: number): Promise<Transaction | undefined>;
+  async deleteTransaction(id: number, userId?: number): Promise<Transaction | undefined> {
+    // Get the transaction first to check permissions
+    const transaction = await this.getTransaction(id);
+    if (!transaction) {
+      return undefined;
+    }
+    
+    // If userId is provided, check permissions
+    if (userId !== undefined) {
+      // Check if user is authorized to delete this transaction
+      const isSettlement = transaction.type === TransactionType.SETTLEMENT;
+      
+      // For settlements, also allow the recipient (toUserId) to delete
+      if (isSettlement) {
+        if (transaction.createdByUserId !== userId && 
+            transaction.paidByUserId !== userId && 
+            transaction.toUserId !== userId) {
+          throw new Error('Not authorized to delete this transaction');
+        }
+      } else {
+        // For non-settlements (expenses), only allow creator or payer
+        if (transaction.createdByUserId !== userId && transaction.paidByUserId !== userId) {
+          throw new Error('Not authorized to delete this transaction');
+        }
+      }
+    }
+    
     // Implement soft delete by setting the isDeleted flag and storing audit info
     const now = new Date();
     const [updatedTransaction] = await db
@@ -690,7 +731,7 @@ export class DatabaseStorage implements IStorage {
       .set({
         isDeleted: true,
         deletedAt: now,
-        deletedByUserId: userId
+        deletedByUserId: userId || transaction.createdByUserId
       })
       .where(eq(transactions.id, id))
       .returning();

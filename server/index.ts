@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
 import { registerTransactionRoutes } from "./transaction-routes";
 import { migrationRouteHandler } from "./migrateToUnifiedSystem";
+import { registerCleanupRoutes } from "./cleanup-duplicate-settlements";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware } from "./session";
 import passport from "./auth";
@@ -57,6 +58,9 @@ app.use((req, res, next) => {
   
   // Register admin routes after the main routes
   registerAdminRoutes(app);
+  
+  // Register cleanup routes for duplicate settlements
+  registerCleanupRoutes(app);
   
   // Add migration endpoint
   app.get('/api/migrate-to-unified-system', isAuthenticated, migrationRouteHandler);
