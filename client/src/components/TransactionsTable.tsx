@@ -145,16 +145,17 @@ function TransactionsTable({
     return sorted;
   }, [transactions, sortField, sortDirection]);
   
-  // Function to get username by user ID with name preferred
+  // Function to get username by user ID with display_name preferred
   const getUsernameById = (userId?: number) => {
     if (!userId || !members) return 'Unknown User';
     
     const user = members.find(member => member.id === userId);
-    return user ? (
-      user.name 
-        ? user.name
-        : user.username || user.email
-    ) : `User ${userId}`;
+    if (!user) return `User ${userId}`;
+    
+    return user.display_name || 
+      ((user.first_name && user.last_name) 
+        ? `${user.first_name} ${user.last_name}`
+        : user.email || `User ${userId}`);
   };
   
   // Function to handle column sorting

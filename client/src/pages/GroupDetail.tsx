@@ -190,9 +190,10 @@ function GroupDetail() {
                       {(() => {
                         const creator = members?.find(m => m.id === group.createdById);
                         if (!creator) return 'Unknown';
-                        return creator.first_name && creator.last_name
-                          ? `${creator.first_name} ${creator.last_name}`
-                          : creator.display_name || creator.email || creator.email?.split('@')[0] || 'Unknown';
+                        return creator.display_name || 
+                          ((creator.first_name && creator.last_name)
+                            ? `${creator.first_name} ${creator.last_name}`
+                            : creator.email || creator.email?.split('@')[0] || 'Unknown');
                       })()}
                     </span>
                     <span className="font-medium text-primary">(Admin)</span>
@@ -220,9 +221,10 @@ function GroupDetail() {
                   <span className="overflow-hidden">
                     {members.map((m, index) => (
                       <span key={m.id} className="inline-block">
-                        {m.first_name && m.last_name 
-                          ? `${m.first_name} ${m.last_name}` 
-                          : m.display_name || m.email || m.email?.split('@')[0]}
+                        {m.display_name || 
+                          ((m.first_name && m.last_name)
+                            ? `${m.first_name} ${m.last_name}`
+                            : m.email || m.email?.split('@')[0])}
                         {index < members.length - 1 ? ', ' : ''}
                       </span>
                     ))}

@@ -140,17 +140,20 @@ function GroupList() {
                             // First check if creatorInfo is available from the backend
                             if (group.creatorInfo) {
                               const creator = group.creatorInfo;
-                              return creator.first_name && creator.last_name
-                                ? `${creator.first_name} ${creator.last_name}`
-                                : creator.display_name || creator.name || creator.email?.split('@')[0] || 'User';
+                              return creator.display_name || 
+                                ((creator.first_name && creator.last_name) 
+                                  ? `${creator.first_name} ${creator.last_name}` 
+                                  : creator.email || 'User');
                             }
                             
                             // Fall back to users array if creatorInfo is not available
                             const creator = users.find(user => user.id === group.createdById);
                             if (!creator) return 'Unknown';
-                            return creator.first_name && creator.last_name
-                              ? `${creator.first_name} ${creator.last_name}`
-                              : creator.display_name || creator.name || creator.email?.split('@')[0] || 'User';
+                            
+                            return creator.display_name || 
+                              ((creator.first_name && creator.last_name) 
+                                ? `${creator.first_name} ${creator.last_name}` 
+                                : creator.email || 'User');
                           })()}
                         </span>
                         <span className="font-medium text-primary">(Admin)</span>
