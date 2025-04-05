@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Balance, Settlement, Group, User } from "@shared/schema";
 import { useLocation } from "wouter";
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Check } from 'lucide-react';
+import { Users, Check, CheckCircle } from 'lucide-react';
 import GroupSummary from './GroupSummary';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -189,21 +189,10 @@ export function BalanceSidebar() {
                       <Button
                         variant="outline" 
                         size="sm"
-                        className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 text-xs h-8"
-                        onClick={() => {
-                          const { openModal } = useSettlementModal.getState();
-                          openModal({
-                            title: 'Mark Payment As Received',
-                            description: `Confirm that you received ${formatCurrency(settlement.amount)} from ${fromUserName}.`,
-                            fromUserId: parseInt(settlement.from),
-                            toUserId: userId,
-                            amount: settlement.amount,
-                            fromUserName,
-                            isCreditor: true
-                          });
-                        }}
+                        className="text-green-600 bg-green-50 border-green-200 hover:bg-green-100 cursor-default"
+                        disabled
                       >
-                        <Check className="h-3 w-3 mr-1" />
+                        <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
                         Received
                       </Button>
                     </div>
