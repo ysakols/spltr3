@@ -140,12 +140,22 @@ export function BalanceSidebar() {
   // Log the summary data to see what we're working with
   console.log("Summary data:", summary);
   
-  // Get settlements that involve the current user
-  const peopleWhoOweMe = summary.settlements.filter(
+  // Get active settlements that involve the current user
+  // Only include settlements that haven't been fully settled yet
+  // This will filter out completed/received payments
+  const activeSettlements = summary.settlements.filter(settlement => {
+    const fromBalance = summary.balances[settlement.from];
+    const toBalance = summary.balances[settlement.to];
+    
+    // If either party still has a non-zero balance, the settlement is active
+    return Math.abs(fromBalance) > 0.01 || Math.abs(toBalance) > 0.01;
+  });
+  
+  const peopleWhoOweMe = activeSettlements.filter(
     s => s.to === userId.toString()
   );
   
-  const peopleIOwe = summary.settlements.filter(
+  const peopleIOwe = activeSettlements.filter(
     s => s.from === userId.toString()
   );
   
@@ -189,11 +199,22 @@ export function BalanceSidebar() {
                       <Button
                         variant="outline" 
                         size="sm"
-                        className="text-green-600 bg-green-50 border-green-200 hover:bg-green-100 cursor-default"
-                        disabled
+                        className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200 transform hover:scale-105"
+                        onClick={() => {
+                          const { openModal } = useSettlementModal.getState();
+                          openModal({
+                            title: 'Mark Payment As Received',
+                            description: `Confirm that you received ${formatCurrency(settlement.amount)} from ${fromUserName}.`,
+                            fromUserId: parseInt(settlement.from),
+                            toUserId: userId,
+                            amount: settlement.amount,
+                            fromUserName,
+                            isCreditor: true
+                          });
+                        }}
                       >
-                        <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
-                        Received
+                        <Check className="h-3 w-3 mr-1" />
+                        Mark Received
                       </Button>
                     </div>
                   );
@@ -214,10 +235,32 @@ export function BalanceSidebar() {
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-red-50/30 rounded-md border border-red-100 shadow-sm">
-                    <div className="font-medium text-sm">{getUserName(settlement.to)}</div>
-                    <div className="text-red-600 font-medium text-sm">
-                      -{formatCurrency(settlement.amount)}
+                    <div>
+                      <div className="font-medium text-sm">{getUserName(settlement.to)}</div>
+                      <div className="text-red-600 font-medium text-sm">
+                        -{formatCurrency(settlement.amount)}
+                      </div>
                     </div>
+                    <Button
+                      variant="outline" 
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white transition-all duration-200 transform hover:scale-105"
+                      onClick={() => {
+                        const { openModal } = useSettlementModal.getState();
+                        const toUserName = getUserName(settlement.to);
+                        openModal({
+                          title: 'Pay Settlement',
+                          description: `Pay ${formatCurrency(settlement.amount)} to ${toUserName}.`,
+                          fromUserId: userId,
+                          toUserId: parseInt(settlement.to),
+                          amount: settlement.amount,
+                          toUserName,
+                          isCreditor: false
+                        });
+                      }}
+                    >
+                      Pay Now
+                    </Button>
                   </div>
                 ))}
             </div>
