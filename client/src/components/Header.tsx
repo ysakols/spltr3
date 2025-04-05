@@ -129,17 +129,15 @@ export function Header() {
     retry: false
   });
 
-  // Get user initial for avatar - prioritize name, then username, then email
+  // Get user initial for avatar
   const userInitial = currentUser?.name 
     ? currentUser.name.charAt(0) 
-    : (currentUser?.username?.charAt(0) || currentUser?.email?.charAt(0) || 'G');
+    : (currentUser?.email?.charAt(0) || 'G');
   
-  // Get display name consistently with other components
+  // Get display name
   const displayName = currentUser?.name
     ? currentUser.name
-    : (currentUser?.username ? currentUser.username.split('@')[0] : null) ||
-      (currentUser?.email ? currentUser.email.split('@')[0] : null) ||
-      'Guest User';
+    : currentUser?.email?.split('@')[0] || 'Guest User';
 
   // Check if a route is active
   const isActive = (path: string) => {

@@ -20,8 +20,9 @@ import { User } from "@shared/schema";
 
 // Form validation schemas
 const profileFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  username: z.string().optional(),
+  displayName: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address")
 });
 
@@ -105,13 +106,15 @@ function Profile() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || "",
-      username: user?.username || "",
+      displayName: user?.displayName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || ""
     },
     values: {
-      name: user?.name || "",
-      username: user?.username || "",
+      displayName: user?.displayName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || ""
     }
   });
@@ -128,6 +131,10 @@ function Profile() {
 
   // Handle profile form submission
   const onProfileSubmit = (values: ProfileFormValues) => {
+    // Generate displayName from firstName and lastName if both are provided
+    if (values.firstName && values.lastName) {
+      values.displayName = `${values.firstName} ${values.lastName}`;
+    }
     profileMutation.mutate(values);
   };
 
@@ -166,17 +173,9 @@ function Profile() {
     );
   }
 
-  // Get user initial for avatar - prioritize name, then username, then email
-  const userInitial = user.name 
-    ? user.name.charAt(0) 
-    : (user.username?.charAt(0) || user.email?.charAt(0) || 'U');
-  
-  // Get display name consistently with other components
-  const displayName = user.name
-    ? user.name
-    : (user.username ? user.username.split('@')[0] : null) ||
-      (user.email ? user.email.split('@')[0] : null) ||
-      'Guest User';
+  const userInitial = user.firstName 
+    ? user.firstName.charAt(0) 
+    : (user.displayName?.charAt(0) || user.email.charAt(0) || "U");
 
   return (
     <div className="max-w-3xl mx-auto pt-4">
@@ -185,7 +184,7 @@ function Profile() {
           <AvatarFallback className="text-xl bg-primary/20">{userInitial}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-bold">{displayName}</h1>
+          <h1 className="text-2xl font-bold">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.displayName || user.email)}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
       </div>
@@ -207,47 +206,55 @@ function Profile() {
             <CardContent>
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                  <FormField
-                    control={profileForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Display Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Your display name" 
-                            {...field} 
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          This is the name that will be shown to other users throughout the application.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={profileForm.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="First name" 
+                              {...field} 
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={profileForm.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Last name" 
+                              {...field} 
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   
-                  <FormField
-                    control={profileForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Username" 
-                            {...field} 
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Optional username for login purposes.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                  {/* Display name is now automatically generated from first and last name */}
+                  <div className="bg-muted/20 p-4 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      Your display name will be automatically generated from your first and last name.
+                    </p>
+                    {profileForm.watch('firstName') && profileForm.watch('lastName') && (
+                      <p className="mt-2 font-medium">
+                        Your display name will be: <span className="text-primary">{profileForm.watch('firstName')} {profileForm.watch('lastName')}</span>
+                      </p>
                     )}
-                  />
+                  </div>
                   
                   <Separator className="my-4" />
                   

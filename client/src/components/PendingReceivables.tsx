@@ -57,7 +57,6 @@ export function PendingReceivables({ userId, summaryData, userMap }: PendingRece
       <CardContent>
         <div className="space-y-2">
           {receivables.map((settlement: any, idx: number) => {
-            // Get display name using the same pattern as in other components
             const fromUsername = userMap[settlement.from] || `User ${settlement.from}`;
             
             return (

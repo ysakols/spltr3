@@ -19,17 +19,13 @@ function GroupSummary({ group, summary, members = [] }: GroupSummaryProps) {
   // Get all member IDs from the paid/owes objects in the summary
   const memberIds = Object.keys(summary.paid || {});
   
-  // Create a mapping of user IDs to display names for easier lookup
+  // Create a mapping of user IDs to usernames for easier lookup
   const userMap: Record<string, string> = {};
   members.forEach(member => {
-    // Prioritize name, then username (as display name), then email, and finally a generic fallback
-    userMap[member.id.toString()] = member.name || 
-      (member.username ? member.username.split('@')[0] : null) || 
-      (member.email ? member.email.split('@')[0] : null) || 
-      'User';
+    userMap[member.id.toString()] = member.name || member.username || 'User';
   });
   
-  // Get display name from ID
+  // Get username from ID
   const getUserName = (userId: string) => {
     return userMap[userId] || `User ${userId}`;
   };
