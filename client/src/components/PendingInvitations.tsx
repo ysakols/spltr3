@@ -20,7 +20,7 @@ type GroupInvitation = {
   groupId: number;
   inviterUserId: number;
   inviteeEmail: string;
-  inviteeFirstName: string | null;
+  inviteeName: string | null;
   status: string;
   invitedAt: string;
   expiresAt: string | null;

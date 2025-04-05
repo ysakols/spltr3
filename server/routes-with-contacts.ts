@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         inviterUserId: currentUser.id,
         inviteeEmail: email,
-        inviteeFirstName: null, // No names provided by inviters
+        inviteeName: null, // No names provided by inviters
         token,
         status: 'pending',
         invitedAt: new Date(),
@@ -605,10 +605,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: invitation.inviteeEmail,
           isUser: false,
           groupIds: [invitation.groupId],
-          firstName: invitation.inviteeFirstName,
+          firstName: invitation.inviteeName,
           status: invitation.status,
           token: invitation.token,
-          displayName: invitation.inviteeFirstName || invitation.inviteeEmail
+          displayName: invitation.inviteeName || invitation.inviteeEmail
         });
       }
 
@@ -768,7 +768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invitation = await storage.createGroupInvitation({
         inviterUserId: userId,
         inviteeEmail: email,
-        inviteeFirstName: firstName || null,
+        inviteeName: firstName || null,
         groupId: group.id,
         token,
         status: 'pending',
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId: 1,
         inviterUserId: currentUser.id,
         inviteeEmail: 'test@example.com',
-        inviteeFirstName: null,
+        inviteeName: null,
         token: 'test-token-' + Date.now(),
         status: 'pending',
         invitedAt: new Date(),
@@ -2006,7 +2006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId: 1,
         inviterUserId: currentUser.id,
         inviteeEmail: 'delivered@resend.dev', // Use Resend's test email address for reliable delivery
-        inviteeFirstName: null,
+        inviteeName: null,
         token: 'test-token-' + Date.now(),
         status: 'pending',
         invitedAt: new Date(),
@@ -2077,7 +2077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId: 1,
         inviterUserId: currentUser.id,
         inviteeEmail: 'delivered@resend.dev', // Use Resend's test email address for consistency
-        inviteeFirstName: null,
+        inviteeName: null,
         token: 'test-token-' + Date.now(),
         status: 'pending',
         invitedAt: new Date(),

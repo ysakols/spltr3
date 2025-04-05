@@ -12,7 +12,7 @@ function createInvitationEmailContent(
 
   // Format inviter's name if available
   const inviterName = inviter 
-    ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) 
+    ? (inviter.display_name || `${inviter.first_name || ''} ${inviter.last_name || ''}`.trim() || inviter.email) 
     : 'Someone';
 
   // Format expiration date if available
@@ -125,7 +125,7 @@ const mockInvitation = {
   groupId: 1,
   inviterUserId: 999,
   inviteeEmail: 'delivered@resend.dev',
-  inviteeFirstName: null,
+  inviteeName: null,
   token: 'test-token-' + Date.now(),
   status: 'pending',
   invitedAt: new Date(),
@@ -144,9 +144,9 @@ const mockGroup = {
 const mockUser = {
   id: 999,
   email: 'test-sender@example.com',
-  firstName: 'Test',
-  lastName: 'User',
-  displayName: 'Test User'
+  first_name: 'Test',
+  last_name: 'User',
+  display_name: 'Test User'
 };
 
 async function main() {

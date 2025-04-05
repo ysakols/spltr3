@@ -29,12 +29,12 @@ export function sanitizeUser(user: User) {
   // This is more secure than removing specific sensitive fields
   return {
     id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    displayName: user.displayName,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    display_name: user.display_name,
     email: user.email,
     username: user.username,
-    avatarUrl: user.avatarUrl,
+    avatar_url: user.avatar_url,
     // Omit: password, googleId, googleAccessToken, googleRefreshToken, lastLogin, and other sensitive data
   };
 }
@@ -129,14 +129,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hashedPassword = await bcrypt.hash(password, 10);
           
           // Create the user
-          const displayName = email.split('@')[0];
+          const display_name = email.split('@')[0];
           user = await storage.createUser({
             email,
             password: hashedPassword,
             username,
-            displayName,
-            firstName: null,
-            lastName: null
+            display_name,
+            first_name: null,
+            last_name: null
           });
           
           console.log(`Created new user account for ${email}`);
@@ -404,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         inviterUserId: currentUser.id,
         inviteeEmail: email,
-        inviteeFirstName: null, // No names provided by inviters
+        inviteeName: null, // No names provided by inviters
         token,
         status: 'pending',
         invitedAt: new Date(),
@@ -732,8 +732,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate display name from first and last name if provided
       let userData = { ...validatedData.data };
       
-      if (userData.firstName && userData.lastName) {
-        userData.displayName = `${userData.firstName} ${userData.lastName}`;
+      if (userData.first_name && userData.last_name) {
+        userData.display_name = `${userData.first_name} ${userData.last_name}`;
       }
       
       // Hash the password
@@ -786,10 +786,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate the request body
       const schema = z.object({
         email: z.string().email().optional(),
-        displayName: z.string().optional(),
-        firstName: z.string().min(1, "First name is required"),
-        lastName: z.string().min(1, "Last name is required"),
-        avatarUrl: z.string().optional().nullable()
+        display_name: z.string().optional(),
+        first_name: z.string().min(1, "First name is required"),
+        last_name: z.string().min(1, "Last name is required"),
+        avatar_url: z.string().optional().nullable()
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -809,8 +809,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate display name from first and last name if both are provided
       let userData = { ...validatedData.data };
       
-      if (userData.firstName && userData.lastName) {
-        userData.displayName = `${userData.firstName} ${userData.lastName}`;
+      if (userData.first_name && userData.last_name) {
+        userData.display_name = `${userData.first_name} ${userData.last_name}`;
       }
       
       // Update the user
@@ -1204,7 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           ...invitation,
           inviter: inviter,
-          inviterName: inviter ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) : null
+          inviterName: inviter ? (inviter.display_name || `${inviter.first_name || ''} ${inviter.last_name || ''}`.trim() || inviter.email) : null
         };
       }));
       
@@ -1283,7 +1283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         groupId,
         inviterUserId: currentUser.id,
         inviteeEmail: email,
-        inviteeFirstName: null,
+        inviteeName: null,
         token,
         status: 'pending',
         invitedAt: new Date(),
@@ -1439,9 +1439,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a minimal representation of each member with only the data required for UI
       const minimalMemberData = members.map(member => ({
         id: member.id,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        displayName: member.displayName,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        display_name: member.display_name,
         // Include email only because it's needed for expense assignment and invitation features
         email: member.email
       }));
@@ -1477,16 +1477,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create user objects with only the necessary fields for the UI
         const minimalPaidByUser = paidByUser ? {
           id: paidByUser.id,
-          firstName: paidByUser.firstName,
-          lastName: paidByUser.lastName,
-          displayName: paidByUser.displayName
+          first_name: paidByUser.first_name,
+          last_name: paidByUser.last_name,
+          display_name: paidByUser.display_name
         } : null;
         
         const minimalCreatedByUser = createdByUser ? {
           id: createdByUser.id,
-          firstName: createdByUser.firstName,
-          lastName: createdByUser.lastName,
-          displayName: createdByUser.displayName
+          first_name: createdByUser.first_name,
+          last_name: createdByUser.last_name,
+          display_name: createdByUser.display_name
         } : null;
         
         return {

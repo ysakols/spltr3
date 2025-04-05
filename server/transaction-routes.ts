@@ -56,7 +56,7 @@ export function registerTransactionRoutes(app: Express): void {
           username: paidByUser.username,
           name: paidByUser.name,
           email: paidByUser.email,
-          avatarUrl: paidByUser.avatarUrl
+          avatar_url: paidByUser.avatar_url
         } : null;
         
         const minimalCreatedByUser = createdByUser ? {
@@ -64,7 +64,7 @@ export function registerTransactionRoutes(app: Express): void {
           username: createdByUser.username,
           name: createdByUser.name,
           email: createdByUser.email,
-          avatarUrl: createdByUser.avatarUrl
+          avatar_url: createdByUser.avatar_url
         } : null;
         
         const minimalToUser = toUser ? {
@@ -72,7 +72,7 @@ export function registerTransactionRoutes(app: Express): void {
           username: toUser.username,
           name: toUser.name,
           email: toUser.email,
-          avatarUrl: toUser.avatarUrl
+          avatar_url: toUser.avatar_url
         } : null;
         
         return {
@@ -132,7 +132,7 @@ export function registerTransactionRoutes(app: Express): void {
         username: paidByUser.username,
         name: paidByUser.name,
         email: paidByUser.email,
-        avatarUrl: paidByUser.avatarUrl
+        avatar_url: paidByUser.avatar_url
       } : null;
       
       const minimalCreatedByUser = createdByUser ? {
@@ -140,7 +140,7 @@ export function registerTransactionRoutes(app: Express): void {
         username: createdByUser.username,
         name: createdByUser.name,
         email: createdByUser.email,
-        avatarUrl: createdByUser.avatarUrl
+        avatar_url: createdByUser.avatar_url
       } : null;
       
       const minimalToUser = toUser ? {
@@ -148,7 +148,7 @@ export function registerTransactionRoutes(app: Express): void {
         username: toUser.username,
         name: toUser.name,
         email: toUser.email,
-        avatarUrl: toUser.avatarUrl
+        avatar_url: toUser.avatar_url
       } : null;
       
       const enhancedTransaction = {
