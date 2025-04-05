@@ -439,13 +439,15 @@ function TransactionsTable({
       
       if (borrowerNames.length === 0) return "No borrowers";
       
-      // If there are more than 2 borrowers, just show count
-      if (borrowerNames.length > 2) {
+      // If there are more than 3 borrowers, just show count
+      if (borrowerNames.length > 3) {
         return `${borrowerNames.length} people`;
       }
       
-      // Show names for 1-2 borrowers
-      return borrowerNames.map(b => b.name).join(', ');
+      // Show names and amounts for 1-3 borrowers
+      return borrowerNames.map(b => {
+        return `${b.name} (${formatCurrency(parseFloat(b.amount.toString()))})`;
+      }).join(', ');
     } catch (error) {
       console.error("Error parsing split details:", error);
       return "Error parsing split details";
@@ -540,9 +542,9 @@ function TransactionsTable({
                                   <span className="truncate max-w-[80px] inline-block">{getUsernameById(transaction.paidByUserId)}</span>
                                 </div>
                                 {transaction.splitDetails && (
-                                  <div className="text-xs text-muted-foreground mt-0.5">
-                                    <span className="font-medium text-amber-600">Borrowed by:</span> {' '}
-                                    {getSplitSummary(transaction)}
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="font-medium text-amber-600">Borrowed by:</span> 
+                                    <span>{getSplitSummary(transaction)}</span>
                                   </div>
                                 )}
                               </div>
