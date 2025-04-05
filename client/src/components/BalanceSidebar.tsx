@@ -50,19 +50,20 @@ export function BalanceSidebar() {
     queryKey: ['/api/users'],
   });
   
-  // If on a group details page, fetch additional data for the current group
+  // Always query these resources, but only enable them conditionally
+  // This ensures the same hooks are called in the same order on every render
   const { data: currentGroup } = useQuery<Group>({
-    queryKey: [`/api/groups/${currentGroupId}`],
+    queryKey: [`/api/groups/${currentGroupId || 'none'}`],
     enabled: !!currentGroupId,
   });
 
   const { data: currentMembers } = useQuery<User[]>({
-    queryKey: [`/api/groups/${currentGroupId}/members`],
+    queryKey: [`/api/groups/${currentGroupId || 'none'}/members`],
     enabled: !!currentGroupId,
   });
 
   const { data: currentSummary } = useQuery<Balance>({
-    queryKey: [`/api/groups/${currentGroupId}/summary`],
+    queryKey: [`/api/groups/${currentGroupId || 'none'}/summary`],
     enabled: !!currentGroupId,
     refetchInterval: 5000,
     staleTime: 2000,
