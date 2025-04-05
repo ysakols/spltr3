@@ -420,6 +420,38 @@ function TransactionsTable({
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
   
+  // Function to get a summary of who borrowed in an expense
+  const getSplitSummary = (transaction: Transaction) => {
+    if (!transaction.splitDetails || !transaction.splitType) return null;
+    
+    try {
+      // Parse the split details
+      const splitDetails = JSON.parse(transaction.splitDetails);
+      
+      // Get a list of usernames who borrowed (everyone except the payer)
+      const borrowerNames = Object.keys(splitDetails)
+        .filter(userId => parseInt(userId) !== transaction.paidByUserId)
+        .map(userId => {
+          const amount = splitDetails[userId];
+          const name = getUsernameById(parseInt(userId));
+          return { name, amount };
+        });
+      
+      if (borrowerNames.length === 0) return "No borrowers";
+      
+      // If there are more than 2 borrowers, just show count
+      if (borrowerNames.length > 2) {
+        return `${borrowerNames.length} people`;
+      }
+      
+      // Show names for 1-2 borrowers
+      return borrowerNames.map(b => b.name).join(', ');
+    } catch (error) {
+      console.error("Error parsing split details:", error);
+      return "Error parsing split details";
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -502,12 +534,30 @@ function TransactionsTable({
                           <div className="flex items-center whitespace-nowrap">
                             <UserIcon className="h-4 w-4 mr-1 flex-shrink-0" />
                             {isExpense ? (
-                              <span className="truncate max-w-[120px] inline-block">Paid by {getUsernameById(transaction.paidByUserId)}</span>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium text-green-600">Paid by:</span> 
+                                  <span className="truncate max-w-[80px] inline-block">{getUsernameById(transaction.paidByUserId)}</span>
+                                </div>
+                                {transaction.splitDetails && (
+                                  <div className="text-xs text-muted-foreground mt-0.5">
+                                    <span className="font-medium text-amber-600">Borrowed by:</span> {' '}
+                                    {getSplitSummary(transaction)}
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <span className="truncate max-w-[60px] inline-block">{getUsernameById(transaction.paidByUserId)}</span>
-                                <span>→</span>
-                                <span className="truncate max-w-[60px] inline-block">{getUsernameById(transaction.toUserId)}</span>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-amber-600">Payer:</span> 
+                                    <span className="truncate max-w-[60px] inline-block">{getUsernameById(transaction.paidByUserId)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-green-600">Receiver:</span> 
+                                    <span className="truncate max-w-[60px] inline-block">{getUsernameById(transaction.toUserId)}</span>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
