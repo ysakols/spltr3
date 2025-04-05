@@ -68,13 +68,17 @@ function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
     );
   }
 
+  // Get user initial for avatar - prioritize name, then username, then email
   const userInitial = currentUser?.name 
     ? currentUser.name.charAt(0) 
-    : (currentUser?.email?.charAt(0) || 'G');
+    : (currentUser?.username?.charAt(0) || currentUser?.email?.charAt(0) || 'G');
   
+  // Get display name consistently with other components
   const displayName = currentUser?.name
     ? currentUser.name
-    : currentUser?.email?.split('@')[0] || 'Guest User';
+    : (currentUser?.username ? currentUser.username.split('@')[0] : null) ||
+      (currentUser?.email ? currentUser.email.split('@')[0] : null) ||
+      'Guest User';
 
   return (
     <div className={cn(

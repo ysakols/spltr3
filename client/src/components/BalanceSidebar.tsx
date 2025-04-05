@@ -122,19 +122,30 @@ export function BalanceSidebar() {
     );
   }
   
-  // Create a mapping of user IDs to usernames
+  // Create a mapping of user IDs to display names
   const userMap: Record<string, string> = {};
   
   // Add current group members first (if any)
   if (currentMembers) {
     currentMembers.forEach(member => {
-      userMap[member.id.toString()] = member.name || member.username || 'User';
+      // Prioritize name, then username (as display name), then email, and finally a generic fallback
+      userMap[member.id.toString()] = member.name || 
+        (member.username ? member.username.split('@')[0] : null) || 
+        (member.email ? member.email.split('@')[0] : null) || 
+        'User';
     });
   }
   
   // Then add all other users from the global list
   allUsers.forEach(user => {
-    userMap[user.id.toString()] = user.name || user.username || 'User';
+    // Only add if not already added from members list
+    if (!userMap[user.id.toString()]) {
+      // Prioritize name, then username (as display name), then email, and finally a generic fallback
+      userMap[user.id.toString()] = user.name || 
+        (user.username ? user.username.split('@')[0] : null) || 
+        (user.email ? user.email.split('@')[0] : null) || 
+        'User';
+    }
   });
   
   // Log the summary data to see what we're working with
