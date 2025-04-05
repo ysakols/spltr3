@@ -15,9 +15,9 @@ import { SplitType, TransactionType, PaymentMethod, TransactionStatus } from '@s
 // Extended Transaction type that includes user info
 interface TransactionUser {
   id: number;
-  firstName: string;
-  lastName: string;
-  displayName: string;
+  first_name: string;
+  last_name: string;
+  display_name: string;
 }
 
 interface Transaction {
@@ -230,11 +230,11 @@ function TransactionExpenseView({
       </div>
       <div className="flex flex-col xs:flex-row text-xs text-muted-foreground gap-x-2">
         <div>
-          <span className="font-medium">Paid by:</span> {transaction.paidByUser?.firstName} {transaction.paidByUser?.lastName}
+          <span className="font-medium">Paid by:</span> {transaction.paidByUser?.first_name} {transaction.paidByUser?.last_name}
         </div>
         {transaction.createdByUser && (
           <div>
-            <span className="font-medium">Created by:</span> {transaction.createdByUser.firstName} {transaction.createdByUser.lastName}
+            <span className="font-medium">Created by:</span> {transaction.createdByUser.first_name} {transaction.createdByUser.last_name}
           </div>
         )}
         <div className="ml-auto">
@@ -274,13 +274,13 @@ function TransactionSettlementView({
       <p className="text-sm">
         <span className="font-medium">
           {transaction.paidByUser 
-            ? `${transaction.paidByUser.firstName} ${transaction.paidByUser.lastName}` 
+            ? `${transaction.paidByUser.first_name} ${transaction.paidByUser.last_name}` 
             : `User ${transaction.paidByUserId}`}
         </span> 
         paid 
         <span className="font-medium">
           {' '}{transaction.toUser 
-            ? `${transaction.toUser.firstName} ${transaction.toUser.lastName}` 
+            ? `${transaction.toUser.first_name} ${transaction.toUser.last_name}` 
             : `User ${transaction.toUserId}`}{' '}
         </span>
         <span className="font-bold">{formatCurrency(amount)}</span>

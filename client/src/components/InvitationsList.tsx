@@ -92,9 +92,9 @@ function InvitationItem({
         </Badge>
       </div>
       <p className="text-sm">
-        {invitation.inviterUser?.firstName && invitation.inviterUser.lastName
-          ? `${invitation.inviterUser.firstName} ${invitation.inviterUser.lastName}` 
-          : invitation.inviterUser?.displayName || invitation.inviterUser?.email || 'Someone'} 
+        {invitation.inviterUser?.first_name && invitation.inviterUser.last_name
+          ? `${invitation.inviterUser.first_name} ${invitation.inviterUser.last_name}` 
+          : invitation.inviterUser?.display_name || invitation.inviterUser?.email || 'Someone'} 
         invited {invitation.inviteeEmail}
       </p>
       <div className="flex justify-between items-center mt-1">

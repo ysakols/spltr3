@@ -101,14 +101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hashedPassword = await bcrypt.hash(password, 10);
           
           // Create the user
-          const displayName = email.split('@')[0];
+          const display_name = email.split('@')[0];
           user = await storage.createUser({
             email,
             password: hashedPassword,
             username,
-            displayName,
-            firstName: null,
-            lastName: null
+            display_name,
+            first_name: null,
+            last_name: null
           });
           
           console.log(`Created new user account for ${email}`);
@@ -587,9 +587,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: user.email || '',
             isUser: true,
             groupIds: [groupId],
-            firstName: user.firstName,
-            lastName: user.lastName,
-            displayName: user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email
+            first_name: user.first_name,
+            last_name: user.last_name,
+            display_name: user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
           });
         }
       }
@@ -704,9 +704,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contact: {
           id: contactUserId,
           email: contactUser.email,
-          firstName: contactUser.firstName,
-          lastName: contactUser.lastName,
-          displayName: contactUser.displayName || `${contactUser.firstName || ''} ${contactUser.lastName || ''}`.trim() || contactUser.email,
+          first_name: contactUser.first_name,
+          last_name: contactUser.last_name,
+          display_name: contactUser.display_name || `${contactUser.first_name || ''} ${contactUser.last_name || ''}`.trim() || contactUser.email,
           groupIds: sharedGroupIds
         },
         sharedGroups,
@@ -895,10 +895,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate the request body
       const schema = z.object({
         email: z.string().email().optional(),
-        displayName: z.string().optional(),
-        firstName: z.string().min(1, "First name is required"),
-        lastName: z.string().min(1, "Last name is required"),
-        avatarUrl: z.string().optional().nullable()
+        display_name: z.string().optional(),
+        first_name: z.string().min(1, "First name is required"),
+        last_name: z.string().min(1, "Last name is required"),
+        avatar_url: z.string().optional().nullable()
       });
       
       const validatedData = schema.safeParse(req.body);
@@ -918,8 +918,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate display name from first and last name if both are provided
       let userData = { ...validatedData.data };
       
-      if (userData.firstName && userData.lastName) {
-        userData.displayName = `${userData.firstName} ${userData.lastName}`;
+      if (userData.first_name && userData.last_name) {
+        userData.display_name = `${userData.first_name} ${userData.last_name}`;
       }
       
       // Update the user
@@ -1313,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           ...invitation,
           inviter: inviter,
-          inviterName: inviter ? (inviter.displayName || `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email) : null
+          inviterName: inviter ? (inviter.display_name || `${inviter.first_name || ''} ${inviter.last_name || ''}`.trim() || inviter.email) : null
         };
       }));
       
@@ -1456,9 +1456,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Limit the exposed data to only what's needed for UI rendering
       const limitedMemberData = members.map(member => ({
         id: member.id,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        displayName: member.displayName,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        display_name: member.display_name,
         // Only include email if absolutely necessary for functionality
         email: member.email
       }));

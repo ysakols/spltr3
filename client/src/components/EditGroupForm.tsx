@@ -112,9 +112,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
       
       toast({
         title: 'Member removed',
-        description: `${memberToRemove.firstName && memberToRemove.lastName 
-          ? `${memberToRemove.firstName} ${memberToRemove.lastName}` 
-          : memberToRemove.displayName || memberToRemove.email} has been removed from the group.`
+        description: `${memberToRemove.first_name && memberToRemove.last_name 
+          ? `${memberToRemove.first_name} ${memberToRemove.last_name}` 
+          : memberToRemove.display_name || memberToRemove.email} has been removed from the group.`
       });
     } catch (error) {
       console.error('Error removing member:', error);
@@ -299,9 +299,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
                       className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full flex items-center"
                     >
                       <span>
-                        {member.firstName && member.lastName 
-                          ? `${member.firstName} ${member.lastName}` 
-                          : member.displayName || member.email}
+                        {member.first_name && member.last_name 
+                          ? `${member.first_name} ${member.last_name}` 
+                          : member.display_name || member.email}
                       </span>
                       <AlertDialog>
                         <AlertDialogTrigger>
@@ -322,9 +322,9 @@ function EditGroupForm({ group, onGroupUpdated, onCancel }: EditGroupFormProps) 
                               Are you sure you want to remove this member from the group?
                               <div className="mt-2 p-3 bg-muted/50 rounded-md">
                                 <p className="font-medium">
-                                  {member.firstName && member.lastName 
-                                    ? `${member.firstName} ${member.lastName}` 
-                                    : member.displayName || member.email}
+                                  {member.first_name && member.last_name 
+                                    ? `${member.first_name} ${member.last_name}` 
+                                    : member.display_name || member.email}
                                 </p>
                               </div>
                               Once removed, they will no longer have access to this group.
