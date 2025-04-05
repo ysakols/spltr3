@@ -17,6 +17,12 @@ import {
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger
+} from "./ui/dropdown-menu";
 import { getQueryFn, queryClient } from "@/lib/queryClient";
 
 // Types
@@ -181,48 +187,50 @@ export function Header() {
           </div>
         </div>
         
-        {/* Right section - User profile and actions */}
-        <div className="flex items-center space-x-2">
-          <Link href="/profile">
-            <Button 
-              variant={isActive('/profile') ? "secondary" : "ghost"} 
-              size="sm" 
-              className="h-9"
-            >
-              <User className={cn(
-                "h-4 w-4 mr-2",
-                isActive('/profile') ? "text-primary" : "text-muted-foreground"
-              )} />
-              Profile
-            </Button>
-          </Link>
-          
-          <div className="flex items-center border-l border-border/30 pl-3 ml-1">
-            <div className="relative">
-              <Avatar className="h-8 w-8 ring-1 ring-primary/10">
-                <AvatarFallback className="text-xs bg-primary/10 text-primary/70">
-                  {isLoading ? '...' : userInitial}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background"></div>
-            </div>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => {
-                fetch('/auth/logout').then(() => {
-                  queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-                  queryClient.setQueryData(['/api/auth/me'], null);
-                  window.location.href = '/login';
-                });
-              }}
-              className="ml-2 h-8 text-sm font-normal text-red-600 hover:text-red-700 hover:bg-red-100/30"
-            >
-              <LogOut className="h-3.5 w-3.5 mr-1.5" />
-              Sign Out
-            </Button>
-          </div>
+        {/* Right section - User profile dropdown */}
+        <div className="flex items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-9 pl-2.5 pr-3 flex items-center gap-2 rounded-full hover:bg-muted hover:text-foreground focus:ring-0"
+              >
+                <div className="relative">
+                  <Avatar className="h-7 w-7 ring-1 ring-primary/10">
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary/70">
+                      {isLoading ? '...' : userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background"></div>
+                </div>
+                <span className="text-sm font-medium max-w-[100px] truncate">
+                  {displayName}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <Link href="/profile">
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Profile
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem 
+                className="text-red-600 focus:text-red-700 focus:bg-red-100/30"
+                onClick={() => {
+                  fetch('/auth/logout').then(() => {
+                    queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+                    queryClient.setQueryData(['/api/auth/me'], null);
+                    window.location.href = '/login';
+                  });
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2 text-red-600" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

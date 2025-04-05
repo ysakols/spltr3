@@ -80,6 +80,14 @@ function GroupList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Your Expense Groups</h2>
+        <Button asChild>
+          <Link href="/create">
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            New Group
+          </Link>
+        </Button>
       </div>
 
       {isLoadingUser || isLoadingGroups || isLoadingUsers ? (
@@ -161,7 +169,10 @@ function GroupList() {
         </div>
       ) : (
         <div className="empty-state bg-white p-8 shadow text-center">
-          <p className="text-gray-600">You don't have any expense groups yet.</p>
+          <p className="text-gray-600 mb-4">You don't have any expense groups yet.</p>
+          <Button asChild>
+            <Link href="/create">Create Your First Group</Link>
+          </Button>
         </div>
       )}
     </div>
