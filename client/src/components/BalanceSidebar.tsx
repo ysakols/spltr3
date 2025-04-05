@@ -23,18 +23,18 @@ function GroupDetails({ groupId, group, summary, members }: {
   }
 
   return (
-    <div className="flex-grow flex flex-col min-h-0 border-t mt-2">
-      <div className="px-4 pt-4 pb-2 flex-shrink-0">
-        <h2 className="font-semibold text-base">
+    <div className="flex-grow flex flex-col min-h-0 border-t mt-4">
+      <div className="px-5 pt-5 pb-3 flex-shrink-0">
+        <h2 className="font-medium text-base text-primary">
           {group.name}
         </h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground mt-1">
           Group Summary
         </p>
       </div>
       
       {/* Ensure this div takes remaining space and scrolls internally */}
-      <div className="overflow-y-auto px-4 flex-grow">
+      <div className="overflow-y-auto px-5 flex-grow">
         <GroupSummary 
           group={group} 
           summary={summary}
@@ -48,29 +48,41 @@ function GroupDetails({ groupId, group, summary, members }: {
 // Loading skeleton component
 function LoadingSkeleton() {
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
-        <div className="space-y-2 flex-1">
-          <div className="h-4 bg-muted animate-pulse rounded-md w-2/3"></div>
-          <div className="h-3 bg-muted animate-pulse rounded-md w-1/2"></div>
-        </div>
+    <div className="p-5 space-y-6">
+      <div className="flex items-center justify-between pb-3 border-b">
+        <div className="h-5 bg-muted animate-pulse rounded-md w-1/3"></div>
       </div>
       
-      <div className="border rounded-lg p-4 bg-card/50">
-        <div className="h-4 bg-muted animate-pulse rounded-md w-3/4 mb-3"></div>
-        <div className="space-y-2">
-          <div className="h-3 bg-muted animate-pulse rounded-md w-full"></div>
-          <div className="h-3 bg-muted animate-pulse rounded-md w-5/6"></div>
-          <div className="h-3 bg-muted animate-pulse rounded-md w-4/5"></div>
+      <div className="space-y-5">
+        <div>
+          <div className="h-4 bg-muted animate-pulse rounded-md w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            <div className="border rounded-lg p-4 bg-card/50 flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-muted animate-pulse rounded-md w-1/3"></div>
+                <div className="h-3 bg-muted animate-pulse rounded-md w-1/4"></div>
+              </div>
+              <div className="h-9 w-24 bg-muted animate-pulse rounded-md"></div>
+            </div>
+            
+            <div className="border rounded-lg p-4 bg-card/50 flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-muted animate-pulse rounded-md w-1/3"></div>
+                <div className="h-3 bg-muted animate-pulse rounded-md w-1/4"></div>
+              </div>
+              <div className="h-9 w-24 bg-muted animate-pulse rounded-md"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      <div className="border rounded-lg p-4 bg-card/50">
-        <div className="h-4 bg-muted animate-pulse rounded-md w-1/2 mb-3"></div>
-        <div className="space-y-2">
-          <div className="h-3 bg-muted animate-pulse rounded-md w-full"></div>
-          <div className="h-3 bg-muted animate-pulse rounded-md w-3/4"></div>
+        
+        <div className="pt-5 border-t mt-3">
+          <div className="h-5 bg-muted animate-pulse rounded-md w-1/4 mb-3"></div>
+          <div className="h-3 bg-muted animate-pulse rounded-md w-1/5 mb-5"></div>
+          <div className="space-y-4">
+            <div className="h-12 bg-muted animate-pulse rounded-md w-full"></div>
+            <div className="h-12 bg-muted animate-pulse rounded-md w-full"></div>
+            <div className="h-12 bg-muted animate-pulse rounded-md w-full"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -186,10 +198,22 @@ export function BalanceSidebar() {
   // No data state
   if (!summary) {
     return (
-      <div className="h-full p-4 overflow-y-auto">
-        <div className="rounded-lg border border-border p-4 text-center bg-muted/20">
-          <p className="text-sm text-muted-foreground">Could not load summary data.</p>
-          <p className="text-xs mt-1 text-muted-foreground/80">Please check your connection and try again.</p>
+      <div className="h-full flex flex-col text-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
+          <h2 className="font-medium text-base text-primary">Balance Summary</h2>
+        </div>
+        <div className="p-5 flex-1 flex items-center justify-center">
+          <div className="rounded-lg border border-border p-5 text-center bg-muted/10 shadow-sm max-w-xs mx-auto">
+            <div className="mb-3 flex justify-center">
+              <div className="bg-primary/5 p-2.5 rounded-full">
+                <Users className="h-6 w-6 text-primary/60" />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-foreground/90 mb-2">Could not load summary data</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Please check your connection and try again.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -218,36 +242,36 @@ export function BalanceSidebar() {
   
   return (
     <div className="h-full flex flex-col text-sm">
-      <div className="flex items-center justify-between p-4 pb-2 border-b flex-shrink-0">
-        <h2 className="font-semibold text-base">Balance Summary</h2>
+      <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
+        <h2 className="font-medium text-base text-primary">Balance Summary</h2>
       </div>
       
       {/* Global Balance Section */}
-      <div className="flex-shrink-0 px-4 pt-4">
+      <div className="flex-shrink-0 px-5 pt-5">
         {/* People who owe you */}
         {peopleWhoOweMe.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-medium mb-3 text-green-600 flex items-center">
-              <div className="w-1.5 h-1.5 bg-green-500 mr-2 rounded-full"></div>
+          <div className="mb-7">
+            <h3 className="text-sm font-medium mb-4 text-green-600 flex items-center">
+              <div className="w-2 h-2 bg-green-500 mr-2 rounded-full"></div>
               Money Owed To You
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {peopleWhoOweMe
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => {
                   const fromUserName = getUserName(settlement.from);
                   
                   return (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-green-50/30 rounded-md border border-green-100 shadow-sm">
+                    <div key={idx} className="flex items-center justify-between p-3.5 bg-green-50/30 rounded-lg border border-green-100 shadow-sm">
                       <div>
                         <div className="font-medium text-sm">{fromUserName}</div>
-                        <div className="text-green-600 font-medium text-sm">
+                        <div className="text-green-600 font-medium text-sm mt-0.5">
                           +{formatCurrency(settlement.amount)}
                         </div>
                       </div>
                       <Button 
                         variant="ghost" 
-                        className="h-8 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 group relative overflow-hidden"
+                        className="h-9 px-3 text-xs bg-green-50 hover:bg-green-100 text-green-700 group relative overflow-hidden"
                         onClick={() => {
                           settlementModal.openSettlementModal({
                             fromUserId: parseInt(settlement.from),
@@ -257,7 +281,7 @@ export function BalanceSidebar() {
                           });
                         }}
                       >
-                        <Check className="h-3.5 w-3.5 mr-1 group-hover:animate-bounce" />
+                        <Check className="h-3.5 w-3.5 mr-1.5 group-hover:animate-bounce" />
                         <span className="whitespace-nowrap">Mark Received</span>
                         <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-green-100/60 transition-transform duration-300 group-hover:scale-100" />
                       </Button>
@@ -270,25 +294,25 @@ export function BalanceSidebar() {
         
         {/* People you owe */}
         {peopleIOwe.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-medium mb-3 text-red-600 flex items-center">
-              <div className="w-1.5 h-1.5 bg-red-500 mr-2 rounded-full"></div>
+          <div className="mb-7">
+            <h3 className="text-sm font-medium mb-4 text-red-600 flex items-center">
+              <div className="w-2 h-2 bg-red-500 mr-2 rounded-full"></div>
               Money You Owe
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {peopleIOwe
                 .sort((a, b) => b.amount - a.amount)
                 .map((settlement, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-red-50/30 rounded-md border border-red-100 shadow-sm">
+                  <div key={idx} className="flex items-center justify-between p-3.5 bg-red-50/30 rounded-lg border border-red-100 shadow-sm">
                     <div>
                       <div className="font-medium text-sm">{getUserName(settlement.to)}</div>
-                      <div className="text-red-600 font-medium text-sm">
+                      <div className="text-red-600 font-medium text-sm mt-0.5">
                         -{formatCurrency(settlement.amount)}
                       </div>
                     </div>
                     <Button 
                       variant="ghost" 
-                      className="h-8 px-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 group relative overflow-hidden"
+                      className="h-9 px-3 text-xs bg-red-50 hover:bg-red-100 text-red-700 group relative overflow-hidden"
                       onClick={() => {
                         settlementModal.openSettlementModal({
                           fromUserId: parseInt(settlement.from),
@@ -298,7 +322,7 @@ export function BalanceSidebar() {
                         });
                       }}
                     >
-                      <Banknote className="h-3.5 w-3.5 mr-1 group-hover:translate-y-[-2px] transition-transform duration-200" />
+                      <Banknote className="h-3.5 w-3.5 mr-1.5 group-hover:translate-y-[-2px] transition-transform duration-200" />
                       <span className="whitespace-nowrap">Pay</span>
                       <span className="absolute inset-0 h-full w-full scale-0 rounded-md bg-red-100/60 transition-transform duration-300 group-hover:scale-100" />
                     </Button>
@@ -310,13 +334,13 @@ export function BalanceSidebar() {
         
         {/* No settlements case */}
         {peopleWhoOweMe.length === 0 && peopleIOwe.length === 0 && (
-          <div className="mb-6 p-4 border border-dashed rounded-md text-center bg-muted/5 shadow-sm">
-            <div className="mb-2 flex justify-center">
-              <div className="bg-primary/5 p-2 rounded-full">
-                <Users className="h-5 w-5 text-primary/60" />
+          <div className="mb-7 p-5 border border-dashed rounded-lg text-center bg-muted/5 shadow-sm">
+            <div className="mb-3 flex justify-center">
+              <div className="bg-primary/5 p-2.5 rounded-full">
+                <Users className="h-6 w-6 text-primary/60" />
               </div>
             </div>
-            <p className="text-sm font-medium mb-1">
+            <p className="text-sm font-medium mb-1.5">
               All balances are settled
             </p>
             <p className="text-xs text-muted-foreground">
