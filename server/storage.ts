@@ -26,6 +26,7 @@ function or(...conditions: any[]) {
 
 export interface IStorage {
   // User methods
+  getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
@@ -1148,6 +1149,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
   // User methods
+  async getUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(asc(users.name));
+  }
+  
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;

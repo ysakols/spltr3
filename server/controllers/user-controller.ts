@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import { storage } from "../storage";
 import { sanitizeUser, sanitizeUsers } from "../utils/user-utils";
 import bcrypt from "bcrypt";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, users } from "@shared/schema";
+import { db } from "../db";
 
 /**
  * Controller for user-related operations
@@ -159,8 +160,9 @@ export const UserController = {
    */
   getAllUsers: async (_req: Request, res: Response) => {
     try {
-      const users = await storage.getUsers();
-      return res.json(sanitizeUsers(users));
+      // Just use the storage interface to get all users
+      const allUsers = await storage.getUsers();
+      return res.json(sanitizeUsers(allUsers));
     } catch (error) {
       res.status(500).json({ message: 'Error retrieving users' });
     }
@@ -179,7 +181,7 @@ export const UserController = {
         return res.status(403).json({ message: 'You are not authorized to view this summary' });
       }
       
-      const summary = await storage.getUserGlobalSummary(userId);
+      const summary = await storage.calculateGlobalSummary(userId);
       res.json(summary);
     } catch (error) {
       res.status(500).json({ message: 'Error retrieving user global summary' });

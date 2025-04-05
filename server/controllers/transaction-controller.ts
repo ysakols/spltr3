@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { storage } from "../storage";
 import { insertTransactionSchema } from "@shared/schema";
-import { sanitizeUser } from "../utils/user-utils";
+import { sanitizeUser, isUserInGroup } from "../utils/user-utils";
 
 /**
  * Controller for transaction-related operations
@@ -20,7 +20,7 @@ export const TransactionController = {
       }
 
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
@@ -56,7 +56,7 @@ export const TransactionController = {
       
       // Check if user is authorized to view this transaction
       if (transaction.groupId) {
-        const isMember = await storage.isUserInGroup(userId, transaction.groupId);
+        const isMember = await isUserInGroup(userId, transaction.groupId);
         if (!isMember) {
           return res.status(403).json({ message: 'Not authorized to access this transaction' });
         }
@@ -90,7 +90,7 @@ export const TransactionController = {
       
       // If transaction is tied to a group, ensure user is a member
       if (transactionData.groupId) {
-        const isMember = await storage.isUserInGroup(userId, transactionData.groupId);
+        const isMember = await isUserInGroup(userId, transactionData.groupId);
         if (!isMember) {
           return res.status(403).json({ message: 'Not authorized to create transactions in this group' });
         }
@@ -242,8 +242,8 @@ export const TransactionController = {
       
       // If for a group, check membership
       if (groupId) {
-        const isFromUserInGroup = await storage.isUserInGroup(fromUserId, groupId);
-        const isToUserInGroup = await storage.isUserInGroup(toUserId, groupId);
+        const isFromUserInGroup = await isUserInGroup(fromUserId, groupId);
+        const isToUserInGroup = await isUserInGroup(toUserId, groupId);
         
         if (!isFromUserInGroup || !isToUserInGroup) {
           return res.status(403).json({ message: 'Both users must be members of the group' });
@@ -318,7 +318,7 @@ export const TransactionController = {
       }
       
       // Check if user is in the group
-      const isMember = await storage.isUserInGroup(userId, Number(groupId));
+      const isMember = await isUserInGroup(userId, Number(groupId));
       if (!isMember) {
         return res.status(403).json({ message: 'Not authorized to access this group' });
       }
