@@ -1,0 +1,310 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 98%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    /* Primary color with shades */
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --primary-50: 140 76.2% 97.3%;
+    --primary-100: 141 76.2% 94.3%;
+    --primary-200: 141.5 76.2% 84.3%;
+    --primary-300: 142 76.2% 74.3%;
+    --primary-400: 142 76.2% 54.3%;
+    --primary-500: 142.1 76.2% 36.3%;
+    --primary-600: 142.2 76.2% 30.3%;
+    --primary-700: 142.5 76.2% 24.3%;
+    --primary-800: 143 76.2% 18.3%;
+    --primary-900: 143.5 76.2% 12.3%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142.1 76.2% 36.3%;
+
+    /* Financial semantic colors */
+    --expense: 0 84.2% 60.2%;
+    --expense-foreground: 0 0% 98%;
+    --income: 142.1 76.2% 36.3%;
+    --income-foreground: 355.7 100% 97.3%;
+    --neutral: 240 3.8% 46.1%;
+    --neutral-foreground: 0 0% 98%;
+
+    --radius: 0.25rem;
+  }
+
+  .dark {
+    --background: 20 14.3% 4.1%;
+    --foreground: 0 0% 95%;
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Primary color with shades in dark mode */
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --primary-50: 140 70.6% 12.3%;
+    --primary-100: 141 70.6% 15.3%;
+    --primary-200: 141.5 70.6% 20.3%;
+    --primary-300: 142 70.6% 25.3%;
+    --primary-400: 142 70.6% 35.3%;
+    --primary-500: 142.1 70.6% 45.3%;
+    --primary-600: 142.2 70.6% 55.3%;
+    --primary-700: 142.5 70.6% 65.3%;
+    --primary-800: 143 70.6% 75.3%;
+    --primary-900: 143.5 70.6% 85.3%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.4 71.8% 29.2%;
+
+    /* Financial semantic colors in dark mode */
+    --expense: 0 62.8% 30.6%;
+    --expense-foreground: 0 85.7% 97.3%;
+    --income: 142.4 71.8% 29.2%;
+    --income-foreground: 0 0% 98%;
+    --neutral: 240 5% 64.9%;
+    --neutral-foreground: 0 0% 9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    text-transform: lowercase;
+  }
+  body {
+    @apply bg-background text-foreground font-mono;
+    font-feature-settings: "ss01" on, "ss03" on;
+  }
+
+  /* Preserve case for code elements and other exceptions */
+  code,
+  pre,
+  kbd {
+    text-transform: none;
+  }
+
+  /* Ensure input text is lowercase */
+  input,
+  textarea,
+  select,
+  button {
+    text-transform: lowercase;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-mono;
+    font-feature-settings: "ss01" on, "ss03" on;
+  }
+
+  /* Improve readability with slightly larger base font size */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  /* Utilitarian heading styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-medium tracking-tight font-mono;
+    letter-spacing: -0.01em;
+  }
+
+  /* Improve card readability */
+  .card {
+    @apply shadow-subtle border border-border bg-card transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-elevated;
+  }
+
+  /* Utility classes for financial amounts */
+  .amount-positive {
+    @apply text-income dark:text-income-500;
+  }
+
+  .amount-negative {
+    @apply text-expense dark:text-expense-500;
+  }
+
+  .amount-neutral {
+    @apply text-foreground;
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  .slide-in-from-bottom {
+    @apply animate-slide-up;
+  }
+
+  .slide-in-from-top {
+    @apply animate-slide-down;
+  }
+
+  /* Compact mobile styles */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-3;
+    }
+  }
+
+  /* Safe area utilities for mobile devices */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+
+@layer components {
+  /* Common component styles */
+  .expense-item {
+    @apply flex items-start justify-between gap-3 p-4 border-b border-border transition-colors hover:bg-muted/20;
+  }
+
+  .avatar-group {
+    @apply flex -space-x-2 overflow-hidden;
+  }
+
+  .avatar-group .avatar {
+    @apply border-2 border-background;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800 dark:bg-primary-800 dark:text-primary-100;
+  }
+
+  .badge-secondary {
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  .badge-outline {
+    @apply border border-border bg-transparent;
+  }
+
+  .badge-expense {
+    @apply bg-expense/10 text-expense;
+  }
+
+  .badge-income {
+    @apply bg-income/10 text-income;
+  }
+
+  /* Form styles */
+  .form-group {
+    @apply space-y-2;
+  }
+
+  .input-addon-left {
+    @apply absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground;
+  }
+
+  .input-with-addon-left {
+    @apply pl-7;
+  }
+
+  /* Navigation styles */
+  .nav-item {
+    @apply flex h-full w-full flex-col items-center justify-center transition-colors;
+  }
+
+  .nav-item-active {
+    @apply text-primary relative;
+  }
+
+  .nav-item-active::after {
+    content: "";
+    @apply absolute -top-0.5 left-1/2 -translate-x-1/2 h-0.5 w-5 bg-primary rounded-b;
+  }
+
+  .nav-item-inactive {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+
+  /* Layout utilities */
+  .layout-container {
+    @apply flex flex-col min-h-screen;
+  }
+
+  .header-fixed {
+    @apply fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b;
+  }
+
+  .footer-fixed {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-background border-t;
+  }
+
+  .main-content {
+    @apply flex-1 pt-14 pb-20 lg:pb-0;
+  }
+
+  /* Safe area insets for mobile devices */
+  @supports (padding: max(0px)) {
+    .header-fixed {
+      padding-top: max(0px, env(safe-area-inset-top));
+      height: calc(3.5rem + env(safe-area-inset-top, 0px));
+    }
+
+    .footer-fixed {
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+      height: calc(4rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .main-content {
+      padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+}
